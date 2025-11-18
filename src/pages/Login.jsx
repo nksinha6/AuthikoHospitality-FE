@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import Loader from "../components/Loader.jsx";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formState, setFormState] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, loading, login } = useAuth();
+
+  const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/", { replace: true });
+    if (!loading && isAuthenticated) {
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, loading, navigate, from]);
+
+  if (loading) {
+    return <Loader />;
+  }
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -25,7 +33,7 @@ export default function Login() {
     await new Promise((resolve) => setTimeout(resolve, 750));
     setIsSubmitting(false);
     login();
-    navigate("/", { replace: true });
+    navigate(from, { replace: true });
   };
 
   return (

@@ -31,8 +31,8 @@
 }
 
 .app-header a.active {
-  border-color: #8d7ff9;
-  background: #f6f3ff;
+  border-color: var(--primary-light);
+  background: var(--primary-lighter);
 }
 
 .eyebrow {
@@ -40,7 +40,7 @@
   text-transform: uppercase;
   font-size: 0.75rem;
   margin-bottom: 0.25rem;
-  color: #8b93b4;
+  color: var(--text-secondary);
 }
 
 main {
@@ -48,14 +48,14 @@ main {
 }
 
 .page {
-  background: #ffffff;
-  border: 1px solid rgba(206, 203, 255, 0.8);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
   border-radius: 1rem;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 20px 45px rgba(165, 168, 255, 0.15);
+  box-shadow: 0 20px 45px var(--shadow-soft);
 }
 
 .card-grid {
@@ -66,9 +66,9 @@ main {
 
 .card-grid article {
   padding: 1.25rem;
-  border: 1px solid rgba(206, 203, 255, 0.7);
+  border: 1px solid var(--border-medium);
   border-radius: 0.75rem;
-  background: #f7f4ff;
+  background: var(--bg-light);
 }
 
 .page__header {
@@ -100,21 +100,21 @@ main {
 .login-form input {
   padding: 0.75rem;
   border-radius: 0.6rem;
-  border: 1px solid rgba(183, 183, 214, 0.8);
-  background: #f7f8ff;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
   color: inherit;
   font: inherit;
 }
 
 .login-form input:focus {
-  outline: 2px solid #8a7efc;
+  outline: 2px solid var(--primary);
   border-color: transparent;
-  background: #fff;
+  background: var(--bg-white);
 }
 
 .button {
-  background: #8a7efc;
-  border: 1px solid #8a7efc;
+  background: var(--primary);
+  border: 1px solid var(--primary);
   color: white;
   font-weight: 600;
   padding: 0.5rem 1rem;
@@ -131,12 +131,12 @@ main {
 
 .button--ghost {
   background: transparent;
-  border-color: rgba(143, 141, 185, 0.5);
+  border-color: var(--border-ghost);
   color: inherit;
 }
 
 .button--ghost:hover {
-  border-color: rgba(143, 141, 185, 0.9);
+  border-color: var(--border-ghost-hover);
 }
 
 .task-list {
@@ -161,34 +161,34 @@ main {
 }
 
 .panel {
-  border: 1px solid rgba(206, 203, 255, 0.6);
+  border: 1px solid var(--border-soft);
   border-radius: 0.75rem;
   padding: 1.5rem;
-  background: #fbf9ff;
+  background: var(--bg-panel);
 }
 
 .panel ul {
   margin: 0.5rem 0 0;
   padding-left: 1rem;
-  color: #5c688c;
+  color: var(--text-tertiary);
   line-height: 1.8;
 }
 
 .tag {
   border-radius: 999px;
-  border: 1px solid rgba(143, 141, 185, 0.5);
+  border: 1px solid var(--border-ghost);
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
-  background: #f4f0ff;
-  color: #6357c7;
+  background: var(--primary-lightest);
+  color: var(--text-accent);
 }
 
 .error {
-  color: #de5f6a;
+  color: var(--error);
 }
 
 footer {
   text-align: center;
   font-size: 0.9rem;
-  color: #7c819e;
+  color: var(--text-muted);
 }

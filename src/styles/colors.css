@@ -1,0 +1,33 @@
+:root {
+  --primary: #8a7efc;
+  --primary-light: #8d7ff9;
+  --primary-lighter: #f6f3ff;
+  --primary-lightest: #f4f0ff;
+  
+  --bg-light: #f7f4ff;
+  --bg-base: #fdf9f5;
+  --bg-white: #ffffff;
+  --bg-panel: #fbf9ff;
+  --bg-input: #f7f8ff;
+  
+  --text-primary: #1f2a37;
+  --text-muted: #7c819e;
+  --text-secondary: #8b93b4;
+  --text-tertiary: #5c688c;
+  --text-accent: #6357c7;
+  
+  --border-light: rgba(206, 203, 255, 0.8);
+  --border-medium: rgba(206, 203, 255, 0.7);
+  --border-soft: rgba(206, 203, 255, 0.6);
+  --border-input: rgba(183, 183, 214, 0.8);
+  --border-ghost: rgba(143, 141, 185, 0.5);
+  --border-ghost-hover: rgba(143, 141, 185, 0.9);
+  
+  --shadow-soft: rgba(165, 168, 255, 0.15);
+  
+  --error: #de5f6a;
+  
+  --gradient-pink: rgba(255, 197, 190, 0.6);
+  --gradient-blue: rgba(196, 222, 255, 0.8);
+}
+
