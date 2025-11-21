@@ -2,46 +2,44 @@ const cards = [
   {
     title: "Currently Checked in Guests",
     value: "48",
-    description: "Users online in the past 10 minutes",
+    description: "Active check-ins right now",
   },
   {
     title: "Total Bookings",
     value: "70",
-    description: "Requests waiting for review",
+    description: "Total bookings this month",
   },
-  // {
-  //   title: "API Errors",
-  //   value: "0.4%",
-  //   description: "Failure rate today",
-  // },
 ];
 
 export default function Dashboard() {
   return (
-    <section className="page">
-      <header className="page__header">
-        <div>
-          <p className="eyebrow">Overview</p>
-          <h1>Dashboard</h1>
-          <p>High-level glimpse of what is happening in OnePass right now.</p>
-        </div>
-        <div className="tag">Demo data</div>
-      </header>
+    <div>
+      <h1 className="h-page-title">Dashboard</h1>
+      <p className="text-muted" style={{ marginTop: "8px", marginBottom: "24px" }}>
+        Overview of your OnePass operations
+      </p>
 
-      <div className="card-grid">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "24px" }}>
         {cards.map((card) => (
-          <article key={card.title}>
-            <p className="eyebrow">{card.title}</p>
-            <h2>{card.value}</h2>
-            <p>{card.description}</p>
-          </article>
+          <div key={card.title} className="card">
+            <div className="text-meta" style={{ marginBottom: "8px" }}>
+              {card.title}
+            </div>
+            <div className="card-metric-main">{card.value}</div>
+            <div className="card-metric-secondary">{card.description}</div>
+          </div>
         ))}
       </div>
 
-      <div className="panel">
-        <h3>Recent Activity</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2 className="h-card-title">Recent Activity</h2>
+        </div>
+        <div className="text-body" style={{ color: "var(--color-text-muted)" }}>
+          No recent activity to display
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 

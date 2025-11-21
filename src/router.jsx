@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import CheckIns from "./pages/CheckIns.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: "/", element: <Dashboard /> },
+      { path: "/check-ins", element: <CheckIns /> },
     ],
   },
   {

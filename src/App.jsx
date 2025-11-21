@@ -1,10 +1,11 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import "./App.css";
 import { useAuth } from "./context/AuthContext.jsx";
 
 export default function App() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -13,21 +14,47 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">OnePass</p>
-          <h1>Control Center</h1>
+      <nav className="app-nav">
+        <div style={{ marginBottom: "32px", padding: "0 8px" }}>
+          <h1 className="h-page-title" style={{ fontSize: "20px", margin: 0 }}>
+            OnePass
+          </h1>
         </div>
-        <nav>
-          <NavLink to="/">Dashboard</NavLink>
-          <button className="button button--ghost" type="button" onClick={handleLogout}>
-            Logout
-          </button>
-        </nav>
-      </header>
-      <main>
-        <Outlet />
-      </main>
+
+        <div className="nav-section-label">Main</div>
+        {/* <NavLink
+          to="/"
+          className={`nav-item ${location.pathname === "/" ? "nav-item--active" : ""}`}
+        >
+          <span>Dashboard</span>
+        </NavLink> */}
+
+        <NavLink
+          to="/check-ins"
+          className={`nav-item ${location.pathname === "/check-ins" ? "nav-item--active" : ""}`}
+        >
+          <span>Check-ins</span>
+        </NavLink>
+      </nav>
+
+      <div className="app-main">
+        <div className="app-topbar">
+          <div style={{ flex: 1 }}></div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="app-content">
+          <Outlet />
+        </div>
+      </div>
     </div>
   );
 }

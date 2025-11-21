@@ -37,40 +37,56 @@ export default function Login() {
   };
 
   return (
-    <section className="page login">
-      <header>
-        <p className="eyebrow">OnePass Console</p>
-        <h1>Sign in to your account</h1>
-        <p>Use any email/password to continue for now.</p>
-      </header>
-      <form className="login-form" onSubmit={onSubmit}>
-        <label>
-          Email
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="you@example.com"
-            value={formState.email}
-            onChange={onChange}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            required
-            placeholder="••••••••"
-            value={formState.password}
-            onChange={onChange}
-          />
-        </label>
-        <button className="button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </section>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div className="card" style={{ maxWidth: "400px", width: "100%" }}>
+        <div style={{ marginBottom: "24px" }}>
+          <h1 className="h-page-title">Sign in</h1>
+          <p className="text-muted" style={{ marginTop: "8px" }}>
+            Use any email/password to continue
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div>
+            <label htmlFor="email" className="text-meta" style={{ display: "block", marginBottom: "6px" }}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              className="input"
+              required
+              placeholder="you@example.com"
+              value={formState.email}
+              onChange={onChange}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="text-meta" style={{ display: "block", marginBottom: "6px" }}>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              className="input"
+              required
+              placeholder="••••••••"
+              value={formState.password}
+              onChange={onChange}
+            />
+          </div>
+
+          <div style={{ marginTop: "8px" }}>
+            <button type="submit" className="button button-primary" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in…" : "Sign in"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
