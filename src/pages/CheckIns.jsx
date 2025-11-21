@@ -1,93 +1,109 @@
 import { useState } from "react";
+import { useForm } from "../hooks/useForm.js";
+import { checkInService } from "../services/checkInService.js";
+import { UI_TEXT, FORM_FIELDS } from "../constants/ui.js";
+
+const INITIAL_FORM_VALUES = {
+  [FORM_FIELDS.BOOKING_ID]: "",
+  [FORM_FIELDS.GUEST_NAME]: "",
+  [FORM_FIELDS.NUMBER_OF_GUESTS]: "",
+};
 
 export default function CheckIns() {
-  const [formState, setFormState] = useState({
-    bookingId: "",
-    guestName: "",
-    numberOfGuests: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { values, isSubmitting, setIsSubmitting, handleChange, resetForm } = useForm(INITIAL_FORM_VALUES);
 
-  const onChange = (event) => {
-    const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const onSubmit = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSubmitting(false);
-    // Reset form or show success message
-    setFormState({ bookingId: "", guestName: "", numberOfGuests: "" });
+
+    try {
+      await checkInService.submitCheckIn({
+        bookingId: values[FORM_FIELDS.BOOKING_ID],
+        guestName: values[FORM_FIELDS.GUEST_NAME],
+        numberOfGuests: parseInt(values[FORM_FIELDS.NUMBER_OF_GUESTS], 10),
+      });
+      resetForm();
+    } catch (error) {
+      console.error("Check-in submission failed:", error);
+      // TODO: Add error notification/toast
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div>
-      <h1 className="h-page-title">Check-ins</h1>
-      <p className="text-muted" style={{ marginTop: "8px", marginBottom: "24px" }}>
-        Process guest check-ins by entering booking details
-      </p>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="h-page-title">{UI_TEXT.CHECK_INS_TITLE}</h1>
+        <p className="text-muted page-subtitle">{UI_TEXT.CHECK_INS_SUBTITLE}</p>
+      </div>
 
-      <div className="card" style={{ maxWidth: "600px" }}>
+      <div className="card card-container">
         <div className="card-header">
-          <h2 className="h-card-title">New Check-in</h2>
+          <h2 className="h-card-title">{UI_TEXT.CHECK_INS_FORM_TITLE}</h2>
         </div>
 
-        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div>
-            <label htmlFor="bookingId" className="text-meta" style={{ display: "block", marginBottom: "6px",fontWeight:600,color:"black" }}>
-              Booking ID
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="form-field">
+            <label htmlFor={FORM_FIELDS.BOOKING_ID} className="form-label-text">
+              {UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
             </label>
             <input
-              id="bookingId"
-              name="bookingId"
+              id={FORM_FIELDS.BOOKING_ID}
+              name={FORM_FIELDS.BOOKING_ID}
               type="text"
               className="input"
               required
-              placeholder="Enter booking ID"
-              value={formState.bookingId}
-              onChange={onChange}
+              placeholder={UI_TEXT.CHECK_INS_BOOKING_ID_PLACEHOLDER}
+              value={values[FORM_FIELDS.BOOKING_ID]}
+              onChange={handleChange}
+              aria-label={UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
             />
           </div>
 
-          <div>
-            <label htmlFor="guestName" className="text-meta" style={{ display: "block", marginBottom: "6px",fontWeight:600,color:"black" }}>
-              Guest Name
+          <div className="form-field">
+            <label htmlFor={FORM_FIELDS.GUEST_NAME} className="form-label-text">
+              {UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
             </label>
             <input
-              id="guestName"
-              name="guestName"
+              id={FORM_FIELDS.GUEST_NAME}
+              name={FORM_FIELDS.GUEST_NAME}
               type="text"
               className="input"
               required
-              placeholder="Enter guest name"
-              value={formState.guestName}
-              onChange={onChange}
+              placeholder={UI_TEXT.CHECK_INS_GUEST_NAME_PLACEHOLDER}
+              value={values[FORM_FIELDS.GUEST_NAME]}
+              onChange={handleChange}
+              aria-label={UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
             />
           </div>
 
-          <div>
-            <label htmlFor="numberOfGuests" className="text-meta" style={{ display: "block", marginBottom: "6px",fontWeight:600,color:"black" }}>
-              Number of Guests
+          <div className="form-field">
+            <label htmlFor={FORM_FIELDS.NUMBER_OF_GUESTS} className="form-label-text">
+              {UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
             </label>
             <input
-              id="numberOfGuests"
-              name="numberOfGuests"
+              id={FORM_FIELDS.NUMBER_OF_GUESTS}
+              name={FORM_FIELDS.NUMBER_OF_GUESTS}
               type="number"
               className="input"
               required
               min="1"
-              placeholder="Enter number of guests"
-              value={formState.numberOfGuests}
-              onChange={onChange}
+              placeholder={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_PLACEHOLDER}
+              value={values[FORM_FIELDS.NUMBER_OF_GUESTS]}
+              onChange={handleChange}
+              aria-label={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
             />
           </div>
 
-          <div style={{ marginTop: "8px" }}>
-            <button type="submit" className="button button-primary" disabled={isSubmitting}>
-              {isSubmitting ? "Processing..." : "Check In"}
+          <div className="form-actions">
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={isSubmitting}
+              aria-label={UI_TEXT.CHECK_INS_BUTTON}
+            >
+              {isSubmitting ? UI_TEXT.CHECK_INS_BUTTON_LOADING : UI_TEXT.CHECK_INS_BUTTON}
             </button>
           </div>
         </form>
@@ -95,4 +111,3 @@ export default function CheckIns() {
     </div>
   );
 }
-
