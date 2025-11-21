@@ -1,9 +1,10 @@
-import { createBrowserRouter } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import CheckIns from "./pages/CheckIns.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { ROUTES } from "./constants/ui.js";
 
 export const router = createBrowserRouter([
   {
@@ -13,16 +14,17 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "/", element: <Dashboard /> },
+      { path: ROUTES.DASHBOARD, element: <Dashboard /> },
+      { path: ROUTES.CHECK_INS, element: <CheckIns /> },
     ],
   },
   {
-    path: "/login",
+    path: ROUTES.LOGIN,
     element: <Login />,
   },
   {
     path: "*",
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to={ROUTES.LOGIN} replace />,
   },
 ]);
 
