@@ -18,7 +18,7 @@ export default function Login() {
   const { values, isSubmitting, setIsSubmitting, handleChange } = useForm(INITIAL_FORM_VALUES);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const from = location.state?.from?.pathname || ROUTES.DASHBOARD;
+  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -29,6 +29,7 @@ export default function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage("");
+    if(isSubmitting) return;
     setIsSubmitting(true);
 
     try {

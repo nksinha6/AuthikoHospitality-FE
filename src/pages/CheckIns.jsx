@@ -14,8 +14,8 @@ export default function CheckIns() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
-
     try {
       await checkInService.submitCheckIn({
         bookingId: values[FORM_FIELDS.BOOKING_ID],
@@ -25,7 +25,6 @@ export default function CheckIns() {
       resetForm();
     } catch (error) {
       console.error("Check-in submission failed:", error);
-      // TODO: Add error notification/toast
     } finally {
       setIsSubmitting(false);
     }
