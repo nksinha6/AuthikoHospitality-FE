@@ -1,52 +1,66 @@
 import { createContext, useContext, useMemo, useState, useEffect } from "react";
+import { STORAGE_KEYS } from "../constants/config.js";
 
 const AuthContext = createContext(undefined);
-const STORAGE_KEY = "onepass_auth";
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       if (typeof window === "undefined") {
         setLoading(false);
         return;
       }
 
-      const authStatus = window.localStorage.getItem(STORAGE_KEY) === "true";
-      
-      // If you need to verify token with API, do it here
-      // const token = localStorage.getItem("onepass_token");
-      // if (token) {
-      //   try {
-      //     const response = await apiClient.get("/auth/verify");
-      //     setIsAuthenticated(true);
-      //   } catch {
-      //     setIsAuthenticated(false);
-      //   }
-      // }
-      
-      setIsAuthenticated(authStatus);
+      // Check if access token exists and is not expired
+      const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const expiresAt = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
+
+      if (accessToken && expiresAt) {
+        const expirationTime = new Date(expiresAt).getTime();
+        const currentTime = Date.now();
+
+        // Check if token is expired (with 5 minute buffer)
+        if (expirationTime > currentTime + 5 * 60 * 1000) {
+          setIsAuthenticated(true);
+        } else {
+          // Token expired, clear storage
+          clearAuthData();
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+
       setLoading(false);
     };
 
     checkAuth();
   }, []);
 
-  const login = () => {
+  const clearAuthData = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEYS.AUTH);
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
+    }
+  };
+
+  const login = (tokens) => {
     setIsAuthenticated(true);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, "true");
+      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+      localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, tokens.expiresAt);
     }
   };
 
   const logout = () => {
     setIsAuthenticated(false);
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-      window.localStorage.removeItem("onepass_token");
-    }
+    clearAuthData();
   };
 
   const value = useMemo(

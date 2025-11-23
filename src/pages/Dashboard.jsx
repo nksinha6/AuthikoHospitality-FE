@@ -1,47 +1,46 @@
-const cards = [
+import { UI_TEXT } from "../constants/ui.js";
+
+const DASHBOARD_CARDS = [
   {
-    title: "Currently Checked in Guests",
+    id: "checked-in",
+    title: UI_TEXT.DASHBOARD_CARD_CHECKED_IN,
     value: "48",
-    description: "Users online in the past 10 minutes",
+    description: UI_TEXT.DASHBOARD_CARD_CHECKED_IN_DESC,
   },
   {
-    title: "Total Bookings",
+    id: "total-bookings",
+    title: UI_TEXT.DASHBOARD_CARD_TOTAL_BOOKINGS,
     value: "70",
-    description: "Requests waiting for review",
+    description: UI_TEXT.DASHBOARD_CARD_TOTAL_BOOKINGS_DESC,
   },
-  // {
-  //   title: "API Errors",
-  //   value: "0.4%",
-  //   description: "Failure rate today",
-  // },
 ];
 
 export default function Dashboard() {
   return (
-    <section className="page">
-      <header className="page__header">
-        <div>
-          <p className="eyebrow">Overview</p>
-          <h1>Dashboard</h1>
-          <p>High-level glimpse of what is happening in OnePass right now.</p>
-        </div>
-        <div className="tag">Demo data</div>
-      </header>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="h-page-title">{UI_TEXT.DASHBOARD_TITLE}</h1>
+        <p className="text-muted page-subtitle">{UI_TEXT.DASHBOARD_SUBTITLE}</p>
+      </div>
 
-      <div className="card-grid">
-        {cards.map((card) => (
-          <article key={card.title}>
-            <p className="eyebrow">{card.title}</p>
-            <h2>{card.value}</h2>
-            <p>{card.description}</p>
-          </article>
+      <div className="grid-cards">
+        {DASHBOARD_CARDS.map((card) => (
+          <div key={card.id} className="card">
+            <div className="text-meta mb-2">{card.title}</div>
+            <div className="card-metric-main">{card.value}</div>
+            <div className="card-metric-secondary">{card.description}</div>
+          </div>
         ))}
       </div>
 
-      <div className="panel">
-        <h3>Recent Activity</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2 className="h-card-title">{UI_TEXT.DASHBOARD_RECENT_ACTIVITY}</h2>
+        </div>
+        <div className="text-body text-muted">
+          {UI_TEXT.DASHBOARD_NO_ACTIVITY}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
-

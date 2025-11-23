@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useForm } from "../hooks/useForm.js";
+import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
+import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
+
+const INITIAL_FORM_VALUES = {
+  [FORM_FIELDS.USER_ID]: "",
+  [FORM_FIELDS.PASSWORD]: "",
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [formState, setFormState] = useState({ email: "", password: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { isAuthenticated, loading, login } = useAuth();
+  const { values, isSubmitting, setIsSubmitting, handleChange } = useForm(INITIAL_FORM_VALUES);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -18,59 +26,95 @@ export default function Login() {
     }
   }, [isAuthenticated, loading, navigate, from]);
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage("");
+    if(isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const tokens = await authService.login({
+        userId: values[FORM_FIELDS.USER_ID],
+        password: values[FORM_FIELDS.PASSWORD],
+      });
+
+      login(tokens);
+      navigate(from, { replace: true });
+    } catch (error) {
+      setErrorMessage(error.message || "Login failed. Please try again.");
+      console.error("Login failed:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <Loader />;
   }
 
-  const onChange = (event) => {
-    const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const onSubmit = async (event) => {
-    event.preventDefault();
-    setIsSubmitting(true); 
-    await new Promise((resolve) => setTimeout(resolve, 750));
-    setIsSubmitting(false);
-    login();
-    navigate(from, { replace: true });
-  };
-
   return (
-    <section className="page login">
-      <header>
-        <p className="eyebrow">OnePass Console</p>
-        <h1>Sign in to your account</h1>
-        <p>Use any email/password to continue for now.</p>
-      </header>
-      <form className="login-form" onSubmit={onSubmit}>
-        <label>
-          Email
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="you@example.com"
-            value={formState.email}
-            onChange={onChange}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            required
-            placeholder="••••••••"
-            value={formState.password}
-            onChange={onChange}
-          />
-        </label>
-        <button className="button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </section>
+    <div className="login-container">
+      <div className="card card-container-narrow">
+        <div className="login-header">
+          <h1 className="h-page-title">{UI_TEXT.LOGIN_TITLE}</h1>
+          <p className="text-muted login-subtitle">{UI_TEXT.LOGIN_SUBTITLE}</p>
+        </div>
+
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="form-field">
+            <label htmlFor={FORM_FIELDS.USER_ID} className="form-label-text">
+              {UI_TEXT.LOGIN_EMAIL_LABEL}
+            </label>
+            <input
+              id={FORM_FIELDS.USER_ID}
+              type="text"
+              name={FORM_FIELDS.USER_ID}
+              className="input"
+              required
+              placeholder={UI_TEXT.LOGIN_EMAIL_PLACEHOLDER}
+              value={values[FORM_FIELDS.USER_ID]}
+              onChange={handleChange}
+              autoComplete="username"
+              aria-label={UI_TEXT.LOGIN_EMAIL_LABEL}
+            />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor={FORM_FIELDS.PASSWORD} className="form-label-text">
+              {UI_TEXT.LOGIN_PASSWORD_LABEL}
+            </label>
+            <input
+              id={FORM_FIELDS.PASSWORD}
+              type="password"
+              name={FORM_FIELDS.PASSWORD}
+              className="input"
+              required
+              placeholder={UI_TEXT.LOGIN_PASSWORD_PLACEHOLDER}
+              value={values[FORM_FIELDS.PASSWORD]}
+              onChange={handleChange}
+              autoComplete="current-password"
+              aria-label={UI_TEXT.LOGIN_PASSWORD_LABEL}
+            />
+          </div>
+
+          {errorMessage && (
+            <div className="error" role="alert" aria-live="polite">
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="form-actions">
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={isSubmitting}
+              aria-label={UI_TEXT.LOGIN_BUTTON}
+            >
+              {isSubmitting ? UI_TEXT.LOGIN_BUTTON_LOADING : UI_TEXT.LOGIN_BUTTON}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
-
