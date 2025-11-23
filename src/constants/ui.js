@@ -11,9 +11,9 @@ export const UI_TEXT = {
   
   // Login
   LOGIN_TITLE: "Sign in",
-  LOGIN_SUBTITLE: "Use any email/password to continue",
-  LOGIN_EMAIL_LABEL: "Email",
-  LOGIN_EMAIL_PLACEHOLDER: "you@example.com",
+  LOGIN_SUBTITLE: "Enter your user ID and password to continue",
+  LOGIN_EMAIL_LABEL: "User ID",
+  LOGIN_EMAIL_PLACEHOLDER: "abc@xyz.com",
   LOGIN_PASSWORD_LABEL: "Password",
   LOGIN_PASSWORD_PLACEHOLDER: "••••••••",
   LOGIN_BUTTON: "Sign in",
@@ -48,7 +48,8 @@ export const UI_TEXT = {
 
 // Form Field Names
 export const FORM_FIELDS = {
-  EMAIL: "email",
+  USER_ID: "userId",
+  EMAIL: "email", // Kept for backward compatibility
   PASSWORD: "password",
   BOOKING_ID: "bookingId",
   GUEST_NAME: "guestName",

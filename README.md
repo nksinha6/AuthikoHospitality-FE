@@ -17,6 +17,24 @@ See [STYLE_GUIDE.md](./STYLE_GUIDE.md) for complete guidelines and color system 
 
 ## Getting Started
 
+### Environment Variables
+
+Create environment files for different environments:
+
+**`.env.development`** (for local development):
+```env
+VITE_API_BASE_URL=https://whale-app-tcfko.ondigitalocean.app
+```
+
+**`.env.production`** (for production builds):
+```env
+VITE_API_BASE_URL=https://whale-app-tcfko.ondigitalocean.app
+```
+
+**Note:** Vite requires the `VITE_` prefix for environment variables to be exposed to the client.
+
+### Installation & Running
+
 ```bash
 npm install
 npm run dev
@@ -24,5 +42,12 @@ npm run dev
 
 The dev server runs at <http://localhost:5173>. Update files inside `src/` to
 start building your application. By default, the app shows the login screen; the
-dashboard becomes accessible only after a successful sign-in (guarded entirely
-on the client for now).
+dashboard becomes accessible only after a successful sign-in.
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The production build will use the `.env.production` file for the API base URL.

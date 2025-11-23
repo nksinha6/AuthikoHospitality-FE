@@ -112,6 +112,8 @@
 
 .login-subtitle {
   margin-top: var(--space-2);
+  display: flex;
+  justify-content: center;
 }
 
 /* Navigation specific */
