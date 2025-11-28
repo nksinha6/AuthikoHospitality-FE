@@ -252,11 +252,11 @@ body {
 }
 
 .table tbody tr:hover {
-  background-color: #EDF0F5;
+  background-color: var(--color-grey-50);
 }
 
 .table-num {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 

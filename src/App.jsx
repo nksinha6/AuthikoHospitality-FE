@@ -37,6 +37,13 @@ export default function App() {
         >
           <span>{UI_TEXT.NAV_CHECK_INS}</span>
         </NavLink>
+        <NavLink
+          to={ROUTES.BOOKINGS}
+          className={`nav-item ${isActiveRoute(ROUTES.BOOKINGS) ? "nav-item--active" : ""}`}
+          aria-current={isActiveRoute(ROUTES.BOOKINGS) ? "page" : undefined}
+        >
+          <span>{UI_TEXT.NAV_BOOKINGS}</span>
+        </NavLink>
       </nav>
 
       <div className="app-main">

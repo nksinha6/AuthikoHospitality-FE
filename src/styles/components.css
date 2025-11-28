@@ -3,13 +3,13 @@
 /* Form styles */
 .form {
   display: flex;
-  flex-direction: column;
   gap: var(--space-4);
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
+  width: 20em;
 }
 
 .form-label {
@@ -31,6 +31,8 @@
 
 .form-actions {
   margin-top: var(--space-2);
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Layout utilities */
@@ -46,6 +48,12 @@
 .page-subtitle {
   margin-top: var(--space-2);
   margin-bottom: var(--space-6);
+  display: flex;
+  justify-content: center;
+}
+
+.no-margin-bottom{
+  margin-bottom: 0px !important;
 }
 
 .card-container {
@@ -55,6 +63,12 @@
 .card-container-narrow {
   max-width: 400px;
   width: 100%;
+}
+
+.card-container-wide {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 /* Grid layouts */
@@ -135,5 +149,187 @@
 /* Text utilities */
 .text-body.text-muted {
   color: var(--color-text-muted);
+}
+.empty-state {
+  padding: var(--space-6);
+  text-align: center;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table-actions-column {
+  width: 120px;
+}
+
+.table-num-column {
+  width: 100px;
+  min-width: 80px;
+}
+
+.booking-id {
+  font-weight: 500;
+}
+
+/* Table input styles */
+.table input.input {
+  width: 100%;
+  min-width: 150px;
+}
+
+/* Form actions with gap */
+.form-actions.flex-gap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+/* Verified icon */
+.verified-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Step indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: 0 var(--space-4);
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+}
+
+.step-number--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.step-number--completed {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.step-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.step-label--active {
+  color: var(--color-text-main);
+}
+
+.step-connector {
+  width: 60px;
+  height: 2px;
+  background: var(--color-border-strong);
+  margin: 0 var(--space-2);
+  transition: background 0.2s ease;
+}
+
+.step-connector--completed {
+  background: var(--color-success);
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.modal-container {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  max-width: 1200px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: var(--color-grey-100);
+  color: var(--color-text-main);
+}
+
+.modal-container .form {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modal-container .form-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.modal-container .step-indicator {
+  padding: 0 var(--space-6);
+  margin-bottom: var(--space-6);
+  margin-top: var(--space-3);
 }
 

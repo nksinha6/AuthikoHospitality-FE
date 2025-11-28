@@ -1,61 +1,108 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useForm } from "../hooks/useForm.js";
 import { checkInService } from "../services/checkInService.js";
 import { UI_TEXT, FORM_FIELDS } from "../constants/ui.js";
 
-const INITIAL_FORM_VALUES = {
-  [FORM_FIELDS.BOOKING_ID]: "",
-  [FORM_FIELDS.GUEST_NAME]: "",
-  [FORM_FIELDS.NUMBER_OF_GUESTS]: "",
+const createInitialGuestDetails = (count, primaryGuestName) => {
+  const guests = [];
+  for (let i = 0; i < count; i++) {
+    guests.push({
+      id: i + 1,
+      guestName: i === 0 ? primaryGuestName : "",
+      mobileNumber: "",
+      aadharVerified: false,
+      faceIdVerified: false,
+      timestamp: null,
+    });
+  }
+  return guests;
 };
 
-export default function CheckIns() {
-  const { values, isSubmitting, setIsSubmitting, handleChange, resetForm } = useForm(INITIAL_FORM_VALUES);
+export default function CheckInModal({ booking, isOpen, onClose, onCheckInComplete }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [guestDetails, setGuestDetails] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const INITIAL_FORM_VALUES = {
+    [FORM_FIELDS.BOOKING_ID]: booking?.bookingId || "",
+    [FORM_FIELDS.GUEST_NAME]: booking?.guestName || "",
+    [FORM_FIELDS.NUMBER_OF_GUESTS]: booking?.numberOfGuests?.toString() || "",
+  };
+
+  const { values, handleChange, resetForm, setFieldValue } = useForm(INITIAL_FORM_VALUES);
+
+  // Pre-fill form when booking changes
+  useEffect(() => {
+    if (booking && isOpen) {
+      setFieldValue(FORM_FIELDS.BOOKING_ID, booking.bookingId);
+      setFieldValue(FORM_FIELDS.GUEST_NAME, booking.guestName);
+      setFieldValue(FORM_FIELDS.NUMBER_OF_GUESTS, booking.numberOfGuests?.toString() || "");
+      setCurrentStep(1);
+      setGuestDetails([]);
+    }
+  }, [booking, isOpen, setFieldValue]);
 
   const numberOfGuests = parseInt(values[FORM_FIELDS.NUMBER_OF_GUESTS], 10) || 0;
+  const isStep1Complete =
+    values[FORM_FIELDS.BOOKING_ID] &&
+    values[FORM_FIELDS.GUEST_NAME] &&
+    numberOfGuests > 0;
 
-  const handleNext = (event) => {
-    event.preventDefault();
-    if (numberOfGuests > 0) {
-      // Initialize guest details array
-      const initialGuests = Array.from({ length: numberOfGuests }, (_, index) => ({
-        id: index + 1,
-        guestName: "",
-        mobileNumber: "",
-        aadharVerified: false,
-        faceIdVerified: false,
-        timestamp: null,
-      }));
-      setGuestDetails(initialGuests);
-      setCurrentStep(2);
-    }
-  };
+  const handleNext = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (isStep1Complete) {
+        setGuestDetails(
+          createInitialGuestDetails(
+            numberOfGuests,
+            values[FORM_FIELDS.GUEST_NAME]
+          )
+        );
+        setCurrentStep(2);
+      }
+    },
+    [isStep1Complete, numberOfGuests, values]
+  );
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setCurrentStep(1);
     setGuestDetails([]);
-  };
+  }, []);
 
   const handleGuestDetailChange = useCallback((index, field, value) => {
     setGuestDetails((prev) => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-      };
-      // Auto-verify Aadhar when both name and mobile are filled
-      if (
-        (field === "guestName" || field === "mobileNumber") &&
-        updated[index].guestName.trim() !== "" &&
-        updated[index].mobileNumber.trim() !== ""
-      ) {
-        updated[index].aadharVerified = true;
+      updated[index] = { ...updated[index], [field]: value };
+
+      // Auto-verify Aadhar if name and mobile are filled
+      if (field === "guestName" || field === "mobileNumber") {
+        const { guestName, mobileNumber } = updated[index];
+        if (guestName && mobileNumber) {
+          updated[index].aadharVerified = true;
+        } else {
+          updated[index].aadharVerified = false;
+        }
       }
       return updated;
     });
   }, []);
+
+  const isGuestRowComplete = useCallback((guest) => {
+    return guest.guestName.trim() !== "" && guest.mobileNumber.trim() !== "";
+  }, []);
+
+  const isGuestFullyComplete = useCallback((guest) => {
+    return (
+      isGuestRowComplete(guest) &&
+      guest.aadharVerified &&
+      guest.faceIdVerified &&
+      guest.timestamp !== null
+    );
+  }, [isGuestRowComplete]);
+
+  const isAllGuestsFullyComplete = useMemo(() => {
+    return guestDetails.every(isGuestFullyComplete);
+  }, [guestDetails, isGuestFullyComplete]);
 
   const handleAutoVerify = useCallback((index) => {
     setGuestDetails((prev) => {
@@ -81,92 +128,97 @@ export default function CheckIns() {
     });
   }, []);
 
-  const handleViewDetails = useCallback((index) => {
-    console.log("View details for guest:", guestDetails[index]);
-  }, [guestDetails]);
-
-  const isGuestRowComplete = useCallback((guest) => {
-    return guest.guestName.trim() !== "" && guest.mobileNumber.trim() !== "";
-  }, []);
-
-  const isGuestFullyComplete = useCallback((guest) => {
-    return (
-      isGuestRowComplete(guest) &&
-      guest.aadharVerified &&
-      guest.faceIdVerified &&
-      guest.timestamp !== null
-    );
-  }, [isGuestRowComplete]);
-
-  const handleSubmit = async (event) => {
+  const handleCheckInSubmit = async (event) => {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !isAllGuestsFullyComplete) return;
     setIsSubmitting(true);
 
     try {
       await checkInService.submitCheckIn({
         bookingId: values[FORM_FIELDS.BOOKING_ID],
-        guestName: values[FORM_FIELDS.GUEST_NAME],
+        primaryGuestName: values[FORM_FIELDS.GUEST_NAME],
         numberOfGuests: numberOfGuests,
         guestDetails: guestDetails,
       });
+
+      // Call the completion callback
+      if (onCheckInComplete) {
+        onCheckInComplete(booking?.id || values[FORM_FIELDS.BOOKING_ID]);
+      }
+
+      // Reset and close
       resetForm();
-      setCurrentStep(1);
       setGuestDetails([]);
+      setCurrentStep(1);
+      onClose();
     } catch (error) {
       console.error("Check-in submission failed:", error);
+      // TODO: Show error notification
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleOverlayClick = useCallback(
+    (event) => {
+      if (event.target === event.currentTarget) {
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
+  if (!isOpen) return null;
+
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="h-page-title">{UI_TEXT.CHECK_INS_TITLE}</h1>
-        <p className="text-muted page-subtitle">{UI_TEXT.CHECK_INS_SUBTITLE}</p>
-      </div>
-
-      <div className="step-indicator">
-        <div className="step-item">
-          <div
-            className={`step-number ${currentStep === 1 ? "step-number--active" : currentStep > 1 ? "step-number--completed" : ""}`}
+    <div className="modal-overlay" onClick={handleOverlayClick}>
+      <div className="modal-container">
+        <div className="modal-header">
+          <h2 className="h-card-title">{UI_TEXT.CHECK_INS_FORM_TITLE}</h2>
+          <button
+            type="button"
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Close modal"
           >
-            1
-          </div>
-          <span className={`step-label ${currentStep === 1 ? "step-label--active" : ""}`}>
-            {UI_TEXT.CHECK_INS_STEP_1_TITLE}
-          </span>
+            ×
+          </button>
         </div>
-        <div className={`step-connector ${currentStep > 1 ? "step-connector--completed" : ""}`}></div>
-        <div className="step-item">
-          <div
-            className={`step-number ${currentStep === 2 ? "step-number--active" : currentStep > 2 ? "step-number--completed" : ""}`}
-          >
-            2
-          </div>
-          <span className={`step-label ${currentStep === 2 ? "step-label--active" : ""}`}>
-            {UI_TEXT.CHECK_INS_STEP_2_TITLE}
-          </span>
-        </div>
-      </div>
 
-      <div className="card card-container-wide">
-        <div className="card-header no-margin-bottom ">
-          <h2 className="h-card-title">
-            {currentStep === 1 ? UI_TEXT.CHECK_INS_STEP_1_TITLE : UI_TEXT.CHECK_INS_STEP_2_TITLE}
-          </h2>
+        <div className="step-indicator">
+          <div className="step-item">
+            <div
+              className={`step-number ${currentStep === 1 ? "step-number--active" : currentStep > 1 ? "step-number--completed" : ""}`}
+            >
+              1
+            </div>
+            <span className={`step-label ${currentStep === 1 ? "step-label--active" : ""}`}>
+              {UI_TEXT.CHECK_INS_STEP_1_TITLE}
+            </span>
+          </div>
+          <div
+            className={`step-connector ${currentStep > 1 ? "step-connector--completed" : ""}`}
+          ></div>
+          <div className="step-item">
+            <div
+              className={`step-number ${currentStep === 2 ? "step-number--active" : ""}`}
+            >
+              2
+            </div>
+            <span className={`step-label ${currentStep === 2 ? "step-label--active" : ""}`}>
+              {UI_TEXT.CHECK_INS_STEP_2_TITLE}
+            </span>
+          </div>
         </div>
 
         {currentStep === 1 ? (
-          <div>
-          <form className="form" >
+          <form className="form" onSubmit={handleNext}>
             <div className="form-field">
-              <label htmlFor={FORM_FIELDS.BOOKING_ID} className="form-label-text">
+              <label htmlFor={`modal-${FORM_FIELDS.BOOKING_ID}`} className="form-label-text">
                 {UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
               </label>
               <input
-                id={FORM_FIELDS.BOOKING_ID}
+                id={`modal-${FORM_FIELDS.BOOKING_ID}`}
                 name={FORM_FIELDS.BOOKING_ID}
                 type="text"
                 className="input"
@@ -179,11 +231,11 @@ export default function CheckIns() {
             </div>
 
             <div className="form-field">
-              <label htmlFor={FORM_FIELDS.GUEST_NAME} className="form-label-text">
+              <label htmlFor={`modal-${FORM_FIELDS.GUEST_NAME}`} className="form-label-text">
                 {UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
               </label>
               <input
-                id={FORM_FIELDS.GUEST_NAME}
+                id={`modal-${FORM_FIELDS.GUEST_NAME}`}
                 name={FORM_FIELDS.GUEST_NAME}
                 type="text"
                 className="input"
@@ -196,11 +248,11 @@ export default function CheckIns() {
             </div>
 
             <div className="form-field">
-              <label htmlFor={FORM_FIELDS.NUMBER_OF_GUESTS} className="form-label-text">
+              <label htmlFor={`modal-${FORM_FIELDS.NUMBER_OF_GUESTS}`} className="form-label-text">
                 {UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
               </label>
               <input
-                id={FORM_FIELDS.NUMBER_OF_GUESTS}
+                id={`modal-${FORM_FIELDS.NUMBER_OF_GUESTS}`}
                 name={FORM_FIELDS.NUMBER_OF_GUESTS}
                 type="number"
                 className="input"
@@ -213,23 +265,23 @@ export default function CheckIns() {
               />
             </div>
 
-          </form>
-          <div className="form-actions">
+            <div className="form-actions">
               <button
-                type="submit" onClick={handleNext}
+                type="submit"
                 className="button button-primary"
-                disabled={isSubmitting || numberOfGuests <= 0}
+                disabled={!isStep1Complete || isSubmitting}
                 aria-label={UI_TEXT.CHECK_INS_BUTTON_NEXT}
               >
                 {UI_TEXT.CHECK_INS_BUTTON_NEXT}
               </button>
             </div>
-            </div>
+          </form>
         ) : (
-          <div>
+          <form className="form" onSubmit={handleCheckInSubmit}>
             <div className="mb-6">
-              <p className="text-body text-muted no-margin-bottom ">
-                {UI_TEXT.CHECK_INS_GUEST_DETAILS_TITLE} ({numberOfGuests} {numberOfGuests === 1 ? "guest" : "guests"})
+              <p className="text-body text-muted no-margin-bottom">
+                {UI_TEXT.CHECK_INS_GUEST_DETAILS_TITLE} ({numberOfGuests}{" "}
+                {numberOfGuests === 1 ? "guest" : "guests"})
               </p>
             </div>
 
@@ -262,7 +314,9 @@ export default function CheckIns() {
                             className="input"
                             placeholder={UI_TEXT.CHECK_INS_GUEST_NAME_PLACEHOLDER}
                             value={guest.guestName}
-                            onChange={(e) => handleGuestDetailChange(index, "guestName", e.target.value)}
+                            onChange={(e) =>
+                              handleGuestDetailChange(index, "guestName", e.target.value)
+                            }
                             aria-label={`${UI_TEXT.CHECK_INS_COLUMN_GUEST_NAME} ${guest.id}`}
                           />
                         </td>
@@ -272,7 +326,9 @@ export default function CheckIns() {
                             className="input"
                             placeholder={UI_TEXT.CHECK_INS_MOBILE_PLACEHOLDER}
                             value={guest.mobileNumber}
-                            onChange={(e) => handleGuestDetailChange(index, "mobileNumber", e.target.value)}
+                            onChange={(e) =>
+                              handleGuestDetailChange(index, "mobileNumber", e.target.value)
+                            }
                             aria-label={`${UI_TEXT.CHECK_INS_COLUMN_MOBILE} ${guest.id}`}
                           />
                         </td>
@@ -285,7 +341,9 @@ export default function CheckIns() {
                                 className="verified-icon"
                                 aria-label={UI_TEXT.CHECK_INS_AADHAR_VERIFIED}
                               />
-                              <span className="text-body text-muted">{UI_TEXT.CHECK_INS_AADHAR_VERIFIED}</span>
+                              <span className="text-body text-muted">
+                                {UI_TEXT.CHECK_INS_AADHAR_VERIFIED}
+                              </span>
                             </div>
                           ) : (
                             <span className="text-body text-muted">—</span>
@@ -299,7 +357,7 @@ export default function CheckIns() {
                                 className="button button-secondary"
                                 onClick={() => handleAutoVerify(index)}
                                 disabled={guest.faceIdVerified}
-                                aria-label={`${UI_TEXT.CHECK_INS_FACE_ID_AUTO} ${guest.id}`}
+                                aria-label={`${UI_TEXT.CHECK_INS_FACE_ID_AUTO} ${index + 1}`}
                               >
                                 {UI_TEXT.CHECK_INS_FACE_ID_AUTO}
                               </button>
@@ -308,7 +366,7 @@ export default function CheckIns() {
                                 className="button button-secondary"
                                 onClick={() => handleManualVerify(index)}
                                 disabled={guest.faceIdVerified}
-                                aria-label={`${UI_TEXT.CHECK_INS_FACE_ID_MANUAL} ${guest.id}`}
+                                aria-label={`${UI_TEXT.CHECK_INS_FACE_ID_MANUAL} ${index + 1}`}
                               >
                                 {UI_TEXT.CHECK_INS_FACE_ID_MANUAL}
                               </button>
@@ -319,23 +377,21 @@ export default function CheckIns() {
                         </td>
                         <td>
                           {isFullyComplete ? (
-                            <span className="text-body">{guest.timestamp}</span>
+                            <span className="text-body text-muted">{guest.timestamp}</span>
                           ) : (
                             <span className="text-body text-muted">—</span>
                           )}
                         </td>
                         <td>
-                          {isFullyComplete ? (
+                          {isFullyComplete && (
                             <button
                               type="button"
                               className="button button-secondary"
-                              onClick={() => handleViewDetails(index)}
+                              onClick={() => console.log("View details for guest:", guest.id)}
                               aria-label={`${UI_TEXT.CHECK_INS_VIEW_DETAILS} ${guest.id}`}
                             >
                               {UI_TEXT.CHECK_INS_VIEW_DETAILS}
                             </button>
-                          ) : (
-                            <span className="text-body text-muted">—</span>
                           )}
                         </td>
                       </tr>
@@ -355,22 +411,18 @@ export default function CheckIns() {
                 {UI_TEXT.CHECK_INS_BUTTON_BACK}
               </button>
               <button
-                type="button"
+                type="submit"
                 className="button button-primary"
-                onClick={handleSubmit}
-                disabled={
-                  isSubmitting ||
-                  guestDetails.length === 0 ||
-                  !guestDetails.every((guest) => isGuestFullyComplete(guest))
-                }
+                disabled={!isAllGuestsFullyComplete || isSubmitting}
                 aria-label={UI_TEXT.CHECK_INS_BUTTON}
               >
                 {isSubmitting ? UI_TEXT.CHECK_INS_BUTTON_LOADING : UI_TEXT.CHECK_INS_BUTTON}
               </button>
             </div>
-          </div>
+          </form>
         )}
       </div>
     </div>
   );
 }
+
