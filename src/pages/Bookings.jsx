@@ -158,12 +158,16 @@ export default function Bookings() {
         <p className="text-muted page-subtitle" >{UI_TEXT.BOOKINGS_SUBTITLE}</p>
       </div>
 
-      <DateFilter
+      <div className="date-filter-wrapper">
+          <DateFilter
         label="Check-in date"
         field="checkInDate"
         value={dateFilter}
         onChange={setDateFilter}
       />
+      </div>
+
+      
 
       <div className="card">
         <div className="card-header">

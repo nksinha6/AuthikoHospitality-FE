@@ -238,8 +238,8 @@ export default function DateFilter({ label, field, value, onChange, onRemove }) 
       )}
 
       {isOpen && (
-        <div className="filter-popup-overlay">
-          <div className="filter-popup" ref={popupRef}>
+        <div className="filter-popup-wrapper" ref={popupRef}>
+          <div className="filter-popup">
             <div className="filter-popup-header">
               <h3 className="h-card-title">
                 {UI_TEXT.FILTER_BY} {label}
