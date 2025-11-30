@@ -1,13 +1,21 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import "./App.css";
 import { useAuth } from "./context/AuthContext.jsx";
+import { SearchProvider, useSearch } from "./context/SearchContext.jsx";
 import { UI_TEXT, ROUTES } from "./constants/ui.js";
 
-export default function App() {
+function AppContent() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { searchTerm, setSearchTerm, isSearchEnabled } = useSearch();
+  const [inputValue, setInputValue] = useState("");
+
+  // Reset input value when route changes
+  useEffect(() => {
+    setInputValue("");
+  }, [location.pathname]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -19,6 +27,17 @@ export default function App() {
       return location.pathname === path;
     },
     [location.pathname]
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        // Update searchTerm in context when Enter is pressed
+        setSearchTerm(inputValue);
+      }
+    },
+    [inputValue, setSearchTerm]
   );
 
   return (
@@ -48,17 +67,50 @@ export default function App() {
 
       <div className="app-main">
         <header className="app-topbar" role="banner">
-          <div className="topbar-spacer" aria-hidden="true"></div>
-          <div className="flex-gap">
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={handleLogout}
-              aria-label={UI_TEXT.BUTTON_LOGOUT}
+          <div className="search-bar-wrapper">
+            <svg
+              className="search-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
             >
-              {UI_TEXT.BUTTON_LOGOUT}
-            </button>
+              <path
+                d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M19 19L14.65 14.65"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <input
+              type="text"
+              className="input search-input"
+              placeholder={UI_TEXT.SEARCH_PLACEHOLDER}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              disabled={!isSearchEnabled}
+              aria-label="Search"
+            />
           </div>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={handleLogout}
+            aria-label={UI_TEXT.BUTTON_LOGOUT}
+          >
+            {UI_TEXT.BUTTON_LOGOUT}
+          </button>
         </header>
 
         <main className="app-content" role="main">
@@ -66,5 +118,13 @@ export default function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SearchProvider>
+      <AppContent />
+    </SearchProvider>
   );
 }

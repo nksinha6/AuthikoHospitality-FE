@@ -9,6 +9,7 @@ export const UI_TEXT = {
   NAV_CHECK_INS: "Check-ins",
   NAV_BOOKINGS: "Bookings",
   BUTTON_LOGOUT: "Logout",
+  SEARCH_PLACEHOLDER: "Search...",
   
   // Login
   LOGIN_TITLE: "Sign in",
@@ -75,6 +76,21 @@ export const UI_TEXT = {
   BOOKINGS_STATUS_CHECKED_IN: "Checked In",
   BOOKINGS_STATUS_NOT_CHECKED_IN: "Not Checked In",
   BOOKINGS_VIEW_DETAILS: "View Details",
+  BOOKINGS_CHECK_IN: "Check In",
+  
+  // Filters
+  FILTER_BY: "Filter by",
+  FILTER_APPLY: "Apply",
+  FILTER_CONDITION_IS_AFTER: "is after",
+  FILTER_CONDITION_IS_BEFORE: "is before",
+  FILTER_CONDITION_IS_EQUAL_TO: "is equal to",
+  FILTER_CONDITION_IS_ON_OR_AFTER: "is on or after",
+  FILTER_CONDITION_IS_BEFORE_OR_ON: "is before or on",
+  FILTER_CONDITION_IS_IN_THE_LAST: "is in the last",
+  FILTER_CONDITION_IS_BETWEEN: "is between",
+  FILTER_DAYS: "days",
+  FILTER_FROM: "From",
+  FILTER_TO: "To",
 };
 
 // Form Field Names

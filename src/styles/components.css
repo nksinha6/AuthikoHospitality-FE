@@ -146,6 +146,32 @@
   flex: 1;
 }
 
+.search-bar-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 600px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding-left: calc(var(--space-3) + 20px + var(--space-2));
+}
+
+.search-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Text utilities */
 .text-body.text-muted {
   color: var(--color-text-muted);
@@ -331,5 +357,175 @@
   padding: 0 var(--space-6);
   margin-bottom: var(--space-6);
   margin-top: var(--space-3);
+}
+
+/* Filter tag/pill styles */
+.filter-tag-wrapper {
+  margin-bottom: var(--space-4);
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  background-color: var(--color-grey-200);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-tag:hover {
+  background-color: var(--color-grey-300);
+}
+
+.filter-tag--inactive {
+  background-color: var(--color-white);
+  color: var(--color-text-muted);
+}
+
+.filter-tag--inactive:hover {
+  background-color: var(--color-grey-100);
+}
+
+.filter-tag-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.filter-tag-remove:hover {
+  background-color: var(--color-grey-300);
+  color: var(--color-text-main);
+}
+
+.filter-tag-text {
+  white-space: nowrap;
+}
+
+.filter-tag-chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Filter popup styles */
+.filter-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--space-8);
+}
+
+.filter-popup {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border-subtle);
+  min-width: 400px;
+  max-width: 500px;
+  z-index: 1001;
+}
+
+.filter-popup-header {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.filter-popup-content {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.filter-dropdown {
+  border: 1px solid var(--color-border-subtle);
+  transition: border-color 0.2s ease;
+}
+
+.filter-dropdown:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(27, 54, 49, 0.25);
+  outline: none;
+}
+
+/* Date input wrapper */
+.date-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-input {
+  padding-right: calc(var(--space-3) + 16px + var(--space-2));
+  padding-left: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+.date-input-reset {
+  position: absolute;
+  left: var(--space-2);
+  background: none;
+  border: none;
+  padding: var(--space-1);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.date-input-reset:hover {
+  background-color: var(--color-grey-100);
+  color: var(--color-text-main);
+}
+
+.date-input-calendar {
+  position: absolute;
+  right: var(--space-2);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+/* Days input wrapper */
+.days-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.days-input-wrapper .input {
+  flex: 1;
+}
+
+.days-input-suffix {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 

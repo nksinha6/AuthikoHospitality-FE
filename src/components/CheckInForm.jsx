@@ -18,29 +18,42 @@ const createInitialGuestDetails = (count, primaryGuestName) => {
   return guests;
 };
 
-export default function CheckInModal({ booking, isOpen, onClose, onCheckInComplete }) {
+const INITIAL_FORM_VALUES = {
+  [FORM_FIELDS.BOOKING_ID]: "",
+  [FORM_FIELDS.GUEST_NAME]: "",
+  [FORM_FIELDS.NUMBER_OF_GUESTS]: "",
+};
+
+export default function CheckInForm({
+  booking = null,
+  isModal = false,
+  onClose = null,
+  onCheckInComplete = null,
+}) {
   const [currentStep, setCurrentStep] = useState(1);
   const [guestDetails, setGuestDetails] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const INITIAL_FORM_VALUES = {
-    [FORM_FIELDS.BOOKING_ID]: booking?.bookingId || "",
-    [FORM_FIELDS.GUEST_NAME]: booking?.guestName || "",
-    [FORM_FIELDS.NUMBER_OF_GUESTS]: booking?.numberOfGuests?.toString() || "",
-  };
+  const initialValues = booking
+    ? {
+        [FORM_FIELDS.BOOKING_ID]: booking.bookingId || "",
+        [FORM_FIELDS.GUEST_NAME]: booking.guestName || "",
+        [FORM_FIELDS.NUMBER_OF_GUESTS]: booking.numberOfGuests?.toString() || "",
+      }
+    : INITIAL_FORM_VALUES;
 
-  const { values, handleChange, resetForm, setFieldValue } = useForm(INITIAL_FORM_VALUES);
+  const { values, handleChange, resetForm, setFieldValue } = useForm(initialValues);
 
-  // Pre-fill form when booking changes
+  // Pre-fill form when booking changes (for modal mode)
   useEffect(() => {
-    if (booking && isOpen) {
-      setFieldValue(FORM_FIELDS.BOOKING_ID, booking.bookingId);
-      setFieldValue(FORM_FIELDS.GUEST_NAME, booking.guestName);
+    if (booking && isModal) {
+      setFieldValue(FORM_FIELDS.BOOKING_ID, booking.bookingId || "");
+      setFieldValue(FORM_FIELDS.GUEST_NAME, booking.guestName || "");
       setFieldValue(FORM_FIELDS.NUMBER_OF_GUESTS, booking.numberOfGuests?.toString() || "");
       setCurrentStep(1);
       setGuestDetails([]);
     }
-  }, [booking, isOpen, setFieldValue]);
+  }, [booking, isModal, setFieldValue]);
 
   const numberOfGuests = parseInt(values[FORM_FIELDS.NUMBER_OF_GUESTS], 10) || 0;
   const isStep1Complete =
@@ -51,7 +64,7 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
   const handleNext = useCallback(
     (event) => {
       event.preventDefault();
-      if (isStep1Complete) {
+      if (isStep1Complete && numberOfGuests > 0) {
         setGuestDetails(
           createInitialGuestDetails(
             numberOfGuests,
@@ -128,6 +141,10 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
     });
   }, []);
 
+  const handleViewDetails = useCallback((index) => {
+    console.log("View details for guest:", guestDetails[index]);
+  }, [guestDetails]);
+
   const handleCheckInSubmit = async (event) => {
     event.preventDefault();
     if (isSubmitting || !isAllGuestsFullyComplete) return;
@@ -141,16 +158,20 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
         guestDetails: guestDetails,
       });
 
-      // Call the completion callback
+      // Call the completion callback if provided
       if (onCheckInComplete) {
         onCheckInComplete(booking?.id || values[FORM_FIELDS.BOOKING_ID]);
       }
 
-      // Reset and close
+      // Reset form
       resetForm();
       setGuestDetails([]);
       setCurrentStep(1);
-      onClose();
+
+      // Close modal if in modal mode
+      if (isModal && onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error("Check-in submission failed:", error);
       // TODO: Show error notification
@@ -161,123 +182,146 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
 
   const handleOverlayClick = useCallback(
     (event) => {
-      if (event.target === event.currentTarget) {
+      if (event.target === event.currentTarget && onClose) {
         onClose();
       }
     },
     [onClose]
   );
 
-  if (!isOpen) return null;
+  // Generate unique IDs for form fields (to avoid conflicts when used multiple times)
+  const fieldIdPrefix = isModal ? "modal" : "page";
 
-  return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="modal-container">
-        <div className="modal-header">
-          <h2 className="h-card-title">{UI_TEXT.CHECK_INS_FORM_TITLE}</h2>
-          <button
-            type="button"
-            className="modal-close"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            ×
-          </button>
+  const stepIndicator = (
+    <>
+    <div style={{display:"flex",justifyContent:"flex-end",margin:"10px"}}>
+      <div>
+        
+      </div>
+      <button 
+        type="button"
+        className="modal-close"
+        onClick={onClose}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+    </div>
+    
+      <div className="step-indicator">
+      <div className="step-item">
+        <div
+          className={`step-number ${currentStep === 1 ? "step-number--active" : currentStep > 1 ? "step-number--completed" : ""}`}
+        >
+          1
         </div>
+        <span className={`step-label ${currentStep === 1 ? "step-label--active" : ""}`}>
+          {UI_TEXT.CHECK_INS_STEP_1_TITLE}
+        </span>
+      </div>
+      <div
+        className={`step-connector ${currentStep > 1 ? "step-connector--completed" : ""}`}
+      ></div>
+      <div className="step-item">
+        <div
+          className={`step-number ${currentStep === 2 ? "step-number--active" : ""}`}
+        >
+          2
+        </div>
+        <span className={`step-label ${currentStep === 2 ? "step-label--active" : ""}`}>
+          {UI_TEXT.CHECK_INS_STEP_2_TITLE}
+        </span>
+      </div>
+    </div>
+    </>
+    
+  );
 
-        <div className="step-indicator">
-          <div className="step-item">
-            <div
-              className={`step-number ${currentStep === 1 ? "step-number--active" : currentStep > 1 ? "step-number--completed" : ""}`}
-            >
-              1
+  // Form content
+  const formContent = (
+    <>
+      <div className={isModal ? "" : "card card-container-wide"}>
+        <div className={isModal ? "" : "card-header no-margin-bottom"}>
+          {isModal ? (
+            <div className="modal-header">
+              <h2 className="h-card-title">{UI_TEXT.CHECK_INS_FORM_TITLE}</h2>
             </div>
-            <span className={`step-label ${currentStep === 1 ? "step-label--active" : ""}`}>
-              {UI_TEXT.CHECK_INS_STEP_1_TITLE}
-            </span>
-          </div>
-          <div
-            className={`step-connector ${currentStep > 1 ? "step-connector--completed" : ""}`}
-          ></div>
-          <div className="step-item">
-            <div
-              className={`step-number ${currentStep === 2 ? "step-number--active" : ""}`}
-            >
-              2
-            </div>
-            <span className={`step-label ${currentStep === 2 ? "step-label--active" : ""}`}>
-              {UI_TEXT.CHECK_INS_STEP_2_TITLE}
-            </span>
-          </div>
+          ) : (
+            <h2 className="h-card-title">
+              {currentStep === 1 ? UI_TEXT.CHECK_INS_STEP_1_TITLE : UI_TEXT.CHECK_INS_STEP_2_TITLE}
+            </h2>
+          )}
         </div>
 
         {currentStep === 1 ? (
-          <form className="form" onSubmit={handleNext}>
-            <div className="form-field">
-              <label htmlFor={`modal-${FORM_FIELDS.BOOKING_ID}`} className="form-label-text">
-                {UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
-              </label>
-              <input
-                id={`modal-${FORM_FIELDS.BOOKING_ID}`}
-                name={FORM_FIELDS.BOOKING_ID}
-                type="text"
-                className="input"
-                required
-                placeholder={UI_TEXT.CHECK_INS_BOOKING_ID_PLACEHOLDER}
-                value={values[FORM_FIELDS.BOOKING_ID]}
-                onChange={handleChange}
-                aria-label={UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
-              />
-            </div>
+          <div>
+            <form className="form">
+              <div className="form-field">
+                <label htmlFor={`${fieldIdPrefix}-${FORM_FIELDS.BOOKING_ID}`} className="form-label-text">
+                  {UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
+                </label>
+                <input
+                  id={`${fieldIdPrefix}-${FORM_FIELDS.BOOKING_ID}`}
+                  name={FORM_FIELDS.BOOKING_ID}
+                  type="text"
+                  className="input"
+                  required
+                  placeholder={UI_TEXT.CHECK_INS_BOOKING_ID_PLACEHOLDER}
+                  value={values[FORM_FIELDS.BOOKING_ID]}
+                  onChange={handleChange}
+                  aria-label={UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
+                />
+              </div>
 
-            <div className="form-field">
-              <label htmlFor={`modal-${FORM_FIELDS.GUEST_NAME}`} className="form-label-text">
-                {UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
-              </label>
-              <input
-                id={`modal-${FORM_FIELDS.GUEST_NAME}`}
-                name={FORM_FIELDS.GUEST_NAME}
-                type="text"
-                className="input"
-                required
-                placeholder={UI_TEXT.CHECK_INS_GUEST_NAME_PLACEHOLDER}
-                value={values[FORM_FIELDS.GUEST_NAME]}
-                onChange={handleChange}
-                aria-label={UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
-              />
-            </div>
+              <div className="form-field">
+                <label htmlFor={`${fieldIdPrefix}-${FORM_FIELDS.GUEST_NAME}`} className="form-label-text">
+                  {UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
+                </label>
+                <input
+                  id={`${fieldIdPrefix}-${FORM_FIELDS.GUEST_NAME}`}
+                  name={FORM_FIELDS.GUEST_NAME}
+                  type="text"
+                  className="input"
+                  required
+                  placeholder={UI_TEXT.CHECK_INS_GUEST_NAME_PLACEHOLDER}
+                  value={values[FORM_FIELDS.GUEST_NAME]}
+                  onChange={handleChange}
+                  aria-label={UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
+                />
+              </div>
 
-            <div className="form-field">
-              <label htmlFor={`modal-${FORM_FIELDS.NUMBER_OF_GUESTS}`} className="form-label-text">
-                {UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
-              </label>
-              <input
-                id={`modal-${FORM_FIELDS.NUMBER_OF_GUESTS}`}
-                name={FORM_FIELDS.NUMBER_OF_GUESTS}
-                type="number"
-                className="input"
-                required
-                min="1"
-                placeholder={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_PLACEHOLDER}
-                value={values[FORM_FIELDS.NUMBER_OF_GUESTS]}
-                onChange={handleChange}
-                aria-label={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
-              />
-            </div>
-
+              <div className="form-field">
+                <label htmlFor={`${fieldIdPrefix}-${FORM_FIELDS.NUMBER_OF_GUESTS}`} className="form-label-text">
+                  {UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
+                </label>
+                <input
+                  id={`${fieldIdPrefix}-${FORM_FIELDS.NUMBER_OF_GUESTS}`}
+                  name={FORM_FIELDS.NUMBER_OF_GUESTS}
+                  type="number"
+                  className="input"
+                  required
+                  min="1"
+                  placeholder={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_PLACEHOLDER}
+                  value={values[FORM_FIELDS.NUMBER_OF_GUESTS]}
+                  onChange={handleChange}
+                  aria-label={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
+                />
+              </div>
+            </form>
             <div className="form-actions">
               <button
                 type="submit"
+                onClick={handleNext}
                 className="button button-primary"
-                disabled={!isStep1Complete || isSubmitting}
+                disabled={!isStep1Complete || isSubmitting || numberOfGuests <= 0}
                 aria-label={UI_TEXT.CHECK_INS_BUTTON_NEXT}
               >
                 {UI_TEXT.CHECK_INS_BUTTON_NEXT}
               </button>
             </div>
-          </form>
+          </div>
         ) : (
-          <form className="form" onSubmit={handleCheckInSubmit}>
+          <div>
             <div className="mb-6">
               <p className="text-body text-muted no-margin-bottom">
                 {UI_TEXT.CHECK_INS_GUEST_DETAILS_TITLE} ({numberOfGuests}{" "}
@@ -387,7 +431,7 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
                             <button
                               type="button"
                               className="button button-secondary"
-                              onClick={() => console.log("View details for guest:", guest.id)}
+                              onClick={() => handleViewDetails(index)}
                               aria-label={`${UI_TEXT.CHECK_INS_VIEW_DETAILS} ${guest.id}`}
                             >
                               {UI_TEXT.CHECK_INS_VIEW_DETAILS}
@@ -412,6 +456,7 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
               </button>
               <button
                 type="submit"
+                onClick={handleCheckInSubmit}
                 className="button button-primary"
                 disabled={!isAllGuestsFullyComplete || isSubmitting}
                 aria-label={UI_TEXT.CHECK_INS_BUTTON}
@@ -419,10 +464,31 @@ export default function CheckInModal({ booking, isOpen, onClose, onCheckInComple
                 {isSubmitting ? UI_TEXT.CHECK_INS_BUTTON_LOADING : UI_TEXT.CHECK_INS_BUTTON}
               </button>
             </div>
-          </form>
+          </div>
         )}
       </div>
-    </div>
+    </>
+  );
+
+  // Render based on mode
+  if (isModal) {
+    if (!onClose) return null; // Modal requires onClose
+    return (
+      <div className="modal-overlay" onClick={handleOverlayClick}>
+        <div className="modal-container">
+          {stepIndicator}
+          {formContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Page mode - return step indicator and form content (page header handled by parent)
+  return (
+    <>
+      {stepIndicator}
+      {formContent}
+    </>
   );
 }
 
