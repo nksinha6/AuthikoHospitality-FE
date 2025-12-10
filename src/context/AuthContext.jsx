@@ -14,9 +14,16 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // Check if access token exists and is not expired
-      const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const expiresAt = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
+      // Helper: prefer sessionStorage only if token stored there, otherwise localStorage
+      const getItemFromStorages = (key) => {
+        const fromSession = sessionStorage.getItem(key);
+        if (fromSession) return fromSession;
+        return localStorage.getItem(key);
+      };
+
+      // Check if access token exists and is not expired (look in sessionStorage then localStorage)
+      const accessToken = getItemFromStorages(STORAGE_KEYS.ACCESS_TOKEN);
+      const expiresAt = getItemFromStorages(STORAGE_KEYS.TOKEN_EXPIRES_AT);
 
       if (accessToken && expiresAt) {
         const expirationTime = new Date(expiresAt).getTime();
@@ -41,20 +48,28 @@ export function AuthProvider({ children }) {
 
   const clearAuthData = () => {
     if (typeof window !== "undefined") {
+      // Remove auth data from both storages to be safe
       localStorage.removeItem(STORAGE_KEYS.AUTH);
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH);
+      sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
     }
   };
 
-  const login = (tokens) => {
+  // tokens: { accessToken, refreshToken, expiresAt }
+  // remember: boolean -> when true persist to localStorage, otherwise sessionStorage
+  const login = (tokens, remember = true) => {
     setIsAuthenticated(true);
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEYS.AUTH, "true");
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-      localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, tokens.expiresAt);
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem(STORAGE_KEYS.AUTH, "true");
+      storage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
+      storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+      storage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, tokens.expiresAt);
     }
   };
 

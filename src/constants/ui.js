@@ -41,9 +41,38 @@ export const UI_TEXT = {
   CHECK_INS_NUMBER_OF_GUESTS_PLACEHOLDER: "Enter number of guests",
   CHECK_INS_BUTTON: "Check In",
   CHECK_INS_BUTTON_LOADING: "Processing...",
+
+  // Create Walk-in
+  CREATE_WALKIN_TITLE: "Create Walk-in",
+  CREATE_WALKIN_SUBTITLE: "Register a walk-in guest quickly",
+  LEAD_GUEST_LABEL: "Lead Guest",
+  FIRST_NAME_LABEL: "First Name",
+  SURNAME_LABEL: "Surname",
+  PHONE_LABEL: "Phone Number",
+  PHONE_PLACEHOLDER: "+91 98765 43210",
+  NUMBER_OF_GUESTS_LABEL: "Number of Guests",
+  ADULTS_LABEL: "Adults",
+  MINORS_LABEL: "Minors",
+  START_VERIFICATION_BUTTON: "Start Guest Verification",
+  CANCEL_BUTTON: "Cancel",
   
   // Loader
   LOADER_TEXT: "Loading...",
+
+  COMPANY_NAME: "Your Company Name",
+  LOGIN_TITLE: "Welcome Back",
+  LOGIN_SUBTITLE: "Sign in to your account to continue",
+  LOGIN_EMAIL_LABEL: "Email Address",
+  LOGIN_EMAIL_PLACEHOLDER: "Enter your email",
+  LOGIN_PASSWORD_LABEL: "Password",
+  LOGIN_PASSWORD_PLACEHOLDER: "Enter your password",
+  LOGIN_SHOW_PASSWORD: "Show",
+  LOGIN_HIDE_PASSWORD: "Hide",
+  LOGIN_BUTTON: "Sign In",
+  LOGIN_BUTTON_LOADING: "Signing In...",
+  LOGIN_ERROR_DEFAULT: "Login failed. Please check your credentials and try again.",
+  LOGIN_FORGOT_PASSWORD: "Forgot your password?",
+  LOGIN_FOOTER: "© 2024 Company Portal. Secure access only.",
 };
 
 // Form Field Names
@@ -61,5 +90,6 @@ export const ROUTES = {
   LOGIN: "/login",
   DASHBOARD: "/",
   CHECK_INS: "/check-ins",
+  GUEST_VERIFICATION: "/guest-verification",
 };
 
