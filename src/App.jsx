@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import "./App.css";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -8,6 +8,7 @@ export default function App() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -30,27 +31,86 @@ export default function App() {
 
         <div className="nav-section-label">{UI_TEXT.NAV_SECTION_MAIN}</div>
 
+        {/* <NavLink
+          to={ROUTES.MAIN} // <-- update this to the correct route
+          className={`nav-item nav-section-label ${
+            isActiveRoute(ROUTES.MAIN) ? "nav-item--active" : ""
+          }`}
+          aria-current={isActiveRoute(ROUTES.MAIN) ? "page" : undefined}
+        >
+          <span>{UI_TEXT.NAV_SECTION_MAIN}</span>
+        </NavLink> */}
+
         <NavLink
           to={ROUTES.CHECK_INS}
-          className={`nav-item ${isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""}`}
+          className={`nav-item ${
+            isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""
+          }`}
           aria-current={isActiveRoute(ROUTES.CHECK_INS) ? "page" : undefined}
         >
           <span>{UI_TEXT.NAV_CHECK_INS}</span>
         </NavLink>
+
+        <NavLink
+          to={ROUTES.TODAYS_BOOKINGS}
+          className={`nav-item ${
+            isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "nav-item--active" : ""
+          }`}
+          aria-current={
+            isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "page" : undefined
+          }
+        >
+          <span>{UI_TEXT.NAV_TODAYS_BOOKINGS}</span>
+        </NavLink>
+
+        <NavLink
+          to={ROUTES.ALL_BOOKINGS}
+          className={`nav-item ${
+            isActiveRoute(ROUTES.ALL_BOOKINGS) ? "nav-item--active" : ""
+          }`}
+          aria-current={isActiveRoute(ROUTES.ALL_BOOKINGS) ? "page" : undefined}
+        >
+          <span>{UI_TEXT.NAV_ALL_BOOKINGS}</span>
+        </NavLink>
       </nav>
 
       <div className="app-main">
-        <header className="app-topbar" role="banner">
-          <div className="topbar-spacer" aria-hidden="true"></div>
-          <div className="flex-gap">
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={handleLogout}
-              aria-label={UI_TEXT.BUTTON_LOGOUT}
-            >
-              {UI_TEXT.BUTTON_LOGOUT}
+        <header className="app-topbar">
+          {/* LEFT: Search */}
+          <div className="header-search">
+            <i className="ri-search-line"></i>
+            <input type="text" placeholder="Search" />
+          </div>
+
+          {/* RIGHT: Icons */}
+          <div className="header-icons">
+            <button className="icon-btn">
+              <i className="ri-question-line"></i>
             </button>
+            <button className="icon-btn">
+              <i className="ri-notification-3-line"></i>
+            </button>
+            <div className="profile-wrapper">
+              <button
+                className="icon-btn"
+                onClick={() => setShowDropdown((prev) => !prev)}
+              >
+                <i className="ri-user-line"></i>
+              </button>
+
+              {showDropdown && (
+                <div className="profile-dropdown">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="dropdown-item"
+                    aria-label={UI_TEXT.BUTTON_LOGOUT}
+                  >
+                    {UI_TEXT.BUTTON_LOGOUT}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
