@@ -7,6 +7,7 @@ import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
 import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
 import "../styles/global.css"; // Using centralized CSS instead of login.css
+import logo from "../assets/images/1pass_logo.jpg";
 
 const INITIAL_FORM_VALUES = {
   [FORM_FIELDS.USER_ID]: "",
@@ -113,6 +114,45 @@ export default function Login() {
             className="login-header"
             style={{ marginBottom: "var(--space-8)", textAlign: "center" }}
           >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "var(--space-4)",
+                marginBottom: "var(--space-4)",
+              }}
+            >
+              {/* Logo Image */}
+              <div
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "var(--space-2)",
+                }}
+              >
+                <img
+                  src={logo} // Update this path
+                  alt="1Pass Logo"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    borderRadius: "var(--radius-sm)",
+                  }}
+                  onError={(e) => {
+                    // Fallback if image doesn't load
+                    e.target.style.display = "none";
+                    e.target.parentElement.innerHTML =
+                      '<div style="font-size: 28px; color: var(--color-primary); font-weight: bold;">1Pass</div>';
+                  }}
+                />
+              </div>
+            </div>
+
             <h2 className="h-section-title">Welcome Back</h2>
             <p className="text-muted" style={{ marginTop: "var(--space-2)" }}>
               Sign in to your account to continue
@@ -249,30 +289,30 @@ export default function Login() {
 
             {/* Submit Button */}
             <button
-  type="submit"
-  className="button button-primary button-block"
-  disabled={isSubmitting}
-  style={{ 
-    marginTop: "var(--space-2)",
-    height: "39px",
-    padding: "var(--space-2) var(--space-4)",
-    fontSize: "var(--font-size-md)",
-    fontWeight: "600",
-    borderRadius: "6px"
-  }}
->
-  {isSubmitting ? (
-    <>
-      <span className="spinner"></span>
-      Signing in...
-    </>
-  ) : (
-    <>
-      Sign In
-      <span style={{ marginLeft: "var(--space-2)" }}>→</span>
-    </>
-  )}
-</button>
+              type="submit"
+              className="button button-primary button-block"
+              disabled={isSubmitting}
+              style={{
+                marginTop: "var(--space-2)",
+                height: "39px",
+                padding: "var(--space-2) var(--space-4)",
+                fontSize: "var(--font-size-md)",
+                fontWeight: "600",
+                borderRadius: "6px",
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="spinner"></span>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <span style={{ marginLeft: "var(--space-2)" }}>→</span>
+                </>
+              )}
+            </button>
           </form>
 
           {/* Footer */}
