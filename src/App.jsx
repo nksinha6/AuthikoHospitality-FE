@@ -30,18 +30,6 @@ export default function App() {
             <h1 className="h-page-title nav-brand-title">{UI_TEXT.APP_NAME}</h1>
           </div>
         </div>
-
-        {/* <div className="nav-section-label">{UI_TEXT.NAV_SECTION_MAIN}</div> */}
-
-        {/* <NavLink
-          to={ROUTES.MAIN} // <-- update this to the correct route
-          className={`nav-item nav-section-label ${
-            isActiveRoute(ROUTES.MAIN) ? "nav-item--active" : ""
-          }`}
-          aria-current={isActiveRoute(ROUTES.MAIN) ? "page" : undefined}
-        >
-          <span>{UI_TEXT.NAV_SECTION_MAIN}</span>
-        </NavLink> */}
         <div className="nav-links">
           <NavLink
             to={ROUTES.CHECK_INS}

@@ -26,7 +26,7 @@ export default function Login() {
     return localStorage.getItem("rememberMe") === "true";
   });
 
-  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
+  const from = ROUTES.TODAYS_BOOKINGS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
