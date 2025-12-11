@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import "./DateHourFilter.css";
 
 const DateHourFilter = ({ onApply }) => {
+  // const containerRef = useRef(null);
   const [condition, setCondition] = useState("is after");
 
   // Single date
@@ -108,7 +109,7 @@ const DateHourFilter = ({ onApply }) => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
-      setIsConditionDropdownOpen(false);
+      setIsConditionDropdownOpen(false); // Only closes dropdown, NOT the popup
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -125,7 +126,7 @@ const DateHourFilter = ({ onApply }) => {
         } ${isPopupOpen ? "popup-open" : ""}`}
         onClick={togglePopup}
       >
-        <span className="evidence-due-text">Evidence due by</span>
+        <span className="evidence-due-text">Date filter</span>
 
         <span className="evidence-due-date">
           {isFilterActive ? getFormattedFilterText() : ""}
@@ -136,8 +137,16 @@ const DateHourFilter = ({ onApply }) => {
 
       {/* POPUP */}
       {isPopupOpen && (
-        <div className="filter-popup" onClick={(e) => e.stopPropagation()}>
-          <div className="popup-content">
+        <div
+          className="filter-popup"
+          onClick={(e) => e.stopPropagation()}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className="popup-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ pointerEvents: "auto" }}
+          >
             <div className="filter-header">
               <span className="filter-label">Filter by:</span>
               <div className="filter-type">evidence due by</div>

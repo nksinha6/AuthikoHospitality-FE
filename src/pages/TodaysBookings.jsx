@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import { UI_TEXT } from "../constants/ui.js";
 import "../styles/TodaysBookings.css";
+import { FiPlus } from "react-icons/fi";
+import { FaCircle } from "react-icons/fa";
+import { FiDownload } from "react-icons/fi";
+import UniversalTable from "../components/UniversalTable.jsx";
 
 // Utility: Format today's date in Indian format
 const getTodayDateFormatted = () => {
@@ -8,6 +12,32 @@ const getTodayDateFormatted = () => {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+};
+
+// Format: Thursday / 11 Dec 25
+const getFullHeaderDate = () => {
+  const date = new Date();
+
+  const dayName = date.toLocaleDateString("en-IN", {
+    weekday: "long",
+  });
+
+  const shortDate = date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
+  });
+
+  return `${dayName} / ${shortDate}`;
+};
+
+// Format: 11 Dec 25
+const formatShortDate = (d) => {
+  return new Date(d).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit",
   });
 };
 
@@ -42,7 +72,7 @@ export default function TodaysBookings() {
     guest: "",
     phone: "",
     ota: "",
-    status: "",
+    status: "not-checked-in",
   });
 
   // Dummy Bookings Data (Static)
@@ -260,6 +290,8 @@ export default function TodaysBookings() {
     [today]
   );
 
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
     [bookings, filters]
@@ -269,21 +301,40 @@ export default function TodaysBookings() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  const formatPhone = (phone) => {
+    // Remove everything except numbers
+    const digits = phone.replace(/\D/g, "");
+
+    // If Indian number with 12 digits (+91xxxxxxxxxx)
+    if (digits.length === 12 && digits.startsWith("91")) {
+      return `+91-${digits.substring(2, 7)}-${digits.substring(7)}`;
+    }
+
+    // If Indian number without +91 (10 digits)
+    if (digits.length === 10) {
+      return `${digits.substring(0, 5)}-${digits.substring(5)}`;
+    }
+
+    // Fallback
+    return phone;
+  };
+
   return (
     <div className="todays-container">
       {/* PAGE HEADER */}
       <header className="todays-header">
         <div>
           <h2 className="page-title">{UI_TEXT.TODAYS_TITLE}</h2>
-          <p className="page-subtitle">
-            {UI_TEXT.TODAYS_SUBTITLE} | <strong>{today}</strong>
-          </p>
+          <p className="page-subtitle">{getFullHeaderDate()}</p>
         </div>
 
-        <button className="btn-walkin">{UI_TEXT.BUTTON_CREATE_WALKIN}</button>
+        <button className="btn-walkin">
+          <FiPlus className="walkin-icon" />
+          {UI_TEXT.BUTTON_CREATE_WALKIN}
+        </button>
       </header>
 
-      {/* FILTERS INPUT ROW */}
+      {/* FILTERS INPUT ROW - FIRST LINE */}
       <div className="filter-row">
         <input
           type="text"
@@ -305,71 +356,117 @@ export default function TodaysBookings() {
           value={filters.ota}
           onChange={(e) => updateFilter("ota", e.target.value)}
         />
+      </div>
 
-        <select
-          className="filter-input"
-          value={filters.status}
-          onChange={(e) => updateFilter("status", e.target.value)}
-        >
-          <option value="">{UI_TEXT.FILTER_STATUS}</option>
-          <option value="checked-in">Checked In</option>
-          <option value="not-checked-in">Not Checked In</option>
-        </select>
+      {/* FILTERS INPUT ROW - SECOND LINE */}
+      <div className="filter-row filter-row-2">
+        {/* STATUS DROPDOWN */}
+        <div className="custom-dropdown">
+          <button
+            className="dropdown-btn"
+            onClick={() => setShowStatusDropdown((prev) => !prev)}
+          >
+            {filters.status === ""
+              ? UI_TEXT.FILTER_STATUS
+              : filters.status === "checked-in"
+              ? "Checked In"
+              : "Not Checked In"}
+            {/* <span className="arrow">▾</span> */}
+          </button>
+
+          {showStatusDropdown && (
+            <div className="dropdown-menu">
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  updateFilter("status", "");
+                  setShowStatusDropdown(false);
+                }}
+              >
+                {UI_TEXT.FILTER_STATUS}
+              </div>
+
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  updateFilter("status", "checked-in");
+                  setShowStatusDropdown(false);
+                }}
+              >
+                Checked In
+              </div>
+
+              <div
+                className="dropdown-item"
+                onClick={() => {
+                  updateFilter("status", "not-checked-in");
+                  setShowStatusDropdown(false);
+                }}
+              >
+                Not Checked In
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* EXPORT BUTTONS */}
+        <div className="export-buttons">
+          <button className="export-btn">
+            <FiDownload className="export-icon" />
+            Export PDF
+          </button>
+
+          <button className="export-btn">
+            <FiDownload className="export-icon" />
+            Export EXL
+          </button>
+        </div>
       </div>
 
       {/* BOOKINGS TABLE */}
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>{UI_TEXT.TABLE_DATE}</th>
-              <th>{UI_TEXT.TABLE_BOOKING_ID}</th>
-              <th>{UI_TEXT.TABLE_OTA}</th>
-              <th>{UI_TEXT.TABLE_FIRST_NAME}</th>
-              <th>{UI_TEXT.TABLE_SURNAME}</th>
-              <th>{UI_TEXT.TABLE_PHONE}</th>
-              <th>{UI_TEXT.TABLE_NUM_GUESTS}</th>
-              <th>{UI_TEXT.TABLE_STATUS}</th>
-            </tr>
-          </thead>
+      <UniversalTable
+        columns={[
+          { key: "date", label: UI_TEXT.TABLE_DATE },
+          { key: "bookingId", label: UI_TEXT.TABLE_BOOKING_ID },
+          { key: "ota", label: UI_TEXT.TABLE_OTA },
+          { key: "firstName", label: UI_TEXT.TABLE_FIRST_NAME },
+          { key: "surname", label: UI_TEXT.TABLE_SURNAME },
+          { key: "phone", label: UI_TEXT.TABLE_PHONE },
+          { key: "guests", label: UI_TEXT.TABLE_NUM_GUESTS },
+          { key: "checkedIn", label: UI_TEXT.TABLE_STATUS },
+        ]}
+        data={filteredBookings}
+        emptyMessage="No bookings match your filters."
+        format={{
+          date: (d) => formatShortDate(d),
+          phone: (p) => formatPhone(p),
 
-          <tbody>
-            {filteredBookings.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="empty-row">
-                  No bookings match your filters.
-                </td>
-              </tr>
-            ) : (
-              filteredBookings.map((item) => (
-                <tr key={item.bookingId}>
-                  <td>{item.date}</td>
-                  <td>{item.bookingId}</td>
-                  <td>{item.ota}</td>
-                  <td>{item.firstName}</td>
-                  <td>{item.surname}</td>
-                  <td>{item.phone}</td>
-                  <td>
-                    {item.adults} Adults
-                    {item.minors > 0 && `, ${item.minors} Minors`}
-                  </td>
-                  <td className="status-cell">
-                    {!item.checkedIn ? (
-                      <button className="link">
-                        {UI_TEXT.BUTTON_START_CHECKIN}
-                      </button>
-                    ) : (
-                      <button className="link">
-                        {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+          guests: (_, row) =>
+            `${row.adults} ${row.adults === 1 ? "Adult" : "Adults"}${
+              row.minors > 0
+                ? `, ${row.minors} ${row.minors === 1 ? "Minor" : "Minors"}`
+                : ""
+            }`,
+
+          checkedIn: (_, row) => {
+            if (!row.checkedIn) {
+              return (
+                <div className="status-btn">
+                  <FaCircle className="status-icon yellow" />
+                  {UI_TEXT.BUTTON_START_CHECKIN}
+                </div>
+              );
+            }
+
+            return (
+              <div className="status-btn">
+                <FaCircle className="status-icon green" />
+                {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
+              </div>
+            );
+          },
+        }}
+      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ export const UI_TEXT = {
 
   // All Bookings
   ALL_BOOKINGS_TITLE: "All Bookings",
-  ALL_BOOKINGS_SUBTITLE: "View all bookings in the system.",
+  ALL_BOOKINGS_SUBTITLE: "View bookings for all days.",
 
   // Today's Bookings Filters
   FILTER_GUEST_NAME: "Guest Name",
@@ -58,11 +58,12 @@ export const UI_TEXT = {
   TABLE_STATUS: "Status",
 
   // Today's Bookings CTA Buttons
-  BUTTON_CREATE_WALKIN: "Create Walk-in",
+  BUTTON_CREATE_WALKIN: "Create walk-in",
   BUTTON_VERIFY_NOW: "Verify Now",
   BUTTON_VIEW_DETAILS: "View Details",
-  BUTTON_VIEW_CHECKIN_DETAILS: "View Check-in Details",
-  BUTTON_START_CHECKIN: "Start Check-in",
+  BUTTON_VIEW_CHECKIN_DETAILS: "View verification details",
+  BUTTON_START_CHECKIN: "Start verification",
+  BUTTON_NO_SHOW: "No show",
 
   // Check-ins
   CHECK_INS_TITLE: "Check-ins",

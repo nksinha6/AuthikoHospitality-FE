@@ -6,13 +6,18 @@
 }
 
 .evidence-due-header {
-  display: inline-flex;
+  /* display: inline-block; */
+  display: flex;
   align-items: center;
-  width: 230px;
+  overflow: hidden;
+  text-wrap: nowrap;
+  align-items: center;
+  width: 150px;
+  height: 28px;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 3px 8px 3px 6px;
   border: 1px solid #e1e1e1;
-  border-radius: 6px;
+  border-radius: 15px;
   background-color: white;
   cursor: pointer;
   user-select: none;
@@ -21,22 +26,23 @@
 }
 
 .evidence-due-header:hover {
-  border-color: #999;
+  border-color: #e1e1e1;
   background-color: #f9f9f9;
 }
 
 .evidence-due-header.filter-active {
   background-color: #e8f4ff;
-  border-color: #0066cc;
+  border-color: #e1e1e1;
 }
 
 .evidence-due-header.popup-open {
-  border-color: #0066cc;
+  border-color: #e1e1e1;
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
 .evidence-due-text {
   font-size: 12px;
+  padding-left: 10px;
   color: #333;
   font-weight: 500;
 }
@@ -53,6 +59,7 @@
   font-size: 10px;
   color: #666;
   margin-left: 4px;
+  display: none;
 }
 
 /* Popup Styles */
@@ -72,6 +79,7 @@
 .popup-content {
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
   gap: 16px;
 }
 

@@ -1,0 +1,27 @@
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  font-weight: 700;
+  text-align: left;
+  padding: 12px 8px;
+  border-top: 2px solid #eaeaeaa3;
+  border-bottom: 2px solid #eaeaeaa3;
+  font-size: var(--font-size-xs);
+  line-height: 20px;
+  text-align: left;
+}
+
+tbody td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: var(--font-size-sm);
+  text-align: left;
+}

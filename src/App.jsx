@@ -26,10 +26,12 @@ export default function App() {
     <div className="app-shell">
       <nav className="app-nav" aria-label="Main navigation">
         <div className="nav-brand">
-          <h1 className="h-page-title nav-brand-title">{UI_TEXT.APP_NAME}</h1>
+          <div>
+            <h1 className="h-page-title nav-brand-title">{UI_TEXT.APP_NAME}</h1>
+          </div>
         </div>
 
-        <div className="nav-section-label">{UI_TEXT.NAV_SECTION_MAIN}</div>
+        {/* <div className="nav-section-label">{UI_TEXT.NAV_SECTION_MAIN}</div> */}
 
         {/* <NavLink
           to={ROUTES.MAIN} // <-- update this to the correct route
@@ -40,38 +42,41 @@ export default function App() {
         >
           <span>{UI_TEXT.NAV_SECTION_MAIN}</span>
         </NavLink> */}
+        <div className="nav-links">
+          <NavLink
+            to={ROUTES.CHECK_INS}
+            className={`nav-item ${
+              isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""
+            }`}
+            aria-current={isActiveRoute(ROUTES.CHECK_INS) ? "page" : undefined}
+          >
+            <span>{UI_TEXT.NAV_CHECK_INS}</span>
+          </NavLink>
 
-        <NavLink
-          to={ROUTES.CHECK_INS}
-          className={`nav-item ${
-            isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""
-          }`}
-          aria-current={isActiveRoute(ROUTES.CHECK_INS) ? "page" : undefined}
-        >
-          <span>{UI_TEXT.NAV_CHECK_INS}</span>
-        </NavLink>
+          <NavLink
+            to={ROUTES.TODAYS_BOOKINGS}
+            className={`nav-item ${
+              isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "nav-item--active" : ""
+            }`}
+            aria-current={
+              isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "page" : undefined
+            }
+          >
+            <span>{UI_TEXT.NAV_TODAYS_BOOKINGS}</span>
+          </NavLink>
 
-        <NavLink
-          to={ROUTES.TODAYS_BOOKINGS}
-          className={`nav-item ${
-            isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "nav-item--active" : ""
-          }`}
-          aria-current={
-            isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "page" : undefined
-          }
-        >
-          <span>{UI_TEXT.NAV_TODAYS_BOOKINGS}</span>
-        </NavLink>
-
-        <NavLink
-          to={ROUTES.ALL_BOOKINGS}
-          className={`nav-item ${
-            isActiveRoute(ROUTES.ALL_BOOKINGS) ? "nav-item--active" : ""
-          }`}
-          aria-current={isActiveRoute(ROUTES.ALL_BOOKINGS) ? "page" : undefined}
-        >
-          <span>{UI_TEXT.NAV_ALL_BOOKINGS}</span>
-        </NavLink>
+          <NavLink
+            to={ROUTES.ALL_BOOKINGS}
+            className={`nav-item ${
+              isActiveRoute(ROUTES.ALL_BOOKINGS) ? "nav-item--active" : ""
+            }`}
+            aria-current={
+              isActiveRoute(ROUTES.ALL_BOOKINGS) ? "page" : undefined
+            }
+          >
+            <span>{UI_TEXT.NAV_ALL_BOOKINGS}</span>
+          </NavLink>
+        </div>
       </nav>
 
       <div className="app-main">
