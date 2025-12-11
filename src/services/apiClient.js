@@ -2,6 +2,9 @@ import axios from "axios";
 import { STORAGE_KEYS } from "../constants/config.js";
 
 const apiClient = axios.create({
+  // baseURL:
+  //   import.meta.env.VITE_API_BASE_URL ||
+  //   "https://whale-app-tcfko.ondigitalocean.app",
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 10_000,
   headers: {
@@ -42,4 +45,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-
