@@ -6,8 +6,7 @@ import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
 import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
-import "../styles/login.css";
-import logo from "../assets/images/1pass_logo.jpg";
+import "../styles/global.css"; // Using centralized CSS instead of login.css
 
 const INITIAL_FORM_VALUES = {
   [FORM_FIELDS.USER_ID]: "",
@@ -87,40 +86,60 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page">
-      {/* Animated Background */}
-      <div className="login-background">
-        <div className="gradient-blob blob-1"></div>
-        <div className="gradient-blob blob-2"></div>
-        <div className="gradient-blob blob-3"></div>
-      </div>
-
-      {/* Main Content */}
-      <div className="login-wrapper">
-        <div className="login-card">
+    <div
+      className="login-page"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        className="login-wrapper"
+        style={{ width: "100%", maxWidth: "440px", padding: "var(--space-6)" }}
+      >
+        <div
+          className="card"
+          style={{
+            width: "100%",
+            padding: "var(--space-8)",
+            maxWidth: "440px",
+            margin: "0 auto",
+          }}
+        >
           {/* Header with Logo */}
-          <div className="login-header">
-            <div className="logo-container">
-              <div className="logo-icon">
-                <img src={logo} alt="Company Logo" />
-              </div>
-            </div>
-            <h2 className="login-title">Welcome Back</h2>
-            <p className="login-subtitle">
+          <div
+            className="login-header"
+            style={{ marginBottom: "var(--space-8)", textAlign: "center" }}
+          >
+            <h2 className="h-section-title">Welcome Back</h2>
+            <p className="text-muted" style={{ marginTop: "var(--space-2)" }}>
               Sign in to your account to continue
             </p>
           </div>
 
           {/* Error Alert */}
           {errorMessage && (
-            <div className="alert alert-error" role="alert" aria-live="polite">
-              <div className="alert-icon">⚠️</div>
+            <div
+              className="alert alert-error"
+              role="alert"
+              aria-live="polite"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              <div className="alert-icon" style={{ fontSize: "16px" }}>
+                ⚠️
+              </div>
               <div className="alert-message">{errorMessage}</div>
             </div>
           )}
 
           {/* Login Form */}
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form
+            className="form"
+            onSubmit={handleSubmit}
+            style={{ gap: "var(--space-3)" }}
+          >
             {/* Email Field */}
             <div className="form-group">
               <label htmlFor={FORM_FIELDS.USER_ID} className="form-label">
@@ -146,7 +165,13 @@ export default function Login() {
 
             {/* Password Field */}
             <div className="form-group">
-              <div className="label-row">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <label htmlFor={FORM_FIELDS.PASSWORD} className="form-label">
                   {UI_TEXT.LOGIN_PASSWORD_LABEL}
                 </label>
@@ -168,18 +193,41 @@ export default function Login() {
                 />
                 <button
                   type="button"
-                  className="password-toggle"
                   onClick={togglePasswordVisibility}
+                  style={{
+                    position: "absolute",
+                    right: "var(--space-3)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--color-text-subtle)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "var(--space-1)",
+                  }}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isSubmitting}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <a
+                href="#forgot-password"
+                style={{
+                  fontSize: "var(--font-size-sm)",
+                  color: "var(--color-primary)",
+                  textDecoration: "none",
+                  fontWeight: "500",
+                  marginLeft: "auto",
+                }}
+              >
+                Forgot password?
+              </a>
             </div>
 
             {/* Remember Me Checkbox */}
-            <div className="form-group checkbox-row">
+            <div className="form-group">
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -188,41 +236,69 @@ export default function Login() {
                   disabled={isSubmitting}
                   className="checkbox-input"
                 />
-                <span className="checkbox-text">
+                <span
+                  style={{
+                    fontSize: "var(--font-size-sm)",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
                   Remember me on this device
                 </span>
               </label>
-
-              <a href="#forgot-password" className="forgot-password-link">
-                Forgot password?
-              </a>
             </div>
 
             {/* Submit Button */}
             <button
-              type="submit"
-              className="login-button"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner"></span>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <span className="arrow">→</span>
-                </>
-              )}
-            </button>
+  type="submit"
+  className="button button-primary button-block"
+  disabled={isSubmitting}
+  style={{ 
+    marginTop: "var(--space-2)",
+    height: "39px",
+    padding: "var(--space-2) var(--space-4)",
+    fontSize: "var(--font-size-md)",
+    fontWeight: "600",
+    borderRadius: "6px"
+  }}
+>
+  {isSubmitting ? (
+    <>
+      <span className="spinner"></span>
+      Signing in...
+    </>
+  ) : (
+    <>
+      Sign In
+      <span style={{ marginLeft: "var(--space-2)" }}>→</span>
+    </>
+  )}
+</button>
           </form>
 
           {/* Footer */}
-          <div className="login-footer">
-            <p className="footer-text">
+          <div
+            style={{
+              textAlign: "center",
+              paddingTop: "var(--space-6)",
+              marginTop: "var(--space-6)",
+              borderTop: "1px solid var(--color-border-subtle)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "var(--font-size-sm)",
+                color: "var(--color-text-muted)",
+              }}
+            >
               Don't have an account?{" "}
-              <a href="#signup" className="signup-link">
+              <a
+                href="#signup"
+                style={{
+                  color: "var(--color-primary)",
+                  textDecoration: "none",
+                  fontWeight: "500",
+                }}
+              >
                 Contact Us
               </a>
             </p>
