@@ -1,112 +1,296 @@
-import { useState } from "react";
-import { useForm } from "../hooks/useForm.js";
-import { checkInService } from "../services/checkInService.js";
-import { UI_TEXT, FORM_FIELDS } from "../constants/ui.js";
+import React, { useState } from 'react';
+import "../styles/global.css";
+import "../styles/checkins.css";
 
-const INITIAL_FORM_VALUES = {
-  [FORM_FIELDS.BOOKING_ID]: "",
-  [FORM_FIELDS.GUEST_NAME]: "",
-  [FORM_FIELDS.NUMBER_OF_GUESTS]: "",
-};
+const OTAVerificationForm = () => {
+  const [formData, setFormData] = useState({
+    ota: '',
+    bookingId: '',
+    countryCode: '+91',
+    phoneNumber: '',
+    adults: '',
+    children: ''
+  });
 
-export default function CheckIns() {
-  const { values, isSubmitting, setIsSubmitting, handleChange, resetForm } = useForm(INITIAL_FORM_VALUES);
+  const [showBookingId, setShowBookingId] = useState(true);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await checkInService.submitCheckIn({
-        bookingId: values[FORM_FIELDS.BOOKING_ID],
-        guestName: values[FORM_FIELDS.GUEST_NAME],
-        numberOfGuests: parseInt(values[FORM_FIELDS.NUMBER_OF_GUESTS], 10),
-      });
-      resetForm();
-    } catch (error) {
-      console.error("Check-in submission failed:", error);
-    } finally {
-      setIsSubmitting(false);
+  const countryCodes = [
+    { code: '+91', country: 'India', flag: '🇮🇳', pattern: /^(\d{5})(\d{5})$/, format: '$1-$2' },
+    { code: '+1', country: 'US/Canada', flag: '🇺🇸', pattern: /^(\d{3})(\d{3})(\d{4})$/, format: '($1) $2-$3' },
+    { code: '+44', country: 'UK', flag: '🇬🇧', pattern: /^(\d{4})(\d{6})$/, format: '$1 $2' },
+    { code: '+61', country: 'Australia', flag: '🇦🇺', pattern: /^(\d{4})(\d{3})(\d{3})$/, format: '$1 $2 $3' },
+    { code: '+971', country: 'UAE', flag: '🇦🇪', pattern: /^(\d{2})(\d{3})(\d{4})$/, format: '$1 $2 $3' },
+    { code: '+65', country: 'Singapore', flag: '🇸🇬', pattern: /^(\d{4})(\d{4})$/, format: '$1 $2' },
+  ];
+
+  const otaOptions = [
+    'Booking.com',
+    'Airbnb',
+    'Expedia',
+    'Hotels.com',
+    'Agoda',
+    'Vrbo',
+    'Tripadvisor',
+    'MakeMyTrip',
+    'Goibibo',
+    'Walk-In'
+  ];
+
+  const getCurrentDate = () => {
+    const today = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return today.toLocaleDateString('en-US', options);
+  };
+
+  const handleOTASelection = (e) => {
+    const selectedOTA = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      ota: selectedOTA,
+      bookingId: selectedOTA === 'Walk-In' ? '' : prev.bookingId
+    }));
+    setShowBookingId(selectedOTA !== 'Walk-In');
+  };
+
+  const formatPhoneNumber = (value, countryCode) => {
+    if (!value) return '';
+    const country = countryCodes.find(c => c.code === countryCode);
+    if (!country) return value;
+    const digits = value.replace(/\D/g, '');
+    if (country.pattern) {
+      const match = digits.match(country.pattern);
+      if (match) {
+        return country.format.replace(/\$(\d+)/g, (_, index) => match[index]);
+      }
+    }
+    return digits;
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value;
+    const formattedValue = formatPhoneNumber(value, formData.countryCode);
+    setFormData(prev => ({ ...prev, phoneNumber: formattedValue }));
+  };
+
+  const handleCountryCodeChange = (e) => {
+    const newCountryCode = e.target.value;
+    const formattedNumber = formatPhoneNumber(formData.phoneNumber.replace(/\D/g, ''), newCountryCode);
+    setFormData(prev => ({ ...prev, countryCode: newCountryCode, phoneNumber: formattedNumber }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'adults' || name === 'children') {
+      const numValue = parseInt(value) || 0;
+      setFormData(prev => ({ ...prev, [name]: numValue < 0 ? '' : value }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="h-page-title">{UI_TEXT.CHECK_INS_TITLE}</h1>
-        <p className="text-muted page-subtitle">{UI_TEXT.CHECK_INS_SUBTITLE}</p>
-      </div>
+  const handleCancel = () => {
+    setFormData({
+      ota: '',
+      bookingId: '',
+      countryCode: '+91',
+      phoneNumber: '',
+      adults: '',
+      children: ''
+    });
+    setShowBookingId(true);
+  };
 
-      <div className="card card-container">
-        <div className="card-header">
-          <h2 className="h-card-title">{UI_TEXT.CHECK_INS_FORM_TITLE}</h2>
+  const handleReview = () => {
+    if (!formData.ota) {
+      alert('Please select an OTA platform');
+      return;
+    }
+    if (showBookingId && !formData.bookingId.trim()) {
+      alert('Please enter booking ID');
+      return;
+    }
+    if (!formData.phoneNumber.trim()) {
+      alert('Please enter phone number');
+      return;
+    }
+    if (!formData.adults || parseInt(formData.adults) < 1) {
+      alert('Please enter at least one adult');
+      return;
+    }
+    const childrenValue = parseInt(formData.children) || 0;
+    if (childrenValue < 0) {
+      alert('Number of minors cannot be negative');
+      return;
+    }
+    console.log('Review booking information:', formData);
+  };
+
+  const getCurrentFlag = () => {
+    const country = countryCodes.find(c => c.code === formData.countryCode);
+    return country ? country.flag : '🇺🇸';
+  };
+
+  return (
+    <div className="ota-verification-page">
+      {/* Main Card */}
+      <div className="ota-verification-card">
+        {/* Card Header */}
+        <div className="ota-verification-header">
+          <h2 className="ota-verification-title">
+            Walk-In Guest
+          </h2>
+          <p className="ota-verification-subtitle">
+            Enter booking details to begin verification
+          </p>
         </div>
 
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor={FORM_FIELDS.BOOKING_ID} className="form-label-text">
-              {UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
+        {/* Form Content */}
+        <div className="ota-verification-content">
+          {/* Verification Date */}
+          <div className="form-group">
+            <label className="form-label">
+              Verification Date
             </label>
-            <input
-              id={FORM_FIELDS.BOOKING_ID}
-              name={FORM_FIELDS.BOOKING_ID}
-              type="text"
-              className="input"
-              required
-              placeholder={UI_TEXT.CHECK_INS_BOOKING_ID_PLACEHOLDER}
-              value={values[FORM_FIELDS.BOOKING_ID]}
-              onChange={handleChange}
-              aria-label={UI_TEXT.CHECK_INS_BOOKING_ID_LABEL}
-            />
+            <div className="form-date-display">
+              {getCurrentDate()}
+            </div>
           </div>
 
-          <div className="form-field">
-            <label htmlFor={FORM_FIELDS.GUEST_NAME} className="form-label-text">
-              {UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
+          {/* OTA Platform */}
+          <div className="form-group">
+            <label className="form-label">
+              OTA Platform *
             </label>
-            <input
-              id={FORM_FIELDS.GUEST_NAME}
-              name={FORM_FIELDS.GUEST_NAME}
-              type="text"
-              className="input"
-              required
-              placeholder={UI_TEXT.CHECK_INS_GUEST_NAME_PLACEHOLDER}
-              value={values[FORM_FIELDS.GUEST_NAME]}
-              onChange={handleChange}
-              aria-label={UI_TEXT.CHECK_INS_GUEST_NAME_LABEL}
-            />
+            <div className="select-wrapper">
+              <select
+                name="ota"
+                value={formData.ota}
+                onChange={handleOTASelection}
+                className="form-select"
+              >
+                <option value="">Select OTA platform</option>
+                {otaOptions.map(ota => (
+                  <option key={ota} value={ota}>{ota}</option>
+                ))}
+              </select>
+              <div className="select-arrow">▼</div>
+            </div>
           </div>
 
-          <div className="form-field">
-            <label htmlFor={FORM_FIELDS.NUMBER_OF_GUESTS} className="form-label-text">
-              {UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
+          {/* Booking ID */}
+          {showBookingId && (
+            <div className="form-group">
+              <label className="form-label">
+                Booking ID *
+              </label>
+              <div className="input-with-icon">
+                <span className="input-icon">#</span>
+                <input
+                  type="text"
+                  name="bookingId"
+                  placeholder="Enter booking ID"
+                  value={formData.bookingId}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Phone Number */}
+          <div className="form-group">
+            <label className="form-label">
+              Primary Guest Phone Number *
             </label>
-            <input
-              id={FORM_FIELDS.NUMBER_OF_GUESTS}
-              name={FORM_FIELDS.NUMBER_OF_GUESTS}
-              type="number"
-              className="input"
-              required
-              min="1"
-              placeholder={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_PLACEHOLDER}
-              value={values[FORM_FIELDS.NUMBER_OF_GUESTS]}
-              onChange={handleChange}
-              aria-label={UI_TEXT.CHECK_INS_NUMBER_OF_GUESTS_LABEL}
-            />
+            <div className="phone-input-group">
+              <div className="country-code-selector">
+                <span className="country-flag">
+                  {getCurrentFlag()}
+                </span>
+                <select
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleCountryCodeChange}
+                  className="country-code-select"
+                >
+                  {countryCodes.map(({ code, country, flag }) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+                <div className="country-select-arrow">▼</div>
+              </div>
+              <input
+                type="tel"
+                name="phoneNumber"
+                placeholder="Enter phone number"
+                value={formData.phoneNumber}
+                onChange={handlePhoneNumberChange}
+                className="phone-number-input"
+              />
+            </div>
           </div>
 
-          <div className="form-actions">
+          {/* Guest Count */}
+          <div className="form-group">
+            <div className="guest-count-grid">
+              <div>
+                <label className="form-label">
+                  Number of Adults *
+                </label>
+                <input
+                  type="number"
+                  name="adults"
+                  placeholder="Enter number"
+                  min="1"
+                  value={formData.adults}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+                <p className="form-hint">
+                  Age 18+
+                </p>
+              </div>
+              <div>
+                <label className="form-label">
+                  Number of Minors *
+                </label>
+                <input
+                  type="number"
+                  name="children"
+                  placeholder="Enter number"
+                  min="0"
+                  value={formData.children}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+                <p className="form-hint">
+                  Under 18 years
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="action-buttons">
             <button
-              type="submit"
-              className="button button-primary"
-              disabled={isSubmitting}
-              aria-label={UI_TEXT.CHECK_INS_BUTTON}
+              onClick={handleCancel}
+              className="cancel-button"
             >
-              {isSubmitting ? UI_TEXT.CHECK_INS_BUTTON_LOADING : UI_TEXT.CHECK_INS_BUTTON}
+              Cancel
+            </button>
+            <button
+              onClick={handleReview}
+              className="next-button"
+            >
+              Next
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default OTAVerificationForm;
