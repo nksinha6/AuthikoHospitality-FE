@@ -6,7 +6,7 @@ import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
 import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
-import "../styles/global.css"; // Using centralized CSS instead of login.css
+import "../styles/global.css";
 import logo from "../assets/images/1pass_logo.jpg";
 
 const INITIAL_FORM_VALUES = {
@@ -88,263 +88,390 @@ export default function Login() {
 
   return (
     <div
-      className="login-page"
       style={{
-        minHeight: "100vh",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "var(--color-bg-page)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        padding: "var(--space-4)",
+        overflow: "hidden",
       }}
     >
       <div
-        className="login-wrapper"
-        style={{ width: "100%", maxWidth: "440px", padding: "var(--space-6)" }}
+        style={{
+          width: "100%",
+          maxWidth: "440px",
+          maxHeight: "100vh",
+          overflowY: "auto",
+        }}
       >
         <div
-          className="card"
           style={{
-            width: "100%",
+            backgroundColor: "var(--color-white)",
+            borderRadius: "var(--radius-lg)",
+            boxShadow: "var(--shadow-lg)",
+            border: "1px solid var(--color-border-subtle)",
             padding: "var(--space-8)",
-            maxWidth: "440px",
-            margin: "0 auto",
+            width: "100%",
           }}
         >
-          {/* Header with Logo */}
-          <div
-            className="login-header"
-            style={{ marginBottom: "var(--space-8)", textAlign: "center" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "var(--space-4)",
-                marginBottom: "var(--space-4)",
-              }}
-            >
-              {/* Logo Image */}
-              <div
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "var(--space-2)",
-                }}
-              >
-                <img
-                  src={logo} // Update this path
-                  alt="1Pass Logo"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    borderRadius: "var(--radius-sm)",
-                  }}
-                  onError={(e) => {
-                    // Fallback if image doesn't load
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML =
-                      '<div style="font-size: 28px; color: var(--color-primary); font-weight: bold;">1Pass</div>';
-                  }}
-                />
-              </div>
-            </div>
-
-            <h2 className="h-section-title">Welcome Back</h2>
-            <p className="text-muted" style={{ marginTop: "var(--space-2)" }}>
-              Sign in to your account to continue
-            </p>
-          </div>
-
-          {/* Error Alert */}
-          {errorMessage && (
-            <div
-              className="alert alert-error"
-              role="alert"
-              aria-live="polite"
-              style={{ marginBottom: "var(--space-4)" }}
-            >
-              <div className="alert-icon" style={{ fontSize: "16px" }}>
-                ⚠️
-              </div>
-              <div className="alert-message">{errorMessage}</div>
-            </div>
-          )}
-
-          {/* Login Form */}
-          <form
-            className="form"
-            onSubmit={handleSubmit}
-            style={{ gap: "var(--space-3)" }}
-          >
-            {/* Email Field */}
-            <div className="form-group">
-              <label htmlFor={FORM_FIELDS.USER_ID} className="form-label">
-                {UI_TEXT.LOGIN_EMAIL_LABEL}
-              </label>
-              <div className="input-wrapper">
-                <Mail size={18} className="input-icon" />
-                <input
-                  id={FORM_FIELDS.USER_ID}
-                  type="email"
-                  name={FORM_FIELDS.USER_ID}
-                  className="form-input"
-                  required
-                  placeholder={UI_TEXT.LOGIN_EMAIL_PLACEHOLDER}
-                  value={values[FORM_FIELDS.USER_ID]}
-                  onChange={handleChange}
-                  autoComplete="username"
-                  aria-label={UI_TEXT.LOGIN_EMAIL_LABEL}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="form-group">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <label htmlFor={FORM_FIELDS.PASSWORD} className="form-label">
-                  {UI_TEXT.LOGIN_PASSWORD_LABEL}
-                </label>
-              </div>
-              <div className="input-wrapper">
-                <Lock size={18} className="input-icon" />
-                <input
-                  id={FORM_FIELDS.PASSWORD}
-                  type={showPassword ? "text" : "password"}
-                  name={FORM_FIELDS.PASSWORD}
-                  className="form-input"
-                  required
-                  placeholder={UI_TEXT.LOGIN_PASSWORD_PLACEHOLDER}
-                  value={values[FORM_FIELDS.PASSWORD]}
-                  onChange={handleChange}
-                  autoComplete="current-password"
-                  aria-label={UI_TEXT.LOGIN_PASSWORD_LABEL}
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  style={{
-                    position: "absolute",
-                    right: "var(--space-3)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--color-text-subtle)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "var(--space-1)",
-                  }}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  disabled={isSubmitting}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <a
-                href="#forgot-password"
-                style={{
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-primary)",
-                  textDecoration: "none",
-                  fontWeight: "500",
-                  marginLeft: "auto",
-                }}
-              >
-                Forgot password?
-              </a>
-            </div>
-
-            {/* Remember Me Checkbox */}
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={handleRememberMeChange}
-                  disabled={isSubmitting}
-                  className="checkbox-input"
-                />
-                <span
-                  style={{
-                    fontSize: "var(--font-size-sm)",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  Remember me on this device
-                </span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="button button-primary button-block"
-              disabled={isSubmitting}
-              style={{
-                marginTop: "var(--space-2)",
-                height: "39px",
-                padding: "var(--space-2) var(--space-4)",
-                fontSize: "var(--font-size-md)",
-                fontWeight: "600",
-                borderRadius: "6px",
-              }}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner"></span>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <span style={{ marginLeft: "var(--space-2)" }}>→</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
+          {/* Header Section */}
           <div
             style={{
               textAlign: "center",
-              paddingTop: "var(--space-6)",
-              marginTop: "var(--space-6)",
-              borderTop: "1px solid var(--color-border-subtle)",
+              marginBottom: "var(--space-4)",
             }}
           >
-            <p
+            {/* Logo */}
+            <div
               style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-text-muted)",
+                marginBottom: "var(--space-6)",
               }}
             >
-              Don't have an account?{" "}
-              <a
-                href="#signup"
+              <img
+                src={logo}
+                alt="1/Pass Logo"
                 style={{
-                  color: "var(--color-primary)",
-                  textDecoration: "none",
-                  fontWeight: "500",
+                  width: "60px",
+                  height: "auto",
+                  marginBottom: "var(--space-4)",
+                }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentElement.innerHTML =
+                    '<div style="font-size: 32px; color: var(--color-primary); font-weight: bold; margin-bottom: var(--space-4)">1/Pass</div>';
+                }}
+              />
+              <h1
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "600",
+                  color: "var(--color-text-main)",
+                  marginBottom: "var(--space-2)",
+                  lineHeight: "1.3",
                 }}
               >
-                Contact Us
-              </a>
-            </p>
+                Welcome Back
+              </h1>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "var(--color-text-muted)",
+                  lineHeight: "1.5",
+                }}
+              >
+                Sign in to your account to continue
+              </p>
+            </div>
+
+            {/* Error Alert */}
+            {errorMessage && (
+              <div
+                style={{
+                  backgroundColor: "rgba(220, 38, 38, 0.1)",
+                  border: "1px solid rgba(220, 38, 38, 0.3)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "var(--space-4)",
+                  marginBottom: "var(--space-6)",
+                  color: "var(--color-error)",
+                  fontSize: "14px",
+                  textAlign: "left",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "var(--space-2)",
+                }}
+              >
+                <span style={{ flexShrink: 0 }}>⚠️</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+              {/* Email Field */}
+              <div style={{ marginBottom: "var(--space-6)" }}>
+                <label
+                  htmlFor={FORM_FIELDS.USER_ID}
+                  style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "var(--color-text-main)",
+                    marginBottom: "var(--space-2)",
+                    textAlign: "left",
+                  }}
+                >
+                  Email Address
+                </label>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                  }}
+                >
+                  <Mail
+                    size={18}
+                    style={{
+                      position: "absolute",
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--color-text-subtle)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    id={FORM_FIELDS.USER_ID}
+                    type="email"
+                    name={FORM_FIELDS.USER_ID}
+                    required
+                    placeholder="abc@xyz.com"
+                    value={values[FORM_FIELDS.USER_ID]}
+                    onChange={handleChange}
+                    autoComplete="username"
+                    disabled={isSubmitting}
+                    style={{
+                      width: "100%",
+                      padding: "12px 12px 12px 40px",
+                      fontSize: "14px",
+                      border: "1px solid var(--color-border-subtle)",
+                      borderRadius: "var(--radius-md)",
+                      backgroundColor: "var(--color-white)",
+                      color: "var(--color-text-main)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div style={{ marginBottom: "var(--space-6)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "var(--space-2)",
+                  }}
+                >
+                  <label
+                    htmlFor={FORM_FIELDS.PASSWORD}
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      color: "var(--color-text-main)",
+                    }}
+                  >
+                    Password
+                  </label>
+                  
+                </div>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                  }}
+                >
+                  <Lock
+                    size={18}
+                    style={{
+                      position: "absolute",
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--color-text-subtle)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    id={FORM_FIELDS.PASSWORD}
+                    type={showPassword ? "text" : "password"}
+                    name={FORM_FIELDS.PASSWORD}
+                    required
+                    placeholder="Enter your password"
+                    value={values[FORM_FIELDS.PASSWORD]}
+                    onChange={handleChange}
+                    autoComplete="current-password"
+                    disabled={isSubmitting}
+                    style={{
+                      width: "100%",
+                      padding: "12px 40px 12px 40px",
+                      fontSize: "14px",
+                      border: "1px solid var(--color-border-subtle)",
+                      borderRadius: "var(--radius-md)",
+                      backgroundColor: "var(--color-white)",
+                      color: "var(--color-text-main)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--color-text-subtle)",
+                      padding: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isSubmitting}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <a
+                    href="#forgot-password"
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--color-primary)",
+                      textDecoration: "none",
+                      fontWeight: "500",
+                      float: "right",
+                      marginTop: "var(--space-2)",
+                    }}
+                  >
+                    Forgot password?
+                  </a>
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div
+                style={{
+                  marginBottom: "var(--space-8)",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={handleRememberMeChange}
+                  disabled={isSubmitting}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    marginRight: "8px",
+                    cursor: "pointer",
+                    accentColor: "var(--color-primary)",
+                  }}
+                />
+                <label
+                  htmlFor="remember-me"
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--color-text-muted)",
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  Remember me on this device
+                </label>
+              </div>
+
+              {/* Sign In Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  backgroundColor: "var(--color-primary)",
+                  color: "var(--color-white)",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  marginBottom: "var(--space-8)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  transition: "background-color 0.2s ease",
+                }}
+                onMouseOver={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.backgroundColor = "var(--color-primary-dark)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.backgroundColor = "var(--color-primary)";
+                  }
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        border: "2px solid rgba(255, 255, 255, 0.3)",
+                        borderTopColor: "var(--color-white)",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    ></span>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <span style={{ fontSize: "16px" }}>→</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Footer */}
+            <div
+              style={{
+                textAlign: "center",
+                paddingTop: "var(--space-6)",
+                borderTop: "1px solid var(--color-border-subtle)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "var(--color-text-muted)",
+                  lineHeight: "1.5",
+                }}
+              >
+                Don't have an account?{" "}
+                <a
+                  href="#signup"
+                  style={{
+                    color: "var(--color-primary)",
+                    textDecoration: "none",
+                    fontWeight: "500",
+                  }}
+                >
+                  Contact Us
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
+
+      
     </div>
   );
 }
