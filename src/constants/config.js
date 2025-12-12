@@ -5,7 +5,7 @@ export const TENANT_ID = 1;
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  LOGIN: "/api/HotelUser/login",
+  LOGIN: "/HotelUser/login",
 };
 
 // Storage Keys
