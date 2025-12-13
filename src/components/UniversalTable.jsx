@@ -37,7 +37,6 @@ const UniversalTable = memo(
               </tr>
             ) : (
               data.map((row, i) => {
-                // Use a unique key if available, fallback to index
                 const rowKey = row.id || row.bookingId || i;
                 return (
                   <tr key={rowKey} role="row">
@@ -54,7 +53,7 @@ const UniversalTable = memo(
                           `Error formatting column ${col.key}:`,
                           error
                         );
-                        cellValue = rawValue; // Fallback to raw value
+                        cellValue = rawValue;
                       }
 
                       return (
