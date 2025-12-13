@@ -1,7 +1,14 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { UI_TEXT, ROUTES } from "../constants/ui.js";
-import { Calendar, User, Phone, Users, CheckCircle, ArrowLeft, Shield } from "lucide-react";
-import "../styles/checkins.css";
+import {
+  Calendar,
+  User,
+  Phone,
+  Users,
+  CheckCircle,
+  ArrowLeft,
+  Shield,
+} from "lucide-react";
 
 export default function GuestVerification() {
   const location = useLocation();
@@ -9,11 +16,8 @@ export default function GuestVerification() {
   const formData = location.state?.formData;
 
   const handleConfirmCheckIn = () => {
-    // Show success message
     alert("Guest check-in successful! Starting verification process...");
-    
-    // In a real app, you would start the verification process here
-    // For now, navigate to guest phone entry page
+
     navigate("/guest-phone-entry", {
       state: {
         bookingId: `WALKIN-${Date.now().toString().slice(-6)}`,
@@ -22,8 +26,8 @@ export default function GuestVerification() {
         adults: formData.adults,
         minors: formData.minors,
         phoneNumber: formData.phone,
-        isWalkIn: true
-      }
+        isWalkIn: true,
+      },
     });
   };
 
@@ -32,194 +36,224 @@ export default function GuestVerification() {
   };
 
   return (
-    <div className="login-page">
-      {/* Animated Background (same as login) */}
-      <div className="login-background">
-        <div className="gradient-blob blob-1"></div>
-        <div className="gradient-blob blob-2"></div>
-        <div className="gradient-blob blob-3"></div>
-      </div>
-
-      {/* Main Content */}
-      <div className="login-wrapper">
-        <div className="login-card">
-          {/* Header with Logo */}
-          <div className="login-header">
-            <div className="logo-container">
-              <Shield className="logo-icon" size={48} color="#1b3635" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="text-center p-8">
+            <div className="flex justify-center mb-4">
+              <Shield className="text-[#1b3631]" size={48} />
             </div>
-            <h2 className="login-title">Guest Verification</h2>
-            <p className="login-subtitle">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              Guest Verification
+            </h2>
+            <p className="text-gray-600">
               Review and verify guest details before check-in
             </p>
           </div>
 
           {/* Form Card */}
-          <div className="checkin-form-container">
-            <div className="form-card-header">
-              <h3 className="form-card-title">Verification Summary</h3>
-              <p className="form-card-subtitle">Review all guest information before proceeding</p>
+          <div className="p-8">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                Verification Summary
+              </h3>
+              <p className="text-gray-600">
+                Review all guest information before proceeding
+              </p>
             </div>
 
             {formData ? (
-  <div className="verification-content">
-    {/* Summary Section - Now properly boxed */}
-    <div className="summary-container">
-      <div className="summary-section">
-        <div className="summary-header">
-          <div className="summary-title-container">
-            <CheckCircle size={20} className="summary-title-icon" />
-            <h4 className="section-title">
-              Guest Information Summary
-            </h4>
-          </div>
-          <div className="status-badge status-success">
-            <span className="status-dot"></span>
-            Ready for Verification
-          </div>
-        </div>
+              <div>
+                {/* Summary Section */}
+                <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={20} className="text-green-500" />
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        Guest Information Summary
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Ready for Verification
+                    </div>
+                  </div>
 
-        {/* Summary Grid */}
-        <div className="summary-grid">
-          {/* Row 1 */}
-          <div className="summary-row">
-            {/* Date */}
-            <div className="summary-card">
-              <div className="summary-card-header">
-                <Calendar size={18} className="summary-icon" />
-                <span className="summary-label">Date</span>
-              </div>
-              <div className="summary-value">{formData.date}</div>
-            </div>
+                  {/* Summary Grid */}
+                  <div className="space-y-4">
+                    {/* Row 1 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Date */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar size={18} className="text-gray-400" />
+                          <span className="text-sm font-medium text-gray-600">
+                            Date
+                          </span>
+                        </div>
+                        <div className="text-gray-900 font-medium">
+                          {formData.date}
+                        </div>
+                      </div>
 
-            {/* Lead Guest Name */}
-            <div className="summary-card">
-              <div className="summary-card-header">
-                <User size={18} className="summary-icon" />
-                <span className="summary-label">Lead Guest</span>
-              </div>
-              <div className="summary-value">
-                {formData.firstName} {formData.surname}
-              </div>
-            </div>
+                      {/* Lead Guest Name */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User size={18} className="text-gray-400" />
+                          <span className="text-sm font-medium text-gray-600">
+                            Lead Guest
+                          </span>
+                        </div>
+                        <div className="text-gray-900 font-medium">
+                          {formData.firstName} {formData.surname}
+                        </div>
+                      </div>
 
-            {/* Phone Number */}
-            <div className="summary-card">
-              <div className="summary-card-header">
-                <Phone size={18} className="summary-icon" />
-                <span className="summary-label">Phone Number</span>
-              </div>
-              <div className="summary-value phone-value">{formData.phone}</div>
-            </div>
-          </div>
+                      {/* Phone Number */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Phone size={18} className="text-gray-400" />
+                          <span className="text-sm font-medium text-gray-600">
+                            Phone Number
+                          </span>
+                        </div>
+                        <div className="text-gray-900 font-medium">
+                          {formData.phone}
+                        </div>
+                      </div>
+                    </div>
 
-          {/* Row 2 */}
-          <div className="summary-row">
-            {/* Adults Count */}
-            <div className="summary-card guest-count-card">
-              <div className="summary-card-header">
-                <Users size={18} className="summary-icon" />
-                <span className="summary-label">Adults</span>
-              </div>
-              <div className="summary-value count-value highlight">
-                {formData.adults}
-                <span className="count-label">Persons</span>
-              </div>
-            </div>
+                    {/* Row 2 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Adults Count */}
+                      <div className="bg-white p-4 rounded-lg border border-blue-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users size={18} className="text-blue-500" />
+                          <span className="text-sm font-medium text-gray-600">
+                            Adults
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold text-blue-600">
+                            {formData.adults}
+                          </span>
+                          <span className="text-sm text-gray-500">Persons</span>
+                        </div>
+                      </div>
 
-            {/* Minors Count */}
-            <div className="summary-card guest-count-card">
-              <div className="summary-card-header">
-                <Users size={18} className="summary-icon" />
-                <span className="summary-label">Minors</span>
-              </div>
-              <div className="summary-value count-value">
-                {formData.minors}
-                <span className="count-label">Persons</span>
-              </div>
-            </div>
+                      {/* Minors Count */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users size={18} className="text-gray-400" />
+                          <span className="text-sm font-medium text-gray-600">
+                            Minors
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold text-gray-900">
+                            {formData.minors}
+                          </span>
+                          <span className="text-sm text-gray-500">Persons</span>
+                        </div>
+                      </div>
 
-            {/* Total Guests */}
-            <div className="summary-card guest-count-card total-highlight-card">
-              <div className="summary-card-header">
-                <Users size={20} className="summary-icon total-icon" />
-                <span className="summary-label total-label">Total Guests</span>
-              </div>
-              <div className="summary-value total-value">
-                {formData.totalGuests}
-                <span className="total-guests-label">Persons</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                      {/* Total Guests */}
+                      <div className="bg-[#1b3631] p-4 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users size={20} className="text-white" />
+                          <span className="text-sm font-medium text-white">
+                            Total Guests
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold text-white">
+                            {formData.totalGuests}
+                          </span>
+                          <span className="text-sm text-white/80">Persons</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-    {/* Verification Notes */}
-    <div className="info-box verification-notes">
-      <div className="info-icon">⚠️</div>
-      <div className="info-content">
-        <h5 className="info-title">Important Verification Notes</h5>
-        <div className="info-grid">
-          <div className="info-item">
-            <span className="info-bullet">•</span>
-            <span>All adult guests will need to complete Aadhaar verification</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet">•</span>
-            <span>Face ID matching will be performed for each adult</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet">•</span>
-            <span>Verification links will be sent to provided phone numbers</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet">•</span>
-            <span>Minors do not require separate verification</span>
-          </div>
-        </div>
-      </div>
-    </div>
+                {/* Verification Notes */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                  <div className="flex gap-3">
+                    <div className="text-yellow-600 text-xl">⚠️</div>
+                    <div>
+                      <h5 className="font-semibold text-yellow-800 mb-2">
+                        Important Verification Notes
+                      </h5>
+                      <div className="space-y-1">
+                        <div className="flex gap-2">
+                          <span className="text-yellow-600">•</span>
+                          <span className="text-yellow-700">
+                            All adult guests will need to complete Aadhaar
+                            verification
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-yellow-600">•</span>
+                          <span className="text-yellow-700">
+                            Face ID matching will be performed for each adult
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-yellow-600">•</span>
+                          <span className="text-yellow-700">
+                            Verification links will be sent to provided phone
+                            numbers
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-yellow-600">•</span>
+                          <span className="text-yellow-700">
+                            Minors do not require separate verification
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-    {/* Action Buttons */}
-    <div className="form-actions">
-      <button
-        type="button"
-        className="button-primary"
-        onClick={handleConfirmCheckIn}
-      >
-        <CheckCircle size={18} />
-        Confirm & Start Verification
-        <span className="arrow">→</span>
-      </button>
-      <button
-        type="button"
-        className="button-secondary"
-        onClick={handleBack}
-      >
-        <ArrowLeft size={18} />
-        Back to Edit
-      </button>
-    </div>
-  </div>
-) : (
-  <div className="no-data-container">
-    <div className="no-data-icon">📋</div>
-    <h4 className="no-data-title">No Guest Data Provided</h4>
-    <p className="no-data-text">
-      Please go back to create a walk-in booking first.
-    </p>
-    <button
-      type="button"
-      className="button-secondary"
-      onClick={handleBack}
-      style={{ marginTop: '16px' }}
-    >
-      <ArrowLeft size={18} />
-      Back to Create Walk-in
-    </button>
-  </div>
-)}
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConfirmCheckIn}
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#1b3631] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#1b3631]/90"
+                  >
+                    <CheckCircle size={18} />
+                    Confirm & Start Verification
+                    <span className="text-lg">→</span>
+                  </button>
+                  <button
+                    onClick={handleBack}
+                    className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  >
+                    <ArrowLeft size={18} />
+                    Back to Edit
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📋</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  No Guest Data Provided
+                </h4>
+                <p className="text-gray-600 mb-4">
+                  Please go back to create a walk-in booking first.
+                </p>
+                <button
+                  onClick={handleBack}
+                  className="flex items-center justify-center gap-2 mx-auto px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                >
+                  <ArrowLeft size={18} />
+                  Back to Create Walk-in
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

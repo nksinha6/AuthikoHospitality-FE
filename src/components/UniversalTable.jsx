@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import PropTypes from "prop-types";
-import "./UniversalTable.css";
 
 const UniversalTable = memo(
   ({
@@ -11,16 +10,27 @@ const UniversalTable = memo(
     emptyMessage = "No data found.",
   }) => {
     return (
-      <div className="table-wrapper">
-        <table className="universal-table" role="table">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse" role="table">
           <thead>
-            <tr role="row">
+            <tr role="row" className="border-t border-b border-gray-200/65">
               {columns.map((col) => (
-                <th key={col.key} role="columnheader">
+                <th
+                  key={col.key}
+                  role="columnheader"
+                  className="px-2 py-3 text-left font-semibold text-xs text-gray-600 uppercase tracking-wider"
+                >
                   {col.label}
                 </th>
               ))}
-              {actions && <th role="columnheader">Actions</th>}
+              {actions && (
+                <th
+                  role="columnheader"
+                  className="px-2 py-3 text-left font-semibold text-xs text-gray-600 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
 
@@ -29,7 +39,7 @@ const UniversalTable = memo(
               <tr role="row">
                 <td
                   colSpan={columns.length + (actions ? 1 : 0)}
-                  className="empty-row"
+                  className="px-2 py-8 text-center text-gray-500"
                   role="cell"
                 >
                   {emptyMessage}
@@ -39,7 +49,11 @@ const UniversalTable = memo(
               data.map((row, i) => {
                 const rowKey = row.id || row.bookingId || i;
                 return (
-                  <tr key={rowKey} role="row">
+                  <tr
+                    key={rowKey}
+                    role="row"
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
                     {columns.map((col) => {
                       const rawValue = row[col.key];
                       const formatter = format[col.key];
@@ -57,13 +71,24 @@ const UniversalTable = memo(
                       }
 
                       return (
-                        <td key={col.key} role="cell">
+                        <td
+                          key={col.key}
+                          role="cell"
+                          className="px-2 py-3 text-sm text-gray-900"
+                        >
                           {cellValue}
                         </td>
                       );
                     })}
 
-                    {actions && <td role="cell">{actions(row)}</td>}
+                    {actions && (
+                      <td
+                        role="cell"
+                        className="px-2 py-3 text-sm text-gray-900"
+                      >
+                        {actions(row)}
+                      </td>
+                    )}
                   </tr>
                 );
               })

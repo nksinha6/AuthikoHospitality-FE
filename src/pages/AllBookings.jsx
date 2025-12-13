@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { UI_TEXT } from "../constants/ui.js";
 import DateFilter from "../components/DateHourFilter.jsx";
 import Loader from "../components/Loader.jsx";
-import "../styles/TodaysBookings.css";
 import dayjs from "dayjs";
 import { FiPlus } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
@@ -13,6 +12,7 @@ export default function AllBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [dateFilter, setDateFilter] = useState(null); // Store date filter state
 
   const today = dayjs();
 
@@ -24,12 +24,10 @@ export default function AllBookings() {
     });
   };
 
-  // Simulated data fetch
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        // Simulate API delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const mockBookings = [
@@ -188,38 +186,28 @@ export default function AllBookings() {
 
   const [filteredBookings, setFilteredBookings] = useState([]);
 
-  // Filters
   const [filters, setFilters] = useState({
     name: "",
     phone: "",
     ota: "",
   });
 
-  const handleDateFilterApply = ({
-    condition,
-    selectedDate,
-    startDate,
-    endDate,
-    value,
-    timeUnit,
-  }) => {
-    applyFilters({
-      dateFilter: {
-        condition,
-        selectedDate,
-        startDate,
-        endDate,
-        value,
-        timeUnit,
-      },
-    });
+  const handleDateFilterApply = (filterData) => {
+    // Handle both apply and clear actions
+    if (!filterData) {
+      // Clear filter
+      setDateFilter(null);
+    } else {
+      // Apply filter
+      setDateFilter(filterData);
+    }
   };
 
-  const applyFilters = ({ dateFilter } = {}) => {
+  const applyAllFilters = useCallback(() => {
     const filtered = normalizedBookings.filter((b) => {
       let include = true;
 
-      // Date filter
+      // Apply date filter if active
       if (dateFilter) {
         const bookingDate = b.date;
         const selected = dateFilter.selectedDate
@@ -281,7 +269,7 @@ export default function AllBookings() {
         }
       }
 
-      // Name filter (firstName or surname)
+      // Apply text filters
       if (filters.name) {
         const search = filters.name.toLowerCase();
         include =
@@ -290,13 +278,11 @@ export default function AllBookings() {
             b.surname.toLowerCase().includes(search));
       }
 
-      // Phone filter
       if (filters.phone) {
         const search = filters.phone.toLowerCase();
         include = include && b.phone.toLowerCase().includes(search);
       }
 
-      // OTA filter
       if (filters.ota) {
         const search = filters.ota.toLowerCase();
         include = include && b.ota.toLowerCase().includes(search);
@@ -306,34 +292,29 @@ export default function AllBookings() {
     });
 
     setFilteredBookings(filtered);
-  };
+  }, [normalizedBookings, dateFilter, filters]);
 
-  // Update input filters
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Reapply filters whenever any input changes or bookings change
+  // Apply all filters whenever any filter changes
   useEffect(() => {
-    applyFilters();
-  }, [filters, normalizedBookings]);
+    applyAllFilters();
+  }, [applyAllFilters]);
 
   const formatPhone = (phone) => {
-    // Remove everything except numbers
     const digits = phone.replace(/\D/g, "");
 
-    // If Indian number with 12 digits (+91xxxxxxxxxx)
     if (digits.length === 12 && digits.startsWith("91")) {
       return `+91-${digits.substring(2, 7)}-${digits.substring(7)}`;
     }
 
-    // If Indian number without +91 (10 digits)
     if (digits.length === 10) {
       return `${digits.substring(0, 5)}-${digits.substring(5)}`;
     }
 
-    // Fallback
     return phone;
   };
 
@@ -343,40 +324,46 @@ export default function AllBookings() {
 
   if (error) {
     return (
-      <div className="todays-container">
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#1b3631] text-white px-4 py-2 rounded hover:bg-[#1b3631]/90"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="todays-container">
+    <div className="min-h-screen bg-white">
       {/* PAGE HEADER */}
-      <div className="todays-header">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="page-title">{UI_TEXT.ALL_BOOKINGS_TITLE}</h2>
-          <p className="page-subtitle">{UI_TEXT.ALL_BOOKINGS_SUBTITLE}</p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            {UI_TEXT.ALL_BOOKINGS_TITLE}
+          </h2>
+          <p className="text-gray-600 mt-1">{UI_TEXT.ALL_BOOKINGS_SUBTITLE}</p>
         </div>
-        <button className="btn-walkin">
-          <FiPlus className="walkin-icon" />
+        <button className="flex items-center gap-2 bg-[#1b3631] text-white px-4 py-2 rounded-lg hover:bg-[#1b3631]/90 cursor-pointer">
+          <FiPlus className="text-lg" />
           {UI_TEXT.BUTTON_CREATE_WALKIN}
         </button>
       </div>
 
-      {/* Filters Component  */}
-
-      <div className="filters-wrapper">
-        <div className="filters-row">
+      {/* Filters */}
+      <div className="mb-6">
+        <div className="flex gap-3 mb-3">
           <input
             type="text"
             placeholder={UI_TEXT.FILTER_GUEST_NAME}
             name="name"
             value={filters.name}
             onChange={handleInputChange}
-            className="filter-input"
+            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
           <input
             type="text"
@@ -384,7 +371,7 @@ export default function AllBookings() {
             name="phone"
             value={filters.phone}
             onChange={handleInputChange}
-            className="filter-input"
+            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
           <input
             type="text"
@@ -392,21 +379,20 @@ export default function AllBookings() {
             name="ota"
             value={filters.ota}
             onChange={handleInputChange}
-            className="filter-input"
+            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
         </div>
       </div>
 
-      <div className="date-filter-wrapper">
+      <div className="flex justify-between items-center mb-6">
         <DateFilter onApply={handleDateFilterApply} />
-        <div className="export-buttons">
-          <button className="export-btn">
-            <FiDownload className="export-icon" />
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <FiDownload />
             Export PDF
           </button>
-
-          <button className="export-btn">
-            <FiDownload className="export-icon" />
+          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+            <FiDownload />
             Export EXL
           </button>
         </div>
@@ -425,6 +411,7 @@ export default function AllBookings() {
           { key: "checkedIn", label: UI_TEXT.TABLE_STATUS },
         ]}
         data={filteredBookings}
+        emptyMessage="No bookings match your filters."
         format={{
           date: (d) => formatShortDate(d),
           phone: (p) => formatPhone(p),
@@ -436,39 +423,36 @@ export default function AllBookings() {
             }`,
 
           checkedIn: (value, row) => {
-            // No-show condition
             if (!row.checkedIn && row.date.isBefore(dayjs(), "day")) {
               return (
                 <button
                   key={`no-show-${row.bookingId}`}
-                  className="link status-btn no-show"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
                 >
-                  <FaCircle className="status-icon red" />
+                  <FaCircle className="text-red-500 text-xs" />
                   {UI_TEXT.BUTTON_NO_SHOW}
                 </button>
               );
             }
 
-            // Start check-in
             if (!row.checkedIn) {
               return (
                 <button
                   key={`checkin-${row.bookingId}`}
-                  className="link status-btn"
+                  className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700"
                 >
-                  <FaCircle className="status-icon yellow" />
+                  <FaCircle className="text-yellow-500 text-xs" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </button>
               );
             }
 
-            // View details (checked-in)
             return (
               <button
                 key={`details-${row.bookingId}`}
-                className="link status-btn"
+                className="flex items-center gap-2 text-green-600 hover:text-green-700"
               >
-                <FaCircle className="status-icon green" />
+                <FaCircle className="text-green-500 text-xs" />
                 {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
               </button>
             );

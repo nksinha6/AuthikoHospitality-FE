@@ -91,7 +91,7 @@ export const UI_TEXT = {
   MINORS_LABEL: "Minors",
   START_VERIFICATION_BUTTON: "Start Guest Verification",
   CANCEL_BUTTON: "Cancel",
-  
+
   // Loader
   LOADER_TEXT: "Loading...",
 
@@ -106,7 +106,8 @@ export const UI_TEXT = {
   LOGIN_HIDE_PASSWORD: "Hide",
   LOGIN_BUTTON: "Sign In",
   LOGIN_BUTTON_LOADING: "Signing In...",
-  LOGIN_ERROR_DEFAULT: "Login failed. Please check your credentials and try again.",
+  LOGIN_ERROR_DEFAULT:
+    "Login failed. Please check your credentials and try again.",
   LOGIN_FORGOT_PASSWORD: "Forgot your password?",
   LOGIN_FOOTER: "© 2024 Company Portal. Secure access only.",
 };

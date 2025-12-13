@@ -1,13 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { UI_TEXT } from "../constants/ui.js";
-import "../styles/TodaysBookings.css";
 import { FiPlus } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
 import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
 import Loader from "../components/Loader.jsx";
 
-// Utility: Format today's date in Indian format
 const getTodayDateFormatted = () => {
   return new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -16,24 +14,17 @@ const getTodayDateFormatted = () => {
   });
 };
 
-// Format: Thursday / 11 Dec 25
 const getFullHeaderDate = () => {
   const date = new Date();
-
-  const dayName = date.toLocaleDateString("en-IN", {
-    weekday: "long",
-  });
-
+  const dayName = date.toLocaleDateString("en-IN", { weekday: "long" });
   const shortDate = date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "2-digit",
   });
-
   return `${dayName} / ${shortDate}`;
 };
 
-// Format: 11 Dec 25
 const formatShortDate = (d) => {
   return new Date(d).toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -42,18 +33,14 @@ const formatShortDate = (d) => {
   });
 };
 
-// Utility: Apply all active filters to bookings
 const filterBookings = (bookings, filters) => {
   const guestQuery = filters.guest.toLowerCase();
   const otaQuery = filters.ota.toLowerCase();
 
   return bookings.filter((b) => {
     const matchesGuest = b.leadGuest.toLowerCase().includes(guestQuery);
-
     const matchesPhone = b.phone.includes(filters.phone);
-
     const matchesOta = b.ota.toLowerCase().includes(otaQuery);
-
     const matchesStatus =
       filters.status === ""
         ? true
@@ -69,104 +56,71 @@ export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const today = getTodayDateFormatted();
 
-  // Simulated data fetch
+  const [filters, setFilters] = useState({
+    guest: "",
+    phone: "",
+    ota: "",
+    status: "not-checked-in",
+  });
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        // Simulate API delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const mockBookings = [
           {
             date: today,
-            bookingId: "BK202501",
+            bookingId: "BK202503",
             ota: "MakeMyTrip",
-            leadGuest: "Arjun Mehta",
-            firstName: "Arjun",
-            surname: "Mehta",
-            phone: "+91-9876543210",
-            guests: 3,
-            adults: 2,
+            leadGuest: "Rahul Verma",
+            firstName: "Rahul",
+            surname: "Verma",
+            phone: "+91-9123456780",
+            guests: 4,
+            adults: 3,
             minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202502",
-            ota: "Booking.com",
-            leadGuest: "Meera Sharma",
-            firstName: "Meera",
-            surname: "Sharma",
-            phone: "+91-9988776655",
-            guests: 2,
-            adults: 2,
-            minors: 0,
             checkedIn: true,
           },
           {
             date: today,
-            bookingId: "BK202503",
-            ota: "Agoda",
-            leadGuest: "Ravi Verma",
-            firstName: "Ravi",
-            surname: "Verma",
-            phone: "+91-9123456780",
-            guests: 1,
-            adults: 1,
-            minors: 0,
-            checkedIn: false,
-          },
-          {
-            date: today,
             bookingId: "BK202504",
-            ota: "Airbnb",
-            leadGuest: "Sara Fernandes",
-            firstName: "Sara",
-            surname: "Fernandes",
-            phone: "+91-9001122334",
-            guests: 4,
+            ota: "Agoda",
+            leadGuest: "Sneha Patel",
+            firstName: "Sneha",
+            surname: "Patel",
+            phone: "+91-9876501234",
+            guests: 2,
             adults: 2,
-            minors: 2,
+            minors: 0,
             checkedIn: false,
           },
           {
             date: today,
             bookingId: "BK202505",
-            ota: "GoIbibo",
-            leadGuest: "Kunal Singh",
-            firstName: "Kunal",
-            surname: "Singh",
-            phone: "+91-9090909090",
-            guests: 2,
-            adults: 1,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202506",
-            ota: "Cleartrip",
-            leadGuest: "Nisha Patel",
-            firstName: "Nisha",
-            surname: "Patel",
-            phone: "+91-9801234567",
+            ota: "Booking.com",
+            leadGuest: "Amit Shah",
+            firstName: "Amit",
+            surname: "Shah",
+            phone: "+91-9001122334",
             guests: 3,
-            adults: 3,
-            minors: 0,
+            adults: 2,
+            minors: 1,
             checkedIn: true,
           },
           {
             date: today,
-            bookingId: "BK202507",
-            ota: "MakeMyTrip",
-            leadGuest: "Aditya Rao",
-            firstName: "Aditya",
-            surname: "Rao",
-            phone: "+91-9554433221",
+            bookingId: "BK202506",
+            ota: "Goibibo",
+            leadGuest: "Pooja Singh",
+            firstName: "Pooja",
+            surname: "Singh",
+            phone: "+91-9887766554",
             guests: 1,
             adults: 1,
             minors: 0,
@@ -174,25 +128,64 @@ export default function TodaysBookings() {
           },
           {
             date: today,
+            bookingId: "BK202507",
+            ota: "MakeMyTrip",
+            leadGuest: "Karan Malhotra",
+            firstName: "Karan",
+            surname: "Malhotra",
+            phone: "+91-9765432109",
+            guests: 5,
+            adults: 4,
+            minors: 1,
+            checkedIn: true,
+          },
+          {
+            date: today,
             bookingId: "BK202508",
             ota: "Booking.com",
-            leadGuest: "Ishita Malhotra",
-            firstName: "Ishita",
-            surname: "Malhotra",
-            phone: "+91-9345678123",
-            guests: 5,
-            adults: 2,
-            minors: 3,
+            leadGuest: "Neha Joshi",
+            firstName: "Neha",
+            surname: "Joshi",
+            phone: "+91-9876123456",
+            guests: 2,
+            adults: 1,
+            minors: 1,
             checkedIn: false,
           },
           {
             date: today,
             bookingId: "BK202509",
             ota: "Agoda",
-            leadGuest: "George Mathew",
-            firstName: "George",
-            surname: "Mathew",
-            phone: "+91-9223344556",
+            leadGuest: "Suresh Kumar",
+            firstName: "Suresh",
+            surname: "Kumar",
+            phone: "+91-9012345678",
+            guests: 3,
+            adults: 3,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: today,
+            bookingId: "BK202510",
+            ota: "Goibibo",
+            leadGuest: "Ritika Arora",
+            firstName: "Ritika",
+            surname: "Arora",
+            phone: "+91-9345678123",
+            guests: 4,
+            adults: 2,
+            minors: 2,
+            checkedIn: false,
+          },
+          {
+            date: today,
+            bookingId: "BK202511",
+            ota: "MakeMyTrip",
+            leadGuest: "Vikas Yadav",
+            firstName: "Vikas",
+            surname: "Yadav",
+            phone: "+91-9988112233",
             guests: 2,
             adults: 2,
             minors: 0,
@@ -200,12 +193,12 @@ export default function TodaysBookings() {
           },
           {
             date: today,
-            bookingId: "BK202510",
-            ota: "Airbnb",
-            leadGuest: "Pooja Nair",
-            firstName: "Pooja",
-            surname: "Nair",
-            phone: "+91-9667788990",
+            bookingId: "BK202512",
+            ota: "Booking.com",
+            leadGuest: "Anjali Desai",
+            firstName: "Anjali",
+            surname: "Desai",
+            phone: "+91-9877012345",
             guests: 3,
             adults: 2,
             minors: 1,
@@ -213,77 +206,129 @@ export default function TodaysBookings() {
           },
           {
             date: today,
-            bookingId: "BK202511",
-            ota: "GoIbibo",
-            leadGuest: "Varun Kapoor",
-            firstName: "Varun",
-            surname: "Kapoor",
-            phone: "+91-9145236780",
-            guests: 2,
-            adults: 2,
+            bookingId: "BK202513",
+            ota: "Agoda",
+            leadGuest: "Rohit Jain",
+            firstName: "Rohit",
+            surname: "Jain",
+            phone: "+91-9898989898",
+            guests: 1,
+            adults: 1,
             minors: 0,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202512",
-            ota: "Cleartrip",
-            leadGuest: "Angela D’Souza",
-            firstName: "Angela",
-            surname: "D’Souza",
-            phone: "+91-9012345678",
-            guests: 4,
-            adults: 3,
-            minors: 1,
             checkedIn: true,
           },
           {
             date: today,
-            bookingId: "BK202513",
-            ota: "MakeMyTrip",
-            leadGuest: "Harish Kumar",
-            firstName: "Harish",
-            surname: "Kumar",
-            phone: "+91-9778899001",
-            guests: 1,
-            adults: 1,
-            minors: 0,
-            checkedIn: false,
-          },
-          {
-            date: today,
             bookingId: "BK202514",
-            ota: "Agoda",
-            leadGuest: "Lina Kurien",
-            firstName: "Lina",
-            surname: "Kurien",
-            phone: "+91-9887766554",
-            guests: 6,
-            adults: 4,
-            minors: 2,
+            ota: "Goibibo",
+            leadGuest: "Nisha Kapoor",
+            firstName: "Nisha",
+            surname: "Kapoor",
+            phone: "+91-9123987654",
+            guests: 4,
+            adults: 3,
+            minors: 1,
             checkedIn: false,
           },
           {
             date: today,
             bookingId: "BK202515",
-            ota: "Booking.com",
-            leadGuest: "Rahul Deshpande",
-            firstName: "Rahul",
-            surname: "Deshpande",
-            phone: "+91-9234567891",
+            ota: "MakeMyTrip",
+            leadGuest: "Manish Gupta",
+            firstName: "Manish",
+            surname: "Gupta",
+            phone: "+91-9009009009",
             guests: 2,
-            adults: 1,
-            minors: 1,
+            adults: 2,
+            minors: 0,
             checkedIn: true,
           },
           {
             date: today,
             bookingId: "BK202516",
-            ota: "Airbnb",
-            leadGuest: "Sanya Gill",
-            firstName: "Sanya",
-            surname: "Gill",
-            phone: "+91-9004455663",
+            ota: "Booking.com",
+            leadGuest: "Swati Mishra",
+            firstName: "Swati",
+            surname: "Mishra",
+            phone: "+91-9765123487",
+            guests: 3,
+            adults: 2,
+            minors: 1,
+            checkedIn: false,
+          },
+          {
+            date: today,
+            bookingId: "BK202517",
+            ota: "Agoda",
+            leadGuest: "Deepak Rana",
+            firstName: "Deepak",
+            surname: "Rana",
+            phone: "+91-9876547890",
+            guests: 5,
+            adults: 4,
+            minors: 1,
+            checkedIn: true,
+          },
+          {
+            date: today,
+            bookingId: "BK202518",
+            ota: "Goibibo",
+            leadGuest: "Isha Khanna",
+            firstName: "Isha",
+            surname: "Khanna",
+            phone: "+91-9011223344",
+            guests: 2,
+            adults: 1,
+            minors: 1,
+            checkedIn: false,
+          },
+          {
+            date: today,
+            bookingId: "BK202519",
+            ota: "MakeMyTrip",
+            leadGuest: "Sanjay Bansal",
+            firstName: "Sanjay",
+            surname: "Bansal",
+            phone: "+91-9888771234",
+            guests: 3,
+            adults: 3,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: today,
+            bookingId: "BK202520",
+            ota: "Booking.com",
+            leadGuest: "Kavita Nair",
+            firstName: "Kavita",
+            surname: "Nair",
+            phone: "+91-9823456712",
+            guests: 4,
+            adults: 2,
+            minors: 2,
+            checkedIn: false,
+          },
+          {
+            date: today,
+            bookingId: "BK202521",
+            ota: "Agoda",
+            leadGuest: "Pranav Kulkarni",
+            firstName: "Pranav",
+            surname: "Kulkarni",
+            phone: "+91-9090909090",
+            guests: 1,
+            adults: 1,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: today,
+            bookingId: "BK202522",
+            ota: "Goibibo",
+            leadGuest: "Ayesha Khan",
+            firstName: "Ayesha",
+            surname: "Khan",
+            phone: "+91-9871234567",
             guests: 3,
             adults: 2,
             minors: 1,
@@ -303,16 +348,6 @@ export default function TodaysBookings() {
     fetchBookings();
   }, []);
 
-  // State: Filter inputs
-  const [filters, setFilters] = useState({
-    guest: "",
-    phone: "",
-    ota: "",
-    status: "not-checked-in",
-  });
-
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
     [bookings, filters]
@@ -323,20 +358,16 @@ export default function TodaysBookings() {
   };
 
   const formatPhone = (phone) => {
-    // Remove everything except numbers
     const digits = phone.replace(/\D/g, "");
 
-    // If Indian number with 12 digits (+91xxxxxxxxxx)
     if (digits.length === 12 && digits.startsWith("91")) {
       return `+91-${digits.substring(2, 7)}-${digits.substring(7)}`;
     }
 
-    // If Indian number without +91 (10 digits)
     if (digits.length === 10) {
       return `${digits.substring(0, 5)}-${digits.substring(5)}`;
     }
 
-    // Fallback
     return phone;
   };
 
@@ -346,37 +377,45 @@ export default function TodaysBookings() {
 
   if (error) {
     return (
-      <div className="todays-container">
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#1b3631] text-white px-4 py-2 rounded hover:bg-[#1b3631]/90"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="todays-container">
+    <div className="min-h-screen bg-white">
       {/* PAGE HEADER */}
-      <header className="todays-header">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="page-title">{UI_TEXT.TODAYS_TITLE}</h2>
-          <p className="page-subtitle">{getFullHeaderDate()}</p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            {UI_TEXT.TODAYS_TITLE}
+          </h2>
+          <p className="text-gray-600 mt-1">{getFullHeaderDate()}</p>
         </div>
 
-        <button className="btn-walkin">
-          <FiPlus className="walkin-icon" />
+        <button className="flex items-center gap-2 bg-[#1b3631] text-white px-4 py-2 rounded-lg hover:bg-[#1b3631]/90 cursor-pointer">
+          <FiPlus className="text-lg" />
           {UI_TEXT.BUTTON_CREATE_WALKIN}
         </button>
-      </header>
+      </div>
 
       {/* FILTERS INPUT ROW - FIRST LINE */}
-      <div className="filter-row">
+      <div className="flex gap-3 mb-4">
         <input
           type="text"
           placeholder={UI_TEXT.FILTER_GUEST_NAME}
           value={filters.guest}
           onChange={(e) => updateFilter("guest", e.target.value)}
+          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
 
         <input
@@ -384,6 +423,7 @@ export default function TodaysBookings() {
           placeholder={UI_TEXT.FILTER_PHONE}
           value={filters.phone}
           onChange={(e) => updateFilter("phone", e.target.value)}
+          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
 
         <input
@@ -391,29 +431,31 @@ export default function TodaysBookings() {
           placeholder={UI_TEXT.FILTER_OTA}
           value={filters.ota}
           onChange={(e) => updateFilter("ota", e.target.value)}
+          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
       </div>
 
       {/* FILTERS INPUT ROW - SECOND LINE */}
-      <div className="filter-row filter-row-2">
+      <div className="flex justify-between items-center mb-6">
         {/* STATUS DROPDOWN */}
-        <div className="custom-dropdown">
+        <div className="relative">
           <button
-            className="dropdown-btn"
+            className="flex items-center justify-between w-45 h-9 px-4 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400"
             onClick={() => setShowStatusDropdown((prev) => !prev)}
           >
-            {filters.status === ""
-              ? UI_TEXT.FILTER_STATUS
-              : filters.status === "checked-in"
-              ? "Checked In"
-              : "Not Checked In"}
-            {/* <span className="arrow">▾</span> */}
+            <span>
+              {filters.status === ""
+                ? UI_TEXT.FILTER_STATUS
+                : filters.status === "checked-in"
+                ? "Checked In"
+                : "Not Checked In"}
+            </span>
           </button>
 
           {showStatusDropdown && (
-            <div className="dropdown-menu">
+            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
               <div
-                className="dropdown-item"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => {
                   updateFilter("status", "");
                   setShowStatusDropdown(false);
@@ -423,7 +465,7 @@ export default function TodaysBookings() {
               </div>
 
               <div
-                className="dropdown-item"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => {
                   updateFilter("status", "checked-in");
                   setShowStatusDropdown(false);
@@ -433,7 +475,7 @@ export default function TodaysBookings() {
               </div>
 
               <div
-                className="dropdown-item"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => {
                   updateFilter("status", "not-checked-in");
                   setShowStatusDropdown(false);
@@ -446,14 +488,14 @@ export default function TodaysBookings() {
         </div>
 
         {/* EXPORT BUTTONS */}
-        <div className="export-buttons">
-          <button className="export-btn">
-            <FiDownload className="export-icon" />
+        <div className="flex gap-3 ">
+          <button className="flex items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+            <FiDownload />
             Export PDF
           </button>
 
-          <button className="export-btn">
-            <FiDownload className="export-icon" />
+          <button className="flex items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+            <FiDownload />
             Export EXL
           </button>
         </div>
@@ -476,27 +518,25 @@ export default function TodaysBookings() {
         format={{
           date: (d) => formatShortDate(d),
           phone: (p) => formatPhone(p),
-
           guests: (_, row) =>
             `${row.adults} ${row.adults === 1 ? "Adult" : "Adults"}${
               row.minors > 0
                 ? `, ${row.minors} ${row.minors === 1 ? "Minor" : "Minors"}`
                 : ""
             }`,
-
           checkedIn: (_, row) => {
             if (!row.checkedIn) {
               return (
-                <div key={`checkin-${row.bookingId}`} className="status-btn">
-                  <FaCircle className="status-icon yellow" />
+                <div className="flex items-center gap-2 text-yellow-600">
+                  <FaCircle className="text-yellow-500 text-xs" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </div>
               );
             }
 
             return (
-              <div key={`details-${row.bookingId}`} className="status-btn">
-                <FaCircle className="status-icon green" />
+              <div className="flex items-center gap-2 text-green-600">
+                <FaCircle className="text-green-500 text-xs" />
                 {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
               </div>
             );
