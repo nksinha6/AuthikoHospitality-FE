@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
@@ -16,7 +16,7 @@ const INITIAL_FORM_VALUES = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
+
   const { isAuthenticated, loading, login } = useAuth();
   const { values, isSubmitting, setIsSubmitting, handleChange, setFieldValue } =
     useForm(INITIAL_FORM_VALUES);
@@ -113,10 +113,10 @@ export default function Login() {
         <div
           style={{
             backgroundColor: "var(--color-white)",
-            borderRadius: "var(--radius-lg)",
+            borderRadius: "var(--radius-sm)",
             boxShadow: "var(--shadow-lg)",
             border: "1px solid var(--color-border-subtle)",
-            padding: "var(--space-8)",
+            padding: "var(--space-5)var(--space-8)",
             width: "100%",
           }}
         >
@@ -206,7 +206,7 @@ export default function Login() {
                     textAlign: "left",
                   }}
                 >
-                  Email Address
+                  Email
                 </label>
                 <div
                   style={{
@@ -270,7 +270,6 @@ export default function Login() {
                   >
                     Password
                   </label>
-                  
                 </div>
                 <div
                   style={{
@@ -328,25 +327,27 @@ export default function Login() {
                       alignItems: "center",
                       justifyContent: "center",
                     }}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     disabled={isSubmitting}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 <a
-                    href="#forgot-password"
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--color-primary)",
-                      textDecoration: "none",
-                      fontWeight: "500",
-                      float: "right",
-                      marginTop: "var(--space-2)",
-                    }}
-                  >
-                    Forgot password?
-                  </a>
+                  href="#forgot-password"
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--color-primary)",
+                    textDecoration: "none",
+                    fontWeight: "500",
+                    float: "right",
+                    marginTop: "var(--space-2)",
+                  }}
+                >
+                  Forgot password?
+                </a>
               </div>
 
               {/* Remember Me Checkbox */}
@@ -407,7 +408,7 @@ export default function Login() {
                 }}
                 onMouseOver={(e) => {
                   if (!isSubmitting) {
-                    e.target.style.backgroundColor = "var(--color-primary-dark)";
+                    e.target.style.backgroundColor = "var(--color-primary)";
                   }
                 }}
                 onMouseOut={(e) => {

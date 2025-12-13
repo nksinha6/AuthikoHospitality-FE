@@ -11,6 +11,10 @@
   color: var(--color-error);
 }
 
+.nav-links {
+  padding-top: var(--space-6);
+}
+
 /* Header CSS */
 /* MAIN HEADER WRAPPER */
 .app-topbar {
@@ -37,14 +41,14 @@
 
 .header-search i {
   color: #6b7280;
-  font-size: 14px;
+  font-size: var(--font-size-md);
 }
 
 .header-search input {
   border: none;
   background: transparent;
   width: 100%;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   outline: none;
 }
 
@@ -92,7 +96,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-md);
 }
 
 .dropdown-item:hover {

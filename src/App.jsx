@@ -32,16 +32,6 @@ export default function App() {
         </div>
         <div className="nav-links">
           <NavLink
-            to={ROUTES.CHECK_INS}
-            className={`nav-item ${
-              isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""
-            }`}
-            aria-current={isActiveRoute(ROUTES.CHECK_INS) ? "page" : undefined}
-          >
-            <span>{UI_TEXT.NAV_CHECK_INS}</span>
-          </NavLink>
-
-          <NavLink
             to={ROUTES.TODAYS_BOOKINGS}
             className={`nav-item ${
               isActiveRoute(ROUTES.TODAYS_BOOKINGS) ? "nav-item--active" : ""
@@ -63,6 +53,16 @@ export default function App() {
             }
           >
             <span>{UI_TEXT.NAV_ALL_BOOKINGS}</span>
+          </NavLink>
+
+          <NavLink
+            to={ROUTES.CHECK_INS}
+            className={`nav-item ${
+              isActiveRoute(ROUTES.CHECK_INS) ? "nav-item--active" : ""
+            }`}
+            aria-current={isActiveRoute(ROUTES.CHECK_INS) ? "page" : undefined}
+          >
+            <span>{UI_TEXT.NAV_CHECK_INS}</span>
           </NavLink>
         </div>
       </nav>

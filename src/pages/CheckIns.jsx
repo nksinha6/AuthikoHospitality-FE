@@ -137,7 +137,7 @@ const OTAVerificationForm = () => {
         {/* Card Header */}
         <div className="ota-verification-header">
           <h2 className="ota-verification-title">
-            Walk-In Guest
+            Guest Verification
           </h2>
           <p className="ota-verification-subtitle">
             Enter booking details to begin verification
@@ -159,7 +159,7 @@ const OTAVerificationForm = () => {
           {/* OTA Platform */}
           <div className="form-group">
             <label className="form-label">
-              OTA Platform *
+              Booking Source
             </label>
             <div className="select-wrapper">
               <select
@@ -228,6 +228,7 @@ const OTAVerificationForm = () => {
                 value={formData.phoneNumber}
                 onChange={handlePhoneNumberChange}
                 className="phone-number-input"
+                required
               />
             </div>
           </div>
@@ -247,6 +248,7 @@ const OTAVerificationForm = () => {
                   value={formData.adults}
                   onChange={handleInputChange}
                   className="form-input"
+                  required
                 />
                 <p className="form-hint">
                   Age 18+
@@ -254,7 +256,7 @@ const OTAVerificationForm = () => {
               </div>
               <div>
                 <label className="form-label">
-                  Number of Minors *
+                  Number of Minors
                 </label>
                 <input
                   type="number"
@@ -284,7 +286,7 @@ const OTAVerificationForm = () => {
               onClick={handleReview}
               className="next-button"
             >
-              Next
+              Start Verification
             </button>
           </div>
         </div>

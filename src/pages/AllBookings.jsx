@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { UI_TEXT } from "../constants/ui.js";
 import DateFilter from "../components/DateHourFilter.jsx";
+import Loader from "../components/Loader.jsx";
 import "../styles/TodaysBookings.css";
 import dayjs from "dayjs";
 import { FiPlus } from "react-icons/fi";
@@ -8,7 +9,11 @@ import { FaCircle } from "react-icons/fa";
 import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
 
-export default function AllGuests() {
+export default function AllBookings() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [bookings, setBookings] = useState([]);
+
   const today = dayjs();
 
   const formatShortDate = (d) => {
@@ -19,147 +24,169 @@ export default function AllGuests() {
     });
   };
 
-  const bookings = [
-    {
-      date: dayjs("2025-12-10"),
-      bookingId: "BK202509",
-      ota: "ClearTrip",
-      leadGuest: "Rahul Sharma",
-      firstName: "Rahul",
-      surname: "Sharma",
-      phone: "+91-9126456780",
-      guests: 2,
-      adults: 1,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: dayjs("2025-12-10"),
-      bookingId: "BK202510",
-      ota: "MakeMyTrip",
-      leadGuest: "Sana Khan",
-      firstName: "Sana",
-      surname: "Khan",
-      phone: "+91-9123456960",
-      guests: 1,
-      adults: 1,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202501",
-      ota: "MakeMyTrip",
-      leadGuest: "Arjun Mehta",
-      firstName: "Arjun",
-      surname: "Mehta",
-      phone: "+91-9876543210",
-      guests: 3,
-      adults: 2,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202502",
-      ota: "Booking.com",
-      leadGuest: "Meera Sharma",
-      firstName: "Meera",
-      surname: "Sharma",
-      phone: "+91-9988776655",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: dayjs("2025-12-12"),
-      bookingId: "BK202503",
-      ota: "Goibibo",
-      leadGuest: "Rohan Gupta",
-      firstName: "Rohan",
-      surname: "Gupta",
-      phone: "+91-9123456780",
-      guests: 1,
-      adults: 1,
-      minors: 0,
-      checkedIn: false,
-    },
-    {
-      date: dayjs("2025-12-14"),
-      bookingId: "BK202504",
-      ota: "Agoda",
-      leadGuest: "Sneha Kulkarni",
-      firstName: "Sneha",
-      surname: "Kulkarni",
-      phone: "+91-9001122334",
-      guests: 4,
-      adults: 2,
-      minors: 2,
-      checkedIn: true,
-    },
-    {
-      date: dayjs("2025-12-15"),
-      bookingId: "BK202505",
-      ota: "Expedia",
-      leadGuest: "Sameer Nair",
-      firstName: "Sameer",
-      surname: "Nair",
-      phone: "+91-9334432110",
-      guests: 3,
-      adults: 3,
-      minors: 0,
-      checkedIn: false,
-    },
-    {
-      date: dayjs("2025-12-15"),
-      bookingId: "BK202506",
-      ota: "Airbnb",
-      leadGuest: "Kritika Jain",
-      firstName: "Kritika",
-      surname: "Jain",
-      phone: "+91-7890023456",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: dayjs("2025-12-17"),
-      bookingId: "BK202507",
-      ota: "MakeMyTrip",
-      leadGuest: "Vishal Patel",
-      firstName: "Vishal",
-      surname: "Patel",
-      phone: "+91-9988001122",
-      guests: 5,
-      adults: 3,
-      minors: 2,
-      checkedIn: false,
-    },
-    {
-      date: dayjs("2025-12-18"),
-      bookingId: "BK202508",
-      ota: "Booking.com",
-      leadGuest: "Aarav Khanna",
-      firstName: "Aarav",
-      surname: "Khanna",
-      phone: "+91-9090903030",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: true,
-    },
-  ];
+  // Simulated data fetch
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        // Simulate API delay
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  const normalizedBookings = bookings.map((b) => ({
-    ...b,
-    date: dayjs.isDayjs(b.date)
-      ? b.date.startOf("day")
-      : dayjs(b.date).startOf("day"),
-  }));
+        const mockBookings = [
+          {
+            date: dayjs("2025-12-10"),
+            bookingId: "BK202509",
+            ota: "ClearTrip",
+            leadGuest: "Rahul Sharma",
+            firstName: "Rahul",
+            surname: "Sharma",
+            phone: "+91-9126456780",
+            guests: 2,
+            adults: 1,
+            minors: 1,
+            checkedIn: false,
+          },
+          {
+            date: dayjs("2025-12-10"),
+            bookingId: "BK202510",
+            ota: "MakeMyTrip",
+            leadGuest: "Sana Khan",
+            firstName: "Sana",
+            surname: "Khan",
+            phone: "+91-9123456960",
+            guests: 1,
+            adults: 1,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: today,
+            bookingId: "BK202501",
+            ota: "MakeMyTrip",
+            leadGuest: "Arjun Mehta",
+            firstName: "Arjun",
+            surname: "Mehta",
+            phone: "+91-9876543210",
+            guests: 3,
+            adults: 2,
+            minors: 1,
+            checkedIn: false,
+          },
+          {
+            date: today,
+            bookingId: "BK202502",
+            ota: "Booking.com",
+            leadGuest: "Meera Sharma",
+            firstName: "Meera",
+            surname: "Sharma",
+            phone: "+91-9988776655",
+            guests: 2,
+            adults: 2,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: dayjs("2025-12-12"),
+            bookingId: "BK202503",
+            ota: "Goibibo",
+            leadGuest: "Rohan Gupta",
+            firstName: "Rohan",
+            surname: "Gupta",
+            phone: "+91-9123456780",
+            guests: 1,
+            adults: 1,
+            minors: 0,
+            checkedIn: false,
+          },
+          {
+            date: dayjs("2025-12-14"),
+            bookingId: "BK202504",
+            ota: "Agoda",
+            leadGuest: "Sneha Kulkarni",
+            firstName: "Sneha",
+            surname: "Kulkarni",
+            phone: "+91-9001122334",
+            guests: 4,
+            adults: 2,
+            minors: 2,
+            checkedIn: true,
+          },
+          {
+            date: dayjs("2025-12-15"),
+            bookingId: "BK202505",
+            ota: "Expedia",
+            leadGuest: "Sameer Nair",
+            firstName: "Sameer",
+            surname: "Nair",
+            phone: "+91-9334432110",
+            guests: 3,
+            adults: 3,
+            minors: 0,
+            checkedIn: false,
+          },
+          {
+            date: dayjs("2025-12-15"),
+            bookingId: "BK202506",
+            ota: "Airbnb",
+            leadGuest: "Kritika Jain",
+            firstName: "Kritika",
+            surname: "Jain",
+            phone: "+91-7890023456",
+            guests: 2,
+            adults: 2,
+            minors: 0,
+            checkedIn: true,
+          },
+          {
+            date: dayjs("2025-12-17"),
+            bookingId: "BK202507",
+            ota: "MakeMyTrip",
+            leadGuest: "Vishal Patel",
+            firstName: "Vishal",
+            surname: "Patel",
+            phone: "+91-9988001122",
+            guests: 5,
+            adults: 3,
+            minors: 2,
+            checkedIn: false,
+          },
+          {
+            date: dayjs("2025-12-18"),
+            bookingId: "BK202508",
+            ota: "Booking.com",
+            leadGuest: "Aarav Khanna",
+            firstName: "Aarav",
+            surname: "Khanna",
+            phone: "+91-9090903030",
+            guests: 2,
+            adults: 2,
+            minors: 0,
+            checkedIn: true,
+          },
+        ];
 
-  const [filteredBookings, setFilteredBookings] = useState(normalizedBookings);
+        setBookings(mockBookings);
+        setError(null);
+      } catch {
+        setError("Failed to load bookings. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  const normalizedBookings = useMemo(() => {
+    return bookings.map((b) => ({
+      ...b,
+      date: dayjs.isDayjs(b.date)
+        ? b.date.startOf("day")
+        : dayjs(b.date).startOf("day"),
+    }));
+  }, [bookings]);
+
+  const [filteredBookings, setFilteredBookings] = useState([]);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -287,10 +314,10 @@ export default function AllGuests() {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Reapply filters whenever any input changes
+  // Reapply filters whenever any input changes or bookings change
   useEffect(() => {
     applyFilters();
-  }, [filters]);
+  }, [filters, normalizedBookings]);
 
   const formatPhone = (phone) => {
     // Remove everything except numbers
@@ -309,6 +336,21 @@ export default function AllGuests() {
     // Fallback
     return phone;
   };
+
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (error) {
+    return (
+      <div className="todays-container">
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="todays-container">
@@ -397,7 +439,10 @@ export default function AllGuests() {
             // No-show condition
             if (!row.checkedIn && row.date.isBefore(dayjs(), "day")) {
               return (
-                <button className="link status-btn no-show">
+                <button
+                  key={`no-show-${row.bookingId}`}
+                  className="link status-btn no-show"
+                >
                   <FaCircle className="status-icon red" />
                   {UI_TEXT.BUTTON_NO_SHOW}
                 </button>
@@ -407,7 +452,10 @@ export default function AllGuests() {
             // Start check-in
             if (!row.checkedIn) {
               return (
-                <button className="link status-btn">
+                <button
+                  key={`checkin-${row.bookingId}`}
+                  className="link status-btn"
+                >
                   <FaCircle className="status-icon yellow" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </button>
@@ -416,7 +464,10 @@ export default function AllGuests() {
 
             // View details (checked-in)
             return (
-              <button className="link status-btn">
+              <button
+                key={`details-${row.bookingId}`}
+                className="link status-btn"
+              >
                 <FaCircle className="status-icon green" />
                 {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
               </button>
