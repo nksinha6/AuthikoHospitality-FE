@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router-dom";
 import router from "./router.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import Loader from "./components/Loader.jsx";
+import "remixicon/fonts/remixicon.css";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -16,7 +17,7 @@ const queryClient = new QueryClient({
         return true;
       },
       refetchOnWindowFocus: false,
-      suspense: true,  
+      suspense: true,
     },
   },
 });
