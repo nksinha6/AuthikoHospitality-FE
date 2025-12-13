@@ -26,7 +26,7 @@ export default function Login() {
     return localStorage.getItem("rememberMe") === "true";
   });
 
-  const from = ROUTES.TODAYS_BOOKINGS;
+  const from = ROUTES.CHECK_INS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
@@ -113,10 +113,10 @@ export default function Login() {
         <div
           style={{
             backgroundColor: "var(--color-white)",
-            borderRadius: "var(--radius-lg)",
+            borderRadius: "var(--radius-sm)",
             boxShadow: "var(--shadow-lg)",
             border: "1px solid var(--color-border-subtle)",
-            padding: "var(--space-8)",
+            padding: "var(--space-5)var(--space-8)",
             width: "100%",
           }}
         >
@@ -206,7 +206,7 @@ export default function Login() {
                     textAlign: "left",
                   }}
                 >
-                  Email Address
+                  Email
                 </label>
                 <div
                   style={{
@@ -407,7 +407,7 @@ export default function Login() {
                 }}
                 onMouseOver={(e) => {
                   if (!isSubmitting) {
-                    e.target.style.backgroundColor = "var(--color-primary-dark)";
+                    e.target.style.backgroundColor = "var(--color-primary)";
                   }
                 }}
                 onMouseOut={(e) => {
