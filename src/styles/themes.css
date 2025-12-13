@@ -1,9 +1,11 @@
-/* Theme-specific overrides */
-
-/* Example dark theme */
-/*
-[data-theme="dark"] {
-  --color-bg-page: #0f172a;
-  --color-text-main: #e5e7eb;
+:root {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-*/

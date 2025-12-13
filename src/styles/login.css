@@ -1,0 +1,19 @@
+
+/* Login page specific */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.login-header {
+  margin-bottom: var(--space-6);
+}
+
+.login-subtitle {
+  margin-top: var(--space-2);
+  display: flex;
+  justify-content: center;
+}
