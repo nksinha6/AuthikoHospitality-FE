@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import { FiCornerUpLeft } from "react-icons/fi";
 
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -43,27 +44,30 @@ const DateHourFilter = ({ onApply }) => {
 
   const timeUnitOptions = ["months", "days", "hours"];
 
-  const togglePopup = (e) => {
-    e.stopPropagation();
-    setIsPopupOpen(!isPopupOpen);
-    setIsConditionDropdownOpen(false);
-  };
+  const togglePopup = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setIsPopupOpen(!isPopupOpen);
+      setIsConditionDropdownOpen(false);
+    },
+    [isPopupOpen]
+  );
 
-  const handleConditionChange = (option) => {
+  const handleConditionChange = useCallback((option) => {
     setCondition(option);
     setIsConditionDropdownOpen(false);
-  };
+  }, []);
 
-  const handleValueChange = (e) => {
+  const handleValueChange = useCallback((e) => {
     const v = e.target.value.replace(/[^0-9]/g, "");
     setValue(v);
-  };
+  }, []);
 
-  const handleTimeUnitChange = (unit) => {
+  const handleTimeUnitChange = useCallback((unit) => {
     setTimeUnit(unit);
-  };
+  }, []);
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     setIsFilterActive(true);
     setIsPopupOpen(false);
 
@@ -78,14 +82,14 @@ const DateHourFilter = ({ onApply }) => {
         timeUnit,
       });
     }
-  };
+  }, [onApply, condition, selectedDate, startDate, endDate, value, timeUnit]);
 
   const formatDate = (dateObj) => {
     if (!dateObj) return "";
     return dayjs(dateObj).format("DD/MMM/YY"); // format as 10/Dec/25
   };
 
-  const getFormattedFilterText = () => {
+  const getFormattedFilterText = useCallback(() => {
     switch (condition) {
       case "is in the last":
         return `${condition} ${value} ${timeUnit}`;
@@ -104,7 +108,7 @@ const DateHourFilter = ({ onApply }) => {
       default:
         return `${condition} ${formatDate(selectedDate)}`;
     }
-  };
+  }, [condition, value, timeUnit, startDate, endDate, selectedDate]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -303,6 +307,10 @@ const DateHourFilter = ({ onApply }) => {
       )}
     </div>
   );
+};
+
+DateHourFilter.propTypes = {
+  onApply: PropTypes.func.isRequired,
 };
 
 export default DateHourFilter;
