@@ -18,7 +18,7 @@ const UniversalTable = memo(
                 <th
                   key={col.key}
                   role="columnheader"
-                  className="px-2 py-3 text-left font-semibold text-xs text-gray-600 uppercase tracking-wider"
+                  className="px-2 py-3 text-left font-bold  text-xs text-gray-600 tracking-wider"
                 >
                   {col.label}
                 </th>
@@ -26,7 +26,7 @@ const UniversalTable = memo(
               {actions && (
                 <th
                   role="columnheader"
-                  className="px-2 py-3 text-left font-semibold text-xs text-gray-600 uppercase tracking-wider"
+                  className="px-2 py-3 text-left font-bold  text-xs text-gray-600 tracking-wider"
                 >
                   Actions
                 </th>

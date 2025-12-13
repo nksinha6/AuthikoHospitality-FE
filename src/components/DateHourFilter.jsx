@@ -126,7 +126,7 @@ const DateHourFilter = ({ onApply }) => {
     <div className="relative inline-block font-sans">
       {/* TOP HEADER */}
       <div
-        className={`flex items-center gap-2 w-48 h-9 px-2 py-1 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 ${
+        className={`flex items-center gap-2 w-48 h-8 px-2 py-1 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 ${
           isFilterActive ? "bg-blue-50" : ""
         } ${
           isPopupOpen
@@ -135,9 +135,7 @@ const DateHourFilter = ({ onApply }) => {
         }`}
         onClick={togglePopup}
       >
-        <span className="text-xs font-medium text-gray-700 pl-1">
-          Date filter
-        </span>
+        <span className="text-sm  text-gray-500 pl-2">Date filter</span>
         <span className="flex-1 ml-2 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-gray-600">
           {isFilterActive ? getFormattedFilterText() : ""}
         </span>
@@ -174,7 +172,7 @@ const DateHourFilter = ({ onApply }) => {
               <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
                 Filter by:
               </span>
-              <span className="text-base text-gray-900 font-semibold">
+              <span className="text-sm text-gray-900 font-semibold">
                 evidence due by
               </span>
             </div>
@@ -228,7 +226,7 @@ const DateHourFilter = ({ onApply }) => {
                     <div className="flex items-center gap-2 flex-1">
                       <input
                         type="text"
-                        className="w-20 px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-20 px-2 py-2 border border-gray-300 rounded  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={value}
                         onChange={handleValueChange}
                         placeholder="0"
@@ -265,9 +263,24 @@ const DateHourFilter = ({ onApply }) => {
                           textField: {
                             size: "small",
                             placeholder: "DD/MMM/YY",
-                            InputProps: { endAdornment: null },
+                            InputProps: {
+                              endAdornment: null,
+                              sx: {
+                                fontSize: "14px",
+                                "& input": {
+                                  fontSize: "14px",
+                                  padding: "8.5px 14px",
+                                },
+                              },
+                            },
+
                             onClick: () => setStartDateOpen(true),
                             className: "w-32",
+                            sx: {
+                              "& .MuiInputBase-input": {
+                                fontSize: "14px",
+                              },
+                            },
                           },
                         }}
                       />
@@ -285,9 +298,23 @@ const DateHourFilter = ({ onApply }) => {
                           textField: {
                             size: "small",
                             placeholder: "DD/MMM/YY",
-                            InputProps: { endAdornment: null },
+                            InputProps: {
+                              endAdornment: null,
+                              sx: {
+                                fontSize: "14px",
+                                "& input": {
+                                  fontSize: "14px",
+                                  padding: "8.5px 14px",
+                                },
+                              },
+                            },
                             onClick: () => setEndDateOpen(true),
                             className: "w-32",
+                            sx: {
+                              "& .MuiInputBase-input": {
+                                fontSize: "14px",
+                              },
+                            },
                           },
                         }}
                       />
@@ -298,7 +325,7 @@ const DateHourFilter = ({ onApply }) => {
                     <div className="rotate-180">
                       <FiCornerUpLeft size={20} className="text-blue-500" />
                     </div>
-                    <DatePicker
+                    {/* <DatePicker
                       label=""
                       value={selectedDate}
                       onChange={(newValue) => setSelectedDate(newValue)}
@@ -314,6 +341,40 @@ const DateHourFilter = ({ onApply }) => {
                           InputProps: { endAdornment: null },
                           onClick: () => setSelectedDateOpen(true),
                           className: "w-full",
+                        },
+                      }}
+                    /> */}
+
+                    <DatePicker
+                      label=""
+                      value={selectedDate}
+                      onChange={(newValue) => setStartDate(newValue)}
+                      format="DD/MMM/YY"
+                      open={selectedDateOpen}
+                      onOpen={() => setSelectedDateOpen(true)}
+                      onClose={() => setSelectedDateOpen(false)}
+                      slots={{ openPickerIcon: () => null }}
+                      slotProps={{
+                        textField: {
+                          size: "small",
+                          placeholder: "DD/MMM/YY",
+                          InputProps: {
+                            endAdornment: null,
+                            sx: {
+                              fontSize: "14px",
+                              "& input": {
+                                fontSize: "14px",
+                                padding: "8.5px 14px",
+                              },
+                            },
+                          },
+                          onClick: () => setSelectedDateOpen(true),
+                          className: "w-32",
+                          sx: {
+                            "& .MuiInputBase-input": {
+                              fontSize: "14px",
+                            },
+                          },
                         },
                       }}
                     />

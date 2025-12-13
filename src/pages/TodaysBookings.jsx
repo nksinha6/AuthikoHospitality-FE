@@ -415,7 +415,7 @@ export default function TodaysBookings() {
           placeholder={UI_TEXT.FILTER_GUEST_NAME}
           value={filters.guest}
           onChange={(e) => updateFilter("guest", e.target.value)}
-          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+          className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
 
         <input
@@ -423,7 +423,7 @@ export default function TodaysBookings() {
           placeholder={UI_TEXT.FILTER_PHONE}
           value={filters.phone}
           onChange={(e) => updateFilter("phone", e.target.value)}
-          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+          className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
 
         <input
@@ -431,7 +431,7 @@ export default function TodaysBookings() {
           placeholder={UI_TEXT.FILTER_OTA}
           value={filters.ota}
           onChange={(e) => updateFilter("ota", e.target.value)}
-          className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+          className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
         />
       </div>
 
@@ -440,7 +440,7 @@ export default function TodaysBookings() {
         {/* STATUS DROPDOWN */}
         <div className="relative">
           <button
-            className="flex items-center justify-between w-45 h-9 px-4 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400"
+            className="flex items-center text-sm text-gray-500 justify-between w-45 h-8 px-4 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400"
             onClick={() => setShowStatusDropdown((prev) => !prev)}
           >
             <span>
@@ -455,7 +455,7 @@ export default function TodaysBookings() {
           {showStatusDropdown && (
             <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
               <div
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                 onClick={() => {
                   updateFilter("status", "");
                   setShowStatusDropdown(false);
@@ -465,7 +465,7 @@ export default function TodaysBookings() {
               </div>
 
               <div
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                 onClick={() => {
                   updateFilter("status", "checked-in");
                   setShowStatusDropdown(false);
@@ -475,7 +475,7 @@ export default function TodaysBookings() {
               </div>
 
               <div
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                 onClick={() => {
                   updateFilter("status", "not-checked-in");
                   setShowStatusDropdown(false);
@@ -489,12 +489,12 @@ export default function TodaysBookings() {
 
         {/* EXPORT BUTTONS */}
         <div className="flex gap-3 ">
-          <button className="flex items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export PDF
           </button>
 
-          <button className="flex items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export EXL
           </button>
@@ -527,7 +527,7 @@ export default function TodaysBookings() {
           checkedIn: (_, row) => {
             if (!row.checkedIn) {
               return (
-                <div className="flex items-center gap-2 text-yellow-600">
+                <div className="flex items-center gap-2 text-gray-600">
                   <FaCircle className="text-yellow-500 text-xs" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </div>
@@ -535,7 +535,7 @@ export default function TodaysBookings() {
             }
 
             return (
-              <div className="flex items-center gap-2 text-green-600">
+              <div className="flex items-center gap-2 text-gray-600">
                 <FaCircle className="text-green-500 text-xs" />
                 {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
               </div>

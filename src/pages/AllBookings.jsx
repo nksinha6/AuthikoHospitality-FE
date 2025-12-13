@@ -363,7 +363,7 @@ export default function AllBookings() {
             name="name"
             value={filters.name}
             onChange={handleInputChange}
-            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
           <input
             type="text"
@@ -371,7 +371,7 @@ export default function AllBookings() {
             name="phone"
             value={filters.phone}
             onChange={handleInputChange}
-            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
           <input
             type="text"
@@ -379,7 +379,7 @@ export default function AllBookings() {
             name="ota"
             value={filters.ota}
             onChange={handleInputChange}
-            className="flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
           />
         </div>
       </div>
@@ -387,11 +387,11 @@ export default function AllBookings() {
       <div className="flex justify-between items-center mb-6">
         <DateFilter onApply={handleDateFilterApply} />
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export EXL
           </button>

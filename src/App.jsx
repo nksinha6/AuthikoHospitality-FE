@@ -33,9 +33,9 @@ export default function App() {
         <div className="space-y-1">
           <NavLink
             to={ROUTES.TODAYS_BOOKINGS}
-            className={`flex items-center px-3 py-2 rounded-lg ${
+            className={`flex items-center px-3 py-2 rounded-lg text-sm ${
               isActiveRoute(ROUTES.TODAYS_BOOKINGS)
-                ? "bg-gray-100 text-[#1b3631] font-medium"
+                ? "bg-gray-100 text-[#1b3631] font-semibold"
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -44,9 +44,9 @@ export default function App() {
 
           <NavLink
             to={ROUTES.ALL_BOOKINGS}
-            className={`flex items-center px-3 py-2 rounded-lg ${
+            className={`flex items-center px-3 py-2 rounded-lg text-sm ${
               isActiveRoute(ROUTES.ALL_BOOKINGS)
-                ? "bg-gray-100 text-[#1b3631] font-medium"
+                ? "bg-gray-100 text-[#1b3631] font-semibold "
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -55,9 +55,9 @@ export default function App() {
 
           <NavLink
             to={ROUTES.CHECK_INS}
-            className={`flex items-center px-3 py-2 rounded-lg ${
+            className={`flex items-center px-3 py-2 rounded-lg text-sm ${
               isActiveRoute(ROUTES.CHECK_INS)
-                ? "bg-gray-100 text-[#1b3631] font-medium"
+                ? "bg-gray-100 text-[#1b3631] font-semibold"
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -91,7 +91,7 @@ export default function App() {
               </button>
               <div className="relative">
                 <button
-                  className="text-gray-600 hover:text-gray-900 cursor-pointer" 
+                  className="text-gray-600 hover:text-gray-900 cursor-pointer"
                   onClick={() => setShowDropdown((prev) => !prev)}
                 >
                   <i className="ri-user-line text-xl"></i>
