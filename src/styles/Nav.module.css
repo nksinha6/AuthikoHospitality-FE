@@ -1,0 +1,53 @@
+/* ============================================
+   NAVIGATION STYLES - Nav.module.css
+   ============================================
+
+   Styles for navigation components.
+   ============================================ */
+
+.appNav {
+  background: #FFFFFF;
+  border-right: 1px solid var(--color-border-subtle);
+  padding: var(--space-4) var(--space-3);
+}
+
+.navBrand {
+  margin-bottom: var(--space-4);
+}
+
+.navBrandTitle {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.navSectionLabel {
+  margin: var(--space-3) var(--space-2) var(--space-1);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-subtle);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.navItem:hover {
+  background-color: #F3F4F6;
+  color: var(--color-text-main);
+}
+
+.navItemActive {
+  background-color: #E1E6EA;
+  color: var(--color-primary);
+  font-weight: 500;
+}

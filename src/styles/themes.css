@@ -1,4 +1,21 @@
-/* Theme-specific overrides */
+/* ============================================
+   THEMES - Applied Styles & Theme Overrides
+   ============================================
+
+   This file contains applied styles and theme-specific overrides.
+   ============================================ */
+
+:root {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 /* Example dark theme */
 /*
