@@ -11,6 +11,10 @@
   color: var(--color-error);
 }
 
+.nav-links {
+  padding-top: var(--space-6);
+}
+
 /* Header CSS */
 /* MAIN HEADER WRAPPER */
 .app-topbar {
