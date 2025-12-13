@@ -41,7 +41,7 @@
 }
 
 .evidence-due-text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   padding-left: 10px;
   color: #333;
   font-weight: 500;
@@ -126,7 +126,7 @@
   border-radius: 4px;
   background-color: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   color: #333;
   transition: all 0.2s ease;
 }
@@ -163,7 +163,7 @@
 
 .condition-dropdown-option {
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -220,7 +220,7 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   color: #333;
   transition: all 0.2s ease;
 }
@@ -270,7 +270,7 @@
   padding: 4px 6px;
   border: 1px solid #d0d4d9;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   font-family: system-ui, sans-serif;
   outline: none;
   transition: border 0.2s ease;
@@ -288,7 +288,7 @@
   border: 1px solid #d0d4d9;
   border-radius: 8px;
   background: #fff;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   font-family: system-ui, sans-serif;
   outline: none;
   cursor: pointer;
@@ -318,7 +318,7 @@
 }
 
 .between-and {
-  font-size: 14px;
+  font-size: var(--font-size-md);
   color: #555;
 }
 
@@ -336,7 +336,7 @@
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -376,7 +376,7 @@
 }
 
 .and-text {
-  font-size: 14px;
+  font-size: var(--font-size-md);
   color: #555;
   margin: 0 4px;
 }
