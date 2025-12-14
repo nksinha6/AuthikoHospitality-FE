@@ -177,48 +177,16 @@ export default function GuestVerification() {
                   </div>
                 </div>
 
-                {/* Verification Notes */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                  <div className="flex gap-3">
-                    <div className="text-yellow-600 text-xl">⚠️</div>
-                    <div>
-                      <h5 className="font-semibold text-yellow-800 mb-2">
-                        Important Verification Notes
-                      </h5>
-                      <div className="space-y-1">
-                        <div className="flex gap-2">
-                          <span className="text-yellow-600">•</span>
-                          <span className="text-yellow-700">
-                            All adult guests will need to complete Aadhaar
-                            verification
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-yellow-600">•</span>
-                          <span className="text-yellow-700">
-                            Face ID matching will be performed for each adult
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-yellow-600">•</span>
-                          <span className="text-yellow-700">
-                            Verification links will be sent to provided phone
-                            numbers
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-yellow-600">•</span>
-                          <span className="text-yellow-700">
-                            Minors do not require separate verification
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Action Buttons */}
                 <div className="flex gap-3">
+                  
+                  <button
+                    onClick={handleBack}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  >
+                    <ArrowLeft size={18} />
+                    Back to Edit
+                  </button>
                   <button
                     onClick={handleConfirmCheckIn}
                     className="flex-1 flex items-center justify-center gap-2 bg-[#1b3631] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#1b3631]/90"
@@ -226,13 +194,6 @@ export default function GuestVerification() {
                     <CheckCircle size={18} />
                     Confirm & Start Verification
                     <span className="text-lg">→</span>
-                  </button>
-                  <button
-                    onClick={handleBack}
-                    className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
-                  >
-                    <ArrowLeft size={18} />
-                    Back to Edit
                   </button>
                 </div>
               </div>
