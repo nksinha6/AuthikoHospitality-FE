@@ -14,7 +14,7 @@ export default function Loader() {
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="w-3 h-3 rounded-full bg-[#1b3631]"
+              className="w-3 h-3 rounded-full bg-brand"
               style={{
                 animation: `bounce 1.4s ease-in-out infinite both`,
                 animationDelay: `${

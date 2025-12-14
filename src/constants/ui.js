@@ -3,6 +3,7 @@ export const UI_TEXT = {
   // App
   APP_NAME: "OnePass",
   NAV_SECTION_MAIN: "Main",
+  LOGO_NAME: "1/Pass",
 
   // Navigation
   NAV_DASHBOARD: "Dashboard",
@@ -12,14 +13,26 @@ export const UI_TEXT = {
   BUTTON_LOGOUT: "Logout",
 
   // Login
+
   LOGIN_TITLE: "Sign in",
   LOGIN_SUBTITLE: "Enter your user ID and password to continue",
+  LOGIN_WELCOME_TITLE: "Welcome Back",
+  LOGIN_WELCOME_SUBTITLE: "Sign in to your account to continue",
   LOGIN_EMAIL_LABEL: "User ID",
   LOGIN_EMAIL_PLACEHOLDER: "abc@xyz.com",
   LOGIN_PASSWORD_LABEL: "Password",
   LOGIN_PASSWORD_PLACEHOLDER: "••••••••",
   LOGIN_BUTTON: "Sign in",
   LOGIN_BUTTON_LOADING: "Signing in…",
+  COMPANY_NAME: "Your Company Name",
+
+  LOGIN_SHOW_PASSWORD: "Show",
+  LOGIN_HIDE_PASSWORD: "Hide",
+
+  LOGIN_ERROR_DEFAULT:
+    "Login failed. Please check your credentials and try again.",
+  LOGIN_FORGOT_PASSWORD: "Forgot your password?",
+  LOGIN_FOOTER: "© 2024 Company Portal. Secure access only.",
 
   // Dashboard
   DASHBOARD_TITLE: "Dashboard",
@@ -94,22 +107,13 @@ export const UI_TEXT = {
 
   // Loader
   LOADER_TEXT: "Loading...",
+};
 
-  COMPANY_NAME: "Your Company Name",
-  LOGIN_TITLE: "Welcome Back",
-  LOGIN_SUBTITLE: "Sign in to your account to continue",
-  LOGIN_EMAIL_LABEL: "Email Address",
-  LOGIN_EMAIL_PLACEHOLDER: "Enter your email",
-  LOGIN_PASSWORD_LABEL: "Password",
-  LOGIN_PASSWORD_PLACEHOLDER: "Enter your password",
-  LOGIN_SHOW_PASSWORD: "Show",
-  LOGIN_HIDE_PASSWORD: "Hide",
-  LOGIN_BUTTON: "Sign In",
-  LOGIN_BUTTON_LOADING: "Signing In...",
-  LOGIN_ERROR_DEFAULT:
-    "Login failed. Please check your credentials and try again.",
-  LOGIN_FORGOT_PASSWORD: "Forgot your password?",
-  LOGIN_FOOTER: "© 2024 Company Portal. Secure access only.",
+export const STORAGE_KEYS = {
+  REMEMBER_ME: "rememberMe",
+  SAVED_EMAIL: "savedEmail",
+  AUTH_TOKEN: "authToken",
+  USER_DATA: "userData",
 };
 
 // Form Field Names

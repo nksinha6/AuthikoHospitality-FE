@@ -325,25 +325,6 @@ const DateHourFilter = ({ onApply }) => {
                     <div className="rotate-180">
                       <FiCornerUpLeft size={20} className="text-blue-500" />
                     </div>
-                    {/* <DatePicker
-                      label=""
-                      value={selectedDate}
-                      onChange={(newValue) => setSelectedDate(newValue)}
-                      format="DD/MMM/YY"
-                      open={selectedDateOpen}
-                      onOpen={() => setSelectedDateOpen(true)}
-                      onClose={() => setSelectedDateOpen(false)}
-                      slots={{ openPickerIcon: () => null }}
-                      slotProps={{
-                        textField: {
-                          size: "small",
-                          placeholder: "DD/MMM/YY",
-                          InputProps: { endAdornment: null },
-                          onClick: () => setSelectedDateOpen(true),
-                          className: "w-full",
-                        },
-                      }}
-                    /> */}
 
                     <DatePicker
                       label=""
@@ -398,7 +379,7 @@ const DateHourFilter = ({ onApply }) => {
                 {/* Apply button */}
                 <button
                   onClick={handleApply}
-                  className="ml-auto px-5 py-2 bg-[#1b3631] text-white text-sm font-medium rounded hover:bg-[#1b3631]/90 transition-colors cursor-pointer"
+                  className="ml-auto px-5 py-2 bg-brand text-white text-sm font-medium rounded hover:bg-brand/90 transition-colors cursor-pointer"
                 >
                   Apply
                 </button>

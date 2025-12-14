@@ -1,3 +1,6 @@
-a {
-  color: inherit;
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #1b3631;
+  --color-link: #1b3631;
 }

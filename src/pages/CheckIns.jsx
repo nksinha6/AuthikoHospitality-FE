@@ -176,7 +176,7 @@ const OTAVerificationForm = () => {
       {/* Main Card */}
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Card Header */}
-        <div className="bg-[#1b3631] px-8 py-6 text-white">
+        <div className="bg-brand px-8 py-6 text-white">
           <h2 className="text-2xl font-semibold mb-2">Guest Verification</h2>
           <p className="opacity-95">
             Enter booking details to begin verification
@@ -327,7 +327,7 @@ const OTAVerificationForm = () => {
             </button>
             <button
               onClick={handleReview}
-              className="flex-1 px-6 py-3 bg-[#1b3631]! text-white rounded-lg font-semibold hover:bg-[#1b3631]/90 cursor-pointer"
+              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer"
             >
               Start Verification
             </button>

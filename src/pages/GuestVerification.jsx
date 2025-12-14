@@ -42,7 +42,7 @@ export default function GuestVerification() {
           {/* Header */}
           <div className="text-center p-8">
             <div className="flex justify-center mb-4">
-              <Shield className="text-[#1b3631]" size={48} />
+              <Shield className="text-brand" size={48} />
             </div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
               Guest Verification
@@ -159,7 +159,7 @@ export default function GuestVerification() {
                       </div>
 
                       {/* Total Guests */}
-                      <div className="bg-[#1b3631] p-4 rounded-lg">
+                      <div className="bg-brand p-4 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Users size={20} className="text-white" />
                           <span className="text-sm font-medium text-white">
@@ -221,7 +221,7 @@ export default function GuestVerification() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleConfirmCheckIn}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#1b3631] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#1b3631]/90"
+                    className="flex-1 flex items-center justify-center gap-2 bg-brand text-white py-3 px-6 rounded-lg font-semibold hover:bg-brand/90"
                   >
                     <CheckCircle size={18} />
                     Confirm & Start Verification

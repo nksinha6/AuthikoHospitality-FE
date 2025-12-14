@@ -382,7 +382,7 @@ export default function TodaysBookings() {
           <p className="text-red-600 text-lg mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-[#1b3631] text-white px-4 py-2 rounded hover:bg-[#1b3631]/90"
+            className="bg-brand text-white px-4 py-2 rounded hover:bg-brand/90"
           >
             Retry
           </button>
@@ -402,7 +402,7 @@ export default function TodaysBookings() {
           <p className="text-gray-600 mt-1">{getFullHeaderDate()}</p>
         </div>
 
-        <button className="flex items-center gap-2 bg-[#1b3631] text-white px-4 py-2 rounded-lg hover:bg-[#1b3631]/90 cursor-pointer">
+        <button className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand/90 cursor-pointer">
           <FiPlus className="text-lg" />
           {UI_TEXT.BUTTON_CREATE_WALKIN}
         </button>
