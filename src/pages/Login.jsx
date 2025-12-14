@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
-import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
+import { UI_TEXT, FORM_FIELDS, ROUTES, STORAGE_KEYS } from "../constants/ui.js";
 import logo from "../assets/images/1pass_logo.jpg";
 
 const INITIAL_FORM_VALUES = {
@@ -15,20 +15,22 @@ const INITIAL_FORM_VALUES = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, loading, login } = useAuth();
   const { values, isSubmitting, setIsSubmitting, handleChange, setFieldValue } =
     useForm(INITIAL_FORM_VALUES);
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem("rememberMe") === "true";
+    return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME) === "true";
   });
+  const [logoError, setLogoError] = useState(false);
 
-  const from = ROUTES.CHECK_INS;
+  const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
-    const savedEmail = localStorage.getItem("savedEmail");
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.SAVED_EMAIL);
     if (savedEmail) {
       setFieldValue(FORM_FIELDS.USER_ID, savedEmail);
     }
@@ -49,11 +51,14 @@ export default function Login() {
     try {
       // Save email if "Remember Me" is checked
       if (rememberMe) {
-        localStorage.setItem("savedEmail", values[FORM_FIELDS.USER_ID]);
-        localStorage.setItem("rememberMe", "true");
+        localStorage.setItem(
+          STORAGE_KEYS.SAVED_EMAIL,
+          values[FORM_FIELDS.USER_ID]
+        );
+        localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "true");
       } else {
-        localStorage.removeItem("savedEmail");
-        localStorage.setItem("rememberMe", "false");
+        localStorage.removeItem(STORAGE_KEYS.SAVED_EMAIL);
+        localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "false");
       }
 
       const tokens = await authService.login({
@@ -92,21 +97,23 @@ export default function Login() {
           <div className="text-center">
             {/* Logo */}
             <div className="mb-8">
-              <img
-                src={logo}
-                alt="1/Pass Logo"
-                className="w-16 h-auto mx-auto mb-6"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.parentElement.innerHTML =
-                    '<div class="text-3xl text-[#1b3631] font-bold mb-6">1/Pass</div>';
-                }}
-              />
+              {logoError ? (
+                <div className="text-3xl text-brand font-bold mb-6">
+                  {UI_TEXT.LOGO_NAME}
+                </div>
+              ) : (
+                <img
+                  src={logo}
+                  alt="1/Pass Logo"
+                  className="w-16 h-auto mx-auto mb-6"
+                  onError={() => setLogoError(true)}
+                />
+              )}
               <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-                Welcome Back
+                {UI_TEXT.LOGIN_WELCOME_TITLE}
               </h1>
               <p className="text-sm text-gray-600">
-                Sign in to your account to continue
+                {UI_TEXT.LOGIN_WELCOME_SUBTITLE}
               </p>
             </div>
 
@@ -144,7 +151,7 @@ export default function Login() {
                   onChange={handleChange}
                   autoComplete="username"
                   disabled={isSubmitting}
-                  className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-[#1b3631] focus:border-transparent transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -158,7 +165,6 @@ export default function Login() {
                 >
                   Password
                 </label>
-                
               </div>
               <div className="relative">
                 <Lock
@@ -175,26 +181,24 @@ export default function Login() {
                   onChange={handleChange}
                   autoComplete="current-password"
                   disabled={isSubmitting}
-                  className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-[#1b3631] focus:border-transparent transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-transparent border-none cursor-pointer text-gray-400 p-1 hover:text-gray-600 transition-colors disabled:cursor-not-allowed"
-                  aria-label={
-                    showPassword ? "Hide password" : "Show password"
-                  }
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isSubmitting}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
               <a
-                  href="#forgot-password"
-                  className="text-sm text-[#1b3631] font-medium hover:text-[#1b3631]/80 transition-colors float-right mt-2"
-                >
-                  Forgot password?
-                </a>
+                href="#forgot-password"
+                className="text-sm text-brand font-medium hover:text-brand/80 transition-colors float-right mt-2"
+              >
+                Forgot password?
+              </a>
             </div>
 
             {/* Remember Me Checkbox */}
@@ -205,7 +209,7 @@ export default function Login() {
                 checked={rememberMe}
                 onChange={handleRememberMeChange}
                 disabled={isSubmitting}
-                className="w-4 h-4 mr-2 cursor-pointer accent-[#1b3631] disabled:cursor-not-allowed"
+                className="w-4 h-4 mr-2 cursor-pointer accent-brand disabled:cursor-not-allowed"
               />
               <label
                 htmlFor="remember-me"
@@ -219,7 +223,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 text-sm font-semibold text-white bg-[#1b3631] rounded-lg hover:bg-[#1b3631]/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 text-sm font-semibold text-white bg-brand rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -241,7 +245,7 @@ export default function Login() {
               Don't have an account?{" "}
               <a
                 href="#signup"
-                className="text-[#1b3631] font-medium hover:text-[#1b3631]/80 transition-colors"
+                className="text-brand font-medium hover:text-brand/80 transition-colors"
               >
                 Contact Us
               </a>

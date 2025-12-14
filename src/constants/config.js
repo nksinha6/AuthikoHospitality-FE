@@ -15,4 +15,3 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: "onepass_refresh_token",
   TOKEN_EXPIRES_AT: "onepass_token_expires_at",
 };
-
