@@ -26,7 +26,7 @@ export default function GuestVerification() {
         adults: formData.adults,
         minors: formData.minors,
         phoneNumber: formData.phone,
-        isWalkIn: true,
+        isWalkIn: true, //true
       },
     });
   };
