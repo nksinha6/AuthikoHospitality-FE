@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import CheckIns from "./pages/CheckIns.jsx";
+import TodaysBookings from "./pages/TodaysBookings.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
+      { path: ROUTES.TODAYS_BOOKINGS, element: <TodaysBookings /> },
     ],
   },
   {
