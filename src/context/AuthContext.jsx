@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const clearAuthData = () => {
+    setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       // Remove auth data from both storages to be safe
       localStorage.removeItem(STORAGE_KEYS.AUTH);
