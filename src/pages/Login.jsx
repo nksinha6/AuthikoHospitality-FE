@@ -27,7 +27,7 @@ export default function Login() {
   });
   const [logoError, setLogoError] = useState(false);
 
-  const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
+  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
