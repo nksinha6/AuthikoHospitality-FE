@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
 import CheckIns from "./pages/CheckIns.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -14,7 +13,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: ROUTES.DASHBOARD, element: <Dashboard /> },
       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
     ],
   },
@@ -29,4 +27,3 @@ export const router = createBrowserRouter([
 ]);
 
 export default router;
-
