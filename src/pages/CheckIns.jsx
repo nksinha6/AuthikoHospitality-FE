@@ -327,7 +327,7 @@ const OTAVerificationForm = () => {
             </button>
             <button
               onClick={handleReview}
-              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer"
+              className="flex-1 px-6 py-3 bg-brand text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer"
             >
               Start Verification
             </button>

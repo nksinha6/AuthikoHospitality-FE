@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
-import { UI_TEXT, FORM_FIELDS, ROUTES, STORAGE_KEYS } from "../constants/ui.js";
+import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
+import { STORAGE_KEYS } from "../constants/storage.js";
 import logo from "../assets/images/1pass_logo.jpg";
 
 const INITIAL_FORM_VALUES = {

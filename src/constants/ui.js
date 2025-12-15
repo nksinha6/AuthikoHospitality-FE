@@ -109,13 +109,6 @@ export const UI_TEXT = {
   LOADER_TEXT: "Loading...",
 };
 
-export const STORAGE_KEYS = {
-  REMEMBER_ME: "rememberMe",
-  SAVED_EMAIL: "savedEmail",
-  AUTH_TOKEN: "authToken",
-  USER_DATA: "userData",
-};
-
 // Form Field Names
 export const FORM_FIELDS = {
   USER_ID: "userId",
