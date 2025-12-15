@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
 import Loader from "../components/Loader.jsx";
-import { UI_TEXT, FORM_FIELDS, ROUTES, STORAGE_KEYS } from "../constants/ui.js";
+import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
+import { STORAGE_KEYS } from "../constants/storage.js";
 import logo from "../assets/images/1pass_logo.jpg";
 
 const INITIAL_FORM_VALUES = {
@@ -27,6 +28,14 @@ export default function Login() {
   const [logoError, setLogoError] = useState(false);
 
   const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
+
+  // Load saved email if "Remember Me" was checked
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.SAVED_EMAIL);
+    if (savedEmail) {
+      setFieldValue(FORM_FIELDS.USER_ID, savedEmail);
+    }
+  }, [setFieldValue]);
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {

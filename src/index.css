@@ -3,4 +3,9 @@
 @theme {
   --color-brand: #1b3631;
   --color-link: #1b3631;
+  --color-bg-brand: #1b3631;
+}
+
+.bg-brand {
+  background-color: var(--color-bg-brand);
 }
