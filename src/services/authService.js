@@ -1,4 +1,4 @@
-import apiClient from "./apiClient.js";
+import apiClient from "./ApiClient.js";
 import { API_ENDPOINTS, TENANT_ID } from "../constants/config.js";
 
 /**
@@ -34,4 +34,3 @@ export const authService = {
     }
   },
 };
-

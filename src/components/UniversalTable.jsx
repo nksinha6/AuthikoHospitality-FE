@@ -103,14 +103,6 @@ UniversalTable.propTypes = {
   emptyMessage: PropTypes.string,
 };
 
-UniversalTable.defaultProps = {
-  columns: [],
-  data: [],
-  format: {},
-  actions: null,
-  emptyMessage: "No data found.",
-};
-
 UniversalTable.displayName = "UniversalTable";
 
 export default UniversalTable;

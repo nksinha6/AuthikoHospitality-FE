@@ -30,13 +30,18 @@ export const formatShortDate = (d) => {
 
 // filter bookings based on criteria
 export const filterBookings = (bookings, filters) => {
-  const guestQuery = filters.guest.toLowerCase();
-  const otaQuery = filters.ota.toLowerCase();
+  const guestQuery = (filters.guest || "").toLowerCase();
+  const otaQuery = (filters.ota || "").toLowerCase();
+  const phoneQuery = filters.phone || "";
 
   return bookings.filter((b) => {
-    const matchesGuest = b.leadGuest.toLowerCase().includes(guestQuery);
-    const matchesPhone = b.phone.includes(filters.phone);
-    const matchesOta = b.ota.toLowerCase().includes(otaQuery);
+    const leadGuest = (b.leadGuest || "").toLowerCase();
+    const ota = (b.ota || "").toLowerCase();
+    const phone = b.phone || "";
+
+    const matchesGuest = leadGuest.includes(guestQuery);
+    const matchesPhone = phone.includes(phoneQuery);
+    const matchesOta = ota.includes(otaQuery);
     const matchesStatus =
       filters.status === ""
         ? true
@@ -50,7 +55,9 @@ export const filterBookings = (bookings, filters) => {
 
 // phone number formatter
 export const formatPhone = (phone) => {
-  const digits = phone.replace(/\D/g, "");
+  if (!phone) return "";
+
+  const digits = String(phone).replace(/\D/g, "");
 
   if (digits.length === 12 && digits.startsWith("91")) {
     return `+91-${digits.substring(2, 7)}-${digits.substring(7)}`;
@@ -60,7 +67,7 @@ export const formatPhone = (phone) => {
     return `${digits.substring(0, 5)}-${digits.substring(5)}`;
   }
 
-  return phone;
+  return String(phone);
 };
 
 // booking status formatter
@@ -70,7 +77,12 @@ export const formatBookingStatus = (checkedIn) => {
 
 // guests Seperator
 export const formatGuests = (adults, minors) => {
-  return `${adults} ${adults === 1 ? "Adult" : "Adults"}${
-    minors > 0 ? `, ${minors} ${minors === 1 ? "Minor" : "Minors"}` : ""
+  const adultCount = adults || 0;
+  const minorCount = minors || 0;
+
+  return `${adultCount} ${adultCount === 1 ? "Adult" : "Adults"}${
+    minorCount > 0
+      ? `, ${minorCount} ${minorCount === 1 ? "Minor" : "Minors"}`
+      : ""
   }`;
 };

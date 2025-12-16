@@ -1,5 +1,5 @@
 // src/services/bookingService.js
-import { getTodayDateFormatted } from "../utility/bookingUtils.js";
+import { getTodayDateFormatted } from "../utility/BookingUtils.js";
 
 // Mock data - this will be replaced with API calls later
 const mockBookingsData = () => {
@@ -290,5 +290,3 @@ export const bookingService = {
     }
   },
 };
-
-export default bookingService;

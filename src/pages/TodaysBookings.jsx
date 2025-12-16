@@ -10,8 +10,8 @@ import {
   filterBookings,
   formatPhone,
   formatGuests,
-} from "../utility/bookingUtils.js";
-import { bookingService } from "../services/bookingService.js";
+} from "../utility/BookingUtils.js";
+import { bookingService } from "../services/BookingService.js";
 
 export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
@@ -26,25 +26,25 @@ export default function TodaysBookings() {
     status: "not-checked-in",
   });
 
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+
+      // Use the booking service to fetch data
+      const data = await bookingService.fetchTodaysBookings();
+
+      setBookings(data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err.message || "Failed to load today's bookings. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-
-        // Use the booking service to fetch data
-        const data = await bookingService.fetchTodaysBookings();
-
-        setBookings(data);
-        setError(null);
-      } catch (err) {
-        setError(
-          err.message || "Failed to load today's bookings. Please try again."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBookings();
   }, []);
 
@@ -67,7 +67,7 @@ export default function TodaysBookings() {
         <div className="text-center">
           <p className="text-red-600 text-lg mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={fetchBookings}
             className="bg-brand text-white px-4 py-2 rounded hover:bg-brand/90"
           >
             Retry
