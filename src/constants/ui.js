@@ -123,4 +123,5 @@ export const FORM_FIELDS = {
 export const ROUTES = {
   LOGIN: "/login",
   CHECK_INS: "/check-ins",
+  TODAYS_BOOKINGS: "/todays-bookings",
 };
