@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { FiCornerUpLeft, FiX } from "react-icons/fi";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -19,6 +19,9 @@ const DateHourFilter = ({ onApply }) => {
   const [isConditionDropdownOpen, setIsConditionDropdownOpen] = useState(false);
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
+
+  const popupRef = useRef(null);
+  const filterRef = useRef(null);
 
   const conditionOptions = [
     "is after",
@@ -112,18 +115,50 @@ const DateHourFilter = ({ onApply }) => {
     }
   }, [condition, value, timeUnit, startDate, endDate, selectedDate]);
 
+  // Click outside handler for both dropdowns and popup
   useEffect(() => {
-    const handleClickOutside = () => {
-      setIsConditionDropdownOpen(false);
+    const handleClickOutside = (event) => {
+      // Close condition dropdown if click is outside
+      if (
+        isConditionDropdownOpen &&
+        !event.target.closest(".condition-dropdown-container")
+      ) {
+        setIsConditionDropdownOpen(false);
+      }
+
+      // Close popup if click is outside both popup and filter header
+      if (
+        isPopupOpen &&
+        popupRef.current &&
+        filterRef.current &&
+        !popupRef.current.contains(event.target) &&
+        !filterRef.current.contains(event.target)
+      ) {
+        setIsPopupOpen(false);
+      }
     };
+
     document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isPopupOpen) {
+        setIsPopupOpen(false);
+      }
+    });
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", (e) => {
+        if (e.key === "Escape" && isPopupOpen) {
+          setIsPopupOpen(false);
+        }
+      });
+    };
+  }, [isPopupOpen, isConditionDropdownOpen]);
 
   const requiresTimeUnitInput = condition === "is in the last";
 
   return (
-    <div className="relative inline-block font-sans">
+    <div className="relative inline-block font-sans" ref={filterRef}>
       {/* TOP HEADER */}
       <div
         className={`flex items-center gap-2 w-48 h-8 px-2 py-1 border border-gray-300 rounded-full bg-white cursor-pointer select-none transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 ${
@@ -158,15 +193,11 @@ const DateHourFilter = ({ onApply }) => {
       {/* POPUP */}
       {isPopupOpen && (
         <div
+          ref={popupRef}
           className="absolute top-full left-0 mt-2 z-50 bg-white border border-gray-300 rounded-lg shadow-lg min-w-72 p-4"
           onClick={(e) => e.stopPropagation()}
-          style={{ pointerEvents: "none" }}
         >
-          <div
-            className="flex flex-col gap-4"
-            onClick={(e) => e.stopPropagation()}
-            style={{ pointerEvents: "auto" }}
-          >
+          <div className="flex flex-col gap-4">
             {/* HEADER */}
             <div className="flex flex-col gap-1 pb-3 border-b border-gray-200">
               <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
@@ -180,7 +211,7 @@ const DateHourFilter = ({ onApply }) => {
             {/* CONTROLS */}
             <div className="flex flex-col gap-4">
               {/* CONDITION DROPDOWN */}
-              <div className="relative w-full">
+              <div className="relative w-full condition-dropdown-container">
                 <div
                   className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
                   onClick={(e) => {
@@ -329,7 +360,7 @@ const DateHourFilter = ({ onApply }) => {
                     <DatePicker
                       label=""
                       value={selectedDate}
-                      onChange={(newValue) => setStartDate(newValue)}
+                      onChange={(newValue) => setSelectedDate(newValue)}
                       format="DD/MMM/YY"
                       open={selectedDateOpen}
                       onOpen={() => setSelectedDateOpen(true)}
