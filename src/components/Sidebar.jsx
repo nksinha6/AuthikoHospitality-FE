@@ -22,7 +22,7 @@ export default function Sidebar() {
           <span>{UI_TEXT.NAV_TODAYS_BOOKINGS}</span>
         </NavLink>
 
-        {/* <NavLink
+        <NavLink
           to={ROUTES.ALL_BOOKINGS}
           className={({ isActive }) =>
             `flex items-center px-3 py-2 rounded-lg text-sm ${
@@ -33,7 +33,7 @@ export default function Sidebar() {
           }
         >
           <span>{UI_TEXT.NAV_ALL_BOOKINGS}</span>
-        </NavLink> */}
+        </NavLink>
 
         <NavLink
           to={ROUTES.CHECK_INS}
