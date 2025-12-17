@@ -268,7 +268,7 @@ const DateHourFilter = ({ onApply }) => {
                         label=""
                         value={startDate}
                         onChange={(newValue) => setStartDate(newValue)}
-                        format="DD/MMM/YY"
+                        format="DD MMM YY"
                         open={startDateOpen}
                         onOpen={() => setStartDateOpen(true)}
                         onClose={() => setStartDateOpen(false)}
@@ -276,7 +276,7 @@ const DateHourFilter = ({ onApply }) => {
                         slotProps={{
                           textField: {
                             size: "small",
-                            placeholder: "DD/MMM/YY",
+                            placeholder: "DD MMM YY",
                             InputProps: {
                               endAdornment: null,
                               sx: {
@@ -303,7 +303,7 @@ const DateHourFilter = ({ onApply }) => {
                         label=""
                         value={endDate}
                         onChange={(newValue) => setEndDate(newValue)}
-                        format="DD/MMM/YY"
+                        format="DD MMM YY"
                         open={endDateOpen}
                         onOpen={() => setEndDateOpen(true)}
                         onClose={() => setEndDateOpen(false)}
@@ -311,7 +311,7 @@ const DateHourFilter = ({ onApply }) => {
                         slotProps={{
                           textField: {
                             size: "small",
-                            placeholder: "DD/MMM/YY",
+                            placeholder: "DD MMM YY",
                             InputProps: {
                               endAdornment: null,
                               sx: {
@@ -344,7 +344,7 @@ const DateHourFilter = ({ onApply }) => {
                       label=""
                       value={selectedDate}
                       onChange={(newValue) => setSelectedDate(newValue)}
-                      format="DD/MMM/YY"
+                      format="DD MMM YY"
                       open={selectedDateOpen}
                       onOpen={() => setSelectedDateOpen(true)}
                       onClose={() => setSelectedDateOpen(false)}
@@ -352,7 +352,7 @@ const DateHourFilter = ({ onApply }) => {
                       slotProps={{
                         textField: {
                           size: "small",
-                          placeholder: "DD/MMM/YY",
+                          placeholder: "DD MMM YY",
                           InputProps: {
                             endAdornment: null,
                             sx: {
