@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const OTAVerificationForm = () => {
+const Checkin = () => {
   const [formData, setFormData] = useState({
     ota: "",
     bookingId: "",
@@ -338,4 +338,4 @@ const OTAVerificationForm = () => {
   );
 };
 
-export default OTAVerificationForm;
+export default Checkin;
