@@ -9,29 +9,22 @@ export const getTodayDateFormatted = () => {
   });
 };
 
-// full header date formatter
 export const getFullHeaderDate = () => {
-  const date = new Date();
-  const dayName = date.toLocaleDateString("en-IN", { weekday: "long" });
-  const shortDate = date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
+  const today = dayjs();
+
+  const dayName = today.format("dddd"); // Monday
+  const shortDate = today.format("DD MMM YY"); // 17 Dec 25
+
   return `${dayName} / ${shortDate}`;
 };
 
 // short date formatter
 export const formatShortDate = (d) => {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
+  return dayjs(d).format("DD MMM YY");
 };
 
-// filter bookings based on criteria
+// Filter Bookings Based on criteria for Todays Bookings
 export const filterBookings = (bookings, filters) => {
   const guestQuery = (filters.guest || "").toLowerCase();
   const otaQuery = (filters.ota || "").toLowerCase();
@@ -92,6 +85,7 @@ export const formatGuests = (adults, minors) => {
 
 // All Bookings Utilitys
 
+// Used in All Bookings page to normalize booking dates
 export const normalizeBookings = (bookings = []) => {
   return bookings.map((b) => ({
     ...b,
@@ -101,6 +95,7 @@ export const normalizeBookings = (bookings = []) => {
   }));
 };
 
+// Used in All Bookings page to filter bookings based on date and text filters
 export const applyBookingFilters = ({
   bookings = [],
   dateFilter = null,

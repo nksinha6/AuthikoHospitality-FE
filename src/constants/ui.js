@@ -126,3 +126,14 @@ export const ROUTES = {
   TODAYS_BOOKINGS: "/todays-bookings",
   ALL_BOOKINGS: "/all-bookings",
 };
+
+// Filter Conditions
+export const DATE_CONDITIONS = {
+  AFTER: "is after",
+  ON_OR_AFTER: "is on or after",
+  BEFORE: "is before",
+  BEFORE_OR_ON: "is before or on",
+  BETWEEN: "is between",
+  LAST: "is in the last",
+  EQUAL: "is equal to",
+};

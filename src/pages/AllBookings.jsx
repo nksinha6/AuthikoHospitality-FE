@@ -22,7 +22,7 @@ export default function AllBookings() {
   const [bookings, setBookings] = useState([]);
   const [dateFilter, setDateFilter] = useState(null); // Store date filter state
 
-  const fetchAllBookings = async () => {
+  const fetchAllBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -34,7 +34,8 @@ export default function AllBookings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
   useEffect(() => {
     fetchAllBookings();
   }, []);

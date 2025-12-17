@@ -5,6 +5,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import { DATE_CONDITIONS } from "../constants/ui";
 
 import {
   DEFAULT_DATE_FILTER,
@@ -14,13 +15,15 @@ import {
 } from "../utility/dateFilterUtils";
 
 const DateHourFilter = ({ onApply }) => {
-  const [condition, setCondition] = useState("is after");
-  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [condition, setCondition] = useState(DEFAULT_DATE_FILTER.condition);
+  const [selectedDate, setSelectedDate] = useState(
+    DEFAULT_DATE_FILTER.selectedDate
+  );
   const [selectedDateOpen, setSelectedDateOpen] = useState(false);
-  const [startDate, setStartDate] = useState(dayjs());
-  const [endDate, setEndDate] = useState(dayjs());
-  const [value, setValue] = useState("1");
-  const [timeUnit, setTimeUnit] = useState("months");
+  const [startDate, setStartDate] = useState(DEFAULT_DATE_FILTER.startDate);
+  const [endDate, setEndDate] = useState(DEFAULT_DATE_FILTER.endDate);
+  const [value, setValue] = useState(DEFAULT_DATE_FILTER.value);
+  const [timeUnit, setTimeUnit] = useState(DEFAULT_DATE_FILTER.timeUnit);
   const [isFilterActive, setIsFilterActive] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isConditionDropdownOpen, setIsConditionDropdownOpen] = useState(false);
@@ -30,15 +33,7 @@ const DateHourFilter = ({ onApply }) => {
   const popupRef = useRef(null);
   const filterRef = useRef(null);
 
-  const conditionOptions = [
-    "is after",
-    "is in the last",
-    "is equal to",
-    "is between",
-    "is on or after",
-    "is before or on",
-    "is before",
-  ];
+  const conditionOptions = Object.values(DATE_CONDITIONS);
 
   const timeUnitOptions = ["months", "days", "hours"];
 
