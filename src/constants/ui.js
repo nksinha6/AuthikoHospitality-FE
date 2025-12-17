@@ -124,4 +124,5 @@ export const ROUTES = {
   LOGIN: "/login",
   CHECK_INS: "/check-ins",
   TODAYS_BOOKINGS: "/todays-bookings",
+  ALL_BOOKINGS: "/all-bookings",
 };

@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 // today's date formatter
 export const getTodayDateFormatted = () => {
   return new Date().toLocaleDateString("en-IN", {
@@ -21,6 +23,7 @@ export const getFullHeaderDate = () => {
 
 // short date formatter
 export const formatShortDate = (d) => {
+  if (!d) return "";
   return new Date(d).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -85,4 +88,115 @@ export const formatGuests = (adults, minors) => {
       ? `, ${minorCount} ${minorCount === 1 ? "Minor" : "Minors"}`
       : ""
   }`;
+};
+
+// All Bookings Utilitys
+
+export const normalizeBookings = (bookings = []) => {
+  return bookings.map((b) => ({
+    ...b,
+    date: dayjs.isDayjs(b.date)
+      ? b.date.startOf("day")
+      : dayjs(b.date).startOf("day"),
+  }));
+};
+
+export const applyBookingFilters = ({
+  bookings = [],
+  dateFilter = null,
+  filters = {},
+}) => {
+  return bookings.filter((b) => {
+    let include = true;
+
+    /* ---------- DATE FILTER ---------- */
+    if (dateFilter) {
+      const bookingDate = dayjs.isDayjs(b.date) ? b.date : dayjs(b.date);
+
+      const selected = dateFilter.selectedDate
+        ? dayjs(dateFilter.selectedDate).startOf("day")
+        : null;
+
+      const start = dateFilter.startDate
+        ? dayjs(dateFilter.startDate).startOf("day")
+        : null;
+
+      const end = dateFilter.endDate
+        ? dayjs(dateFilter.endDate).endOf("day")
+        : null;
+
+      const now = dayjs().startOf("day");
+
+      switch (dateFilter.condition) {
+        case "is between":
+          include =
+            !!start &&
+            !!end &&
+            (bookingDate.isAfter(start, "day") ||
+              bookingDate.isSame(start, "day")) &&
+            (bookingDate.isBefore(end, "day") ||
+              bookingDate.isSame(end, "day"));
+          break;
+
+        case "is on or after":
+        case "is after":
+          include =
+            !!selected &&
+            (bookingDate.isAfter(selected, "day") ||
+              bookingDate.isSame(selected, "day"));
+          break;
+
+        case "is before":
+        case "is before or on":
+          include =
+            !!selected &&
+            (bookingDate.isBefore(selected, "day") ||
+              bookingDate.isSame(selected, "day"));
+          break;
+
+        case "is equal to":
+          include = !!selected && bookingDate.isSame(selected, "day");
+          break;
+
+        case "is in the last": {
+          const value = parseInt(dateFilter.value, 10) || 0;
+          const unit = (dateFilter.timeUnit || "days").replace(/s$/i, "");
+          const lastStart = now.subtract(value, unit);
+
+          include =
+            (bookingDate.isAfter(lastStart, "day") ||
+              bookingDate.isSame(lastStart, "day")) &&
+            (bookingDate.isBefore(now, "day") ||
+              bookingDate.isSame(now, "day"));
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    /* ---------- TEXT FILTERS ---------- */
+    if (filters?.name) {
+      const q = filters.name.toLowerCase();
+      include =
+        include &&
+        ((b.firstName || "").toLowerCase().includes(q) ||
+          (b.surname || "").toLowerCase().includes(q));
+    }
+
+    if (filters?.phone) {
+      include =
+        include &&
+        (b.phone || "").toLowerCase().includes(filters.phone.toLowerCase());
+    }
+
+    if (filters?.ota) {
+      include =
+        include &&
+        (b.ota || "").toLowerCase().includes(filters.ota.toLowerCase());
+    }
+
+    return include;
+  });
 };

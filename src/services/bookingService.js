@@ -1,292 +1,88 @@
-// src/services/bookingService.js
-import { getTodayDateFormatted } from "../utility/BookingUtils.js";
+import dayjs from "dayjs";
 
-// Mock data - this will be replaced with API calls later
-const mockBookingsData = () => {
-  const today = getTodayDateFormatted();
+// ---------- helpers ----------
+const today = dayjs();
+const startId = 600;
 
-  return [
-    {
-      date: today,
-      bookingId: "BK202503",
-      ota: "MakeMyTrip",
-      leadGuest: "Rahul Verma",
-      firstName: "Rahul",
-      surname: "Verma",
-      phone: "+91-9123456780",
-      guests: 4,
-      adults: 3,
-      minors: 1,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202504",
-      ota: "Agoda",
-      leadGuest: "Sneha Patel",
-      firstName: "Sneha",
-      surname: "Patel",
-      phone: "+91-9876501234",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202505",
-      ota: "Booking.com",
-      leadGuest: "Amit Shah",
-      firstName: "Amit",
-      surname: "Shah",
-      phone: "+91-9001122334",
-      guests: 3,
-      adults: 2,
-      minors: 1,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202506",
-      ota: "Goibibo",
-      leadGuest: "Pooja Singh",
-      firstName: "Pooja",
-      surname: "Singh",
-      phone: "+91-9887766554",
-      guests: 1,
-      adults: 1,
-      minors: 0,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202507",
-      ota: "MakeMyTrip",
-      leadGuest: "Karan Malhotra",
-      firstName: "Karan",
-      surname: "Malhotra",
-      phone: "+91-9765432109",
-      guests: 5,
-      adults: 4,
-      minors: 1,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202508",
-      ota: "Booking.com",
-      leadGuest: "Neha Joshi",
-      firstName: "Neha",
-      surname: "Joshi",
-      phone: "+91-9876123456",
-      guests: 2,
-      adults: 1,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202509",
-      ota: "Agoda",
-      leadGuest: "Suresh Kumar",
-      firstName: "Suresh",
-      surname: "Kumar",
-      phone: "+91-9012345678",
-      guests: 3,
-      adults: 3,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202510",
-      ota: "Goibibo",
-      leadGuest: "Ritika Arora",
-      firstName: "Ritika",
-      surname: "Arora",
-      phone: "+91-9345678123",
-      guests: 4,
-      adults: 2,
-      minors: 2,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202511",
-      ota: "MakeMyTrip",
-      leadGuest: "Vikas Yadav",
-      firstName: "Vikas",
-      surname: "Yadav",
-      phone: "+91-9988112233",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202512",
-      ota: "Booking.com",
-      leadGuest: "Anjali Desai",
-      firstName: "Anjali",
-      surname: "Desai",
-      phone: "+91-9877012345",
-      guests: 3,
-      adults: 2,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202513",
-      ota: "Agoda",
-      leadGuest: "Rohit Jain",
-      firstName: "Rohit",
-      surname: "Jain",
-      phone: "+91-9898989898",
-      guests: 1,
-      adults: 1,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202514",
-      ota: "Goibibo",
-      leadGuest: "Nisha Kapoor",
-      firstName: "Nisha",
-      surname: "Kapoor",
-      phone: "+91-9123987654",
-      guests: 4,
-      adults: 3,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202515",
-      ota: "MakeMyTrip",
-      leadGuest: "Manish Gupta",
-      firstName: "Manish",
-      surname: "Gupta",
-      phone: "+91-9009009009",
-      guests: 2,
-      adults: 2,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202516",
-      ota: "Booking.com",
-      leadGuest: "Swati Mishra",
-      firstName: "Swati",
-      surname: "Mishra",
-      phone: "+91-9765123487",
-      guests: 3,
-      adults: 2,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202517",
-      ota: "Agoda",
-      leadGuest: "Deepak Rana",
-      firstName: "Deepak",
-      surname: "Rana",
-      phone: "+91-9876547890",
-      guests: 5,
-      adults: 4,
-      minors: 1,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202518",
-      ota: "Goibibo",
-      leadGuest: "Isha Khanna",
-      firstName: "Isha",
-      surname: "Khanna",
-      phone: "+91-9011223344",
-      guests: 2,
-      adults: 1,
-      minors: 1,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202519",
-      ota: "MakeMyTrip",
-      leadGuest: "Sanjay Bansal",
-      firstName: "Sanjay",
-      surname: "Bansal",
-      phone: "+91-9888771234",
-      guests: 3,
-      adults: 3,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202520",
-      ota: "Booking.com",
-      leadGuest: "Kavita Nair",
-      firstName: "Kavita",
-      surname: "Nair",
-      phone: "+91-9823456712",
-      guests: 4,
-      adults: 2,
-      minors: 2,
-      checkedIn: false,
-    },
-    {
-      date: today,
-      bookingId: "BK202521",
-      ota: "Agoda",
-      leadGuest: "Pranav Kulkarni",
-      firstName: "Pranav",
-      surname: "Kulkarni",
-      phone: "+91-9090909090",
-      guests: 1,
-      adults: 1,
-      minors: 0,
-      checkedIn: true,
-    },
-    {
-      date: today,
-      bookingId: "BK202522",
-      ota: "Goibibo",
-      leadGuest: "Ayesha Khan",
-      firstName: "Ayesha",
-      surname: "Khan",
-      phone: "+91-9871234567",
-      guests: 3,
-      adults: 2,
-      minors: 1,
-      checkedIn: false,
-    },
-  ];
+const randomFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const randomBool = () => Math.random() > 0.5;
+
+const OTAS = ["MakeMyTrip", "Booking.com", "Agoda", "Goibibo", "Expedia"];
+const FIRST_NAMES = [
+  "Rahul",
+  "Sneha",
+  "Amit",
+  "Neha",
+  "Karan",
+  "Pooja",
+  "Vikas",
+  "Ritika",
+];
+const LAST_NAMES = [
+  "Sharma",
+  "Verma",
+  "Patel",
+  "Singh",
+  "Gupta",
+  "Mehta",
+  "Jain",
+];
+
+// ---------- generators ----------
+const createBooking = (id, date) => {
+  const firstName = randomFrom(FIRST_NAMES);
+  const surname = randomFrom(LAST_NAMES);
+  const adults = Math.floor(Math.random() * 3) + 1;
+  const minors = Math.floor(Math.random() * 2);
+
+  return {
+    date,
+    bookingId: `BK2025${startId + id}`,
+    ota: randomFrom(OTAS),
+    leadGuest: `${firstName} ${surname}`,
+    firstName,
+    surname,
+    phone: `+91-9${Math.floor(100000000 + Math.random() * 900000000)}`,
+    guests: adults + minors,
+    adults,
+    minors,
+    checkedIn: randomBool(),
+  };
 };
 
-// Service functions for booking data
+// ---------- TODAY BOOKINGS ----------
+const generateTodaysBookings = () =>
+  Array.from({ length: 20 }, (_, i) => createBooking(i, today));
+
+// ---------- FUTURE BOOKINGS (THIS MONTH) ----------
+const generateFutureMonthBookings = () => {
+  const daysInMonth = today.daysInMonth();
+  const startDay = today.date() + 1;
+
+  return Array.from({ length: 20 }, (_, i) => {
+    const dayOffset = (i % (daysInMonth - startDay)) + startDay;
+    const futureDate = today.date(dayOffset);
+    return createBooking(i + 20, futureDate);
+  });
+};
+
+// ---------- combined ----------
+const mockBookingsData = () => [
+  ...generateTodaysBookings(),
+  ...generateFutureMonthBookings(),
+];
+
+// ---------- service ----------
 export const bookingService = {
-  /**
-   * Fetch today's bookings
-   * @returns {Promise<Array>} Array of booking objects
-   */
+  /** 🔹 All bookings (today + future) */
+  fetchBookings: async () => {
+    await new Promise((r) => setTimeout(r, 1000));
+    return mockBookingsData();
+  },
+
+  /** 🔹 ONLY today’s bookings */
   fetchTodaysBookings: async () => {
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // For now, return mock data
-      const bookings = mockBookingsData();
-
-      return bookings;
-    } catch (error) {
-      console.error("Error fetching bookings:", error);
-      throw new Error("Failed to load today's bookings. Please try again.");
-    }
+    await new Promise((r) => setTimeout(r, 800));
+    return generateTodaysBookings();
   },
 };
