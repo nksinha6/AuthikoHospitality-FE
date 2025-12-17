@@ -25,7 +25,8 @@ export const VERIFICATION_STATUS = {
 
 // Guest Verification Constants
 export const GUEST_VERIFICATION = {
-  DEFAULT_COUNTRY_CODE: "91",
+  DEFAULT_COUNTRY_CODE: "in", // ISO country code for India
+  COUNTRY_CODE_NUMERIC: "91", // Numeric country code for phone number processing
   TEST_PHONE_NUMBER: "9104622293",
   AADHAAR_PROCESSING_DELAY: 5000, // 5 seconds
   FACE_PROCESSING_DELAY: 7000, // 7 seconds

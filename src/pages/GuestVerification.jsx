@@ -118,7 +118,7 @@ export default function GuestVerification() {
       const initialGuests = Array.from({ length: adults }, (_, index) => {
         if (index === 0 && primaryGuest) {
           return {
-            phoneNumber: (primaryGuest.countryCode || GUEST_VERIFICATION.DEFAULT_COUNTRY_CODE) + (primaryGuest.phoneNumber || ""),
+            phoneNumber: (primaryGuest.countryCode || GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC) + (primaryGuest.phoneNumber || ""),
             isVerified: false,
             aadhaarStatus: VERIFICATION_STATUS.PENDING,
             faceStatus: VERIFICATION_STATUS.PENDING,
@@ -160,7 +160,7 @@ export default function GuestVerification() {
     });
 
     const phone = updatedGuests[index].phoneNumber;
-    const phoneWithoutCode = phone.replace(/^91/, "");
+    const phoneWithoutCode = phone.replace(new RegExp(`^${GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC}`), "");
 
     if (phoneWithoutCode === GUEST_VERIFICATION.TEST_PHONE_NUMBER) {
       updatedGuests[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
@@ -346,7 +346,7 @@ export default function GuestVerification() {
 
                     <td className="px-8 py-6 space-y-4">
                       {!guest.isVerified ? (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 relative">
                           <div className="flex-1">
                             <PhoneInput
                               country={GUEST_VERIFICATION.DEFAULT_COUNTRY_CODE}
@@ -355,14 +355,8 @@ export default function GuestVerification() {
                                 handlePhoneNumberChange(index, value)
                               }
                               placeholder={UI_TEXT.GUEST_VERIFICATION_PHONE_PLACEHOLDER}
-                              enableSearch
-                              disableSearchIcon
+                              enableSearch={true}
                               countryCodeEditable={false}
-                              containerClass="!w-full group-hover:shadow-sm transition-shadow"
-                              inputClass="!w-full !h-[48px] !text-sm !font-medium !text-gray-900 !bg-white !border-gray-200 !rounded-xl focus:!border-[#1b3631] focus:!ring-4 focus:!ring-[#1b3631]/10 transition-all !pl-[52px]"
-                              buttonClass="!bg-transparent !border-0 !rounded-l-xl !pl-2 hover:!bg-gray-50/50"
-                              dropdownClass="!shadow-xl !border-gray-100 !rounded-xl !overflow-hidden !mt-2"
-                              searchClass="!p-2 !m-0 !border-b !border-100"
                             />
                           </div>
                           <button
@@ -382,9 +376,6 @@ export default function GuestVerification() {
                               country={GUEST_VERIFICATION.DEFAULT_COUNTRY_CODE}
                               value={guest.phoneNumber}
                               disabled
-                              containerClass="!w-full opacity-60"
-                              inputClass="!w-full !h-[48px] !text-sm !font-medium !text-gray-900 !bg-gray-50 !border-gray-200 !rounded-xl !pl-[52px]"
-                              buttonClass="!bg-transparent !border-0 !rounded-l-xl !pl-2"
                             />
                           </div>
                           {guest.aadhaarStatus !== "verified" && (
