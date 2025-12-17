@@ -2,11 +2,7 @@ import dayjs from "dayjs";
 
 // today's date formatter
 export const getTodayDateFormatted = () => {
-  return new Date().toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return dayjs().format("DD MMM YY");
 };
 
 export const getFullHeaderDate = () => {
