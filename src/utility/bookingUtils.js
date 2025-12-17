@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { DATE_CONDITIONS } from "../constants/ui";
 
 // today's date formatter
 export const getTodayDateFormatted = () => {
@@ -119,7 +120,7 @@ export const applyBookingFilters = ({
       const now = dayjs().startOf("day");
 
       switch (dateFilter.condition) {
-        case "is between":
+        case DATE_CONDITIONS.BETWEEN:
           include =
             !!start &&
             !!end &&
@@ -129,27 +130,27 @@ export const applyBookingFilters = ({
               bookingDate.isSame(end, "day"));
           break;
 
-        case "is on or after":
-        case "is after":
+        case DATE_CONDITIONS.ON_OR_AFTER:
+        case DATE_CONDITIONS.AFTER:
           include =
             !!selected &&
             (bookingDate.isAfter(selected, "day") ||
               bookingDate.isSame(selected, "day"));
           break;
 
-        case "is before":
-        case "is before or on":
+        case DATE_CONDITIONS.BEFORE:
+        case DATE_CONDITIONS.BEFORE_OR_ON:
           include =
             !!selected &&
             (bookingDate.isBefore(selected, "day") ||
               bookingDate.isSame(selected, "day"));
           break;
 
-        case "is equal to":
+        case DATE_CONDITIONS.EQUAL:
           include = !!selected && bookingDate.isSame(selected, "day");
           break;
 
-        case "is in the last": {
+        case DATE_CONDITIONS.IN_LAST: {
           const value = parseInt(dateFilter.value, 10) || 0;
           const unit = (dateFilter.timeUnit || "days").replace(/s$/i, "");
           const lastStart = now.subtract(value, unit);
