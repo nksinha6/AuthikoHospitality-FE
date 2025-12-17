@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Checkin = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ota: "",
     bookingId: "",
@@ -163,7 +165,26 @@ const Checkin = () => {
       alert("Number of minors cannot be negative");
       return;
     }
-    console.log("Review booking information:", formData);
+
+    // Prepare data for GuestVerification
+    const guestData = {
+      date: getCurrentDate(),
+      firstName: formData.ota === "Walk-In" ? "Guest" : "OTA Guest",
+      surname: "",
+      phone: formData.countryCode + " " + formData.phoneNumber,
+      adults: parseInt(formData.adults) || 0,
+      minors: parseInt(formData.children) || 0,
+      totalGuests: (parseInt(formData.adults) || 0) + (parseInt(formData.children) || 0),
+      bookingId: formData.bookingId || `WALKIN-${Date.now().toString().slice(-6)}`,
+      ota: formData.ota,
+      primaryGuest: {
+        countryCode: formData.countryCode,
+        phoneNumber: formData.phoneNumber
+      }
+    };
+
+    // Navigate to GuestVerification with form data
+    navigate("/guest-verification", { state: { formData: guestData } });
   };
 
   const getCurrentFlag = () => {
