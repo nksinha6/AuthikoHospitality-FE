@@ -293,7 +293,7 @@ export default function GuestVerification() {
     <div className="flex min-h-screen items-center justify-center p-6">
 
       {/* Main Content Area - Centered */}
-      <div className="w-full max-w-7xl">
+      <div className="w-full max-w-7xl overflow-hidden">
         <div className="rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
 
           {/* Header Section */}
@@ -315,21 +315,21 @@ export default function GuestVerification() {
           </div>
 
           {/* Guest Verification Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
-                  <th className="px-8 py-4 w-16">{UI_TEXT.GUEST_VERIFICATION_SR_NO}</th>
-                  <th className="px-8 py-4 w-100">{UI_TEXT.GUEST_VERIFICATION_GUEST_INFO}</th>
+                  <th className="px-6 py-4 w-16">{UI_TEXT.GUEST_VERIFICATION_SR_NO}</th>
+                  <th className="px-6 py-4 min-w-0 flex-1">{UI_TEXT.GUEST_VERIFICATION_GUEST_INFO}</th>
                   {guests.some((g) => g.isVerified) && (
                     <>
-                      <th className="px-8 py-4">{UI_TEXT.GUEST_VERIFICATION_ID_STATUS}</th>
-                      <th className="px-8 py-4">{UI_TEXT.GUEST_VERIFICATION_FACE_ID}</th>
-                      <th className="px-8 py-4">{UI_TEXT.GUEST_VERIFICATION_TIMESTAMP}</th>
+                      <th className="px-6 py-4 w-24">{UI_TEXT.GUEST_VERIFICATION_ID_STATUS}</th>
+                      <th className="px-6 py-4 w-24">{UI_TEXT.GUEST_VERIFICATION_FACE_ID}</th>
+                      <th className="px-6 py-4 w-32">{UI_TEXT.GUEST_VERIFICATION_TIMESTAMP}</th>
                     </>
                   )}
                   {hasAnyVerified && (
-                    <th className="px-8 py-4 w-32">{UI_TEXT.GUEST_VERIFICATION_ACTION}</th>
+                    <th className="px-6 py-4 w-28">{UI_TEXT.GUEST_VERIFICATION_ACTION}</th>
                   )}
                 </tr>
               </thead>
@@ -340,11 +340,11 @@ export default function GuestVerification() {
                     className="hover:bg-[#F8FAFC] transition-colors group"
                     valign="top"
                   >
-                    <td className="px-8 py-6 font-semibold text-gray-400">
+                    <td className="px-6 py-6 font-semibold text-gray-400">
                       {String(index + 1).padStart(2, '0')}
                     </td>
 
-                    <td className="px-8 py-6 space-y-4">
+                    <td className="px-6 py-6 space-y-4">
                       {!guest.isVerified ? (
                         <div className="flex items-center gap-3 relative">
                           <div className="flex-1">
@@ -484,7 +484,7 @@ export default function GuestVerification() {
 
                     {guest.isVerified && (
                       <>
-                        <td className="px-8 py-6" valign="top">
+                        <td className="px-6 py-6" valign="top">
                           {guest.aadhaarStatus === VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
@@ -507,7 +507,7 @@ export default function GuestVerification() {
                           )}
                         </td>
 
-                        <td className="px-8 py-6" valign="top">
+                        <td className="px-6 py-6" valign="top">
                           {guest.faceStatus === VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
@@ -527,12 +527,12 @@ export default function GuestVerification() {
                           )}
                         </td>
 
-                        <td className="px-8 py-6 text-gray-500" valign="top">
+                        <td className="px-6 py-6 text-gray-500" valign="top">
                           {guest.timestamp || "-"}
                         </td>
 
                         {hasAnyVerified && (
-                          <td className="px-8 py-6" valign="top">
+                          <td className="px-6 py-6" valign="top">
                             {guest.aadhaarStatus === "verified" &&
                               guest.faceStatus === "verified" ? (
                               <button
