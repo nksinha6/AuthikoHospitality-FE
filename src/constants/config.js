@@ -6,6 +6,7 @@ export const TENANT_ID = 1;
 // API Endpoints
 export const API_ENDPOINTS = {
   LOGIN: "HotelUser/login",
+  BEGIN_VERIFICATION: "booking/begin_verification",
 };
 
 // Storage Keys

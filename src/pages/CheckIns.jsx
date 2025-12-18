@@ -1,4 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { verificationService } from "../services/verificationService";
+import dayjs from "dayjs";
+import {
+  countryCodes,
+  getCountryByCode,
+  formatPhoneNumber as formatPhoneNumberUtil,
+  generateWalkInBookingId,
+  isValidBookingId,
+} from "../utility/checkInUtils"; // Adjust the import path to your utils file
+
+import { OTA_OPTIONS } from "../constants/ui";
 
 const Checkin = () => {
   const [formData, setFormData] = useState({
@@ -10,70 +22,15 @@ const Checkin = () => {
     children: "",
   });
 
+  const navigate = useNavigate();
   const [showBookingId, setShowBookingId] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [processedBookingIds, setProcessedBookingIds] = useState(new Set());
 
-  const countryCodes = [
-    {
-      code: "+91",
-      country: "India",
-      flag: "🇮🇳",
-      pattern: /^(\d{5})(\d{5})$/,
-      format: "$1-$2",
-    },
-    {
-      code: "+1",
-      country: "US/Canada",
-      flag: "🇺🇸",
-      pattern: /^(\d{3})(\d{3})(\d{4})$/,
-      format: "($1) $2-$3",
-    },
-    {
-      code: "+44",
-      country: "UK",
-      flag: "🇬🇧",
-      pattern: /^(\d{4})(\d{6})$/,
-      format: "$1 $2",
-    },
-    {
-      code: "+61",
-      country: "Australia",
-      flag: "🇦🇺",
-      pattern: /^(\d{4})(\d{3})(\d{3})$/,
-      format: "$1 $2 $3",
-    },
-    {
-      code: "+971",
-      country: "UAE",
-      flag: "🇦🇪",
-      pattern: /^(\d{2})(\d{3})(\d{4})$/,
-      format: "$1 $2 $3",
-    },
-    {
-      code: "+65",
-      country: "Singapore",
-      flag: "🇸🇬",
-      pattern: /^(\d{4})(\d{4})$/,
-      format: "$1 $2",
-    },
-  ];
-
-  const otaOptions = [
-    "Booking.com",
-    "Airbnb",
-    "Expedia",
-    "Hotels.com",
-    "Agoda",
-    "Vrbo",
-    "Tripadvisor",
-    "MakeMyTrip",
-    "Goibibo",
-    "Walk-In",
-  ];
+  const otaOptions = Object.values(OTA_OPTIONS);
 
   const getCurrentDate = () => {
-    const today = new Date();
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return today.toLocaleDateString("en-US", options);
+    return dayjs().format("DD MMM YY"); // "01 Jan 24"
   };
 
   const handleOTASelection = (e) => {
@@ -87,17 +44,7 @@ const Checkin = () => {
   };
 
   const formatPhoneNumber = (value, countryCode) => {
-    if (!value) return "";
-    const country = countryCodes.find((c) => c.code === countryCode);
-    if (!country) return value;
-    const digits = value.replace(/\D/g, "");
-    if (country.pattern) {
-      const match = digits.match(country.pattern);
-      if (match) {
-        return country.format.replace(/\$(\d+)/g, (_, index) => match[index]);
-      }
-    }
-    return digits;
+    return formatPhoneNumberUtil(value, countryCode);
   };
 
   const handlePhoneNumberChange = (e) => {
@@ -141,33 +88,130 @@ const Checkin = () => {
     setShowBookingId(true);
   };
 
-  const handleReview = () => {
+  const handleReview = async () => {
+    // Add duplicate submission prevention
+    if (isVerifying) {
+      console.log("Already verifying, please wait");
+      return;
+    }
+
     if (!formData.ota) {
       alert("Please select an OTA platform");
       return;
     }
-    if (showBookingId && !formData.bookingId.trim()) {
+
+    if (showBookingId && !isValidBookingId(formData.bookingId, formData.ota)) {
       alert("Please enter booking ID");
       return;
     }
+
     if (!formData.phoneNumber.trim()) {
       alert("Please enter phone number");
       return;
     }
+
     if (!formData.adults || parseInt(formData.adults) < 1) {
       alert("Please enter at least one adult");
       return;
     }
+
     const childrenValue = parseInt(formData.children) || 0;
     if (childrenValue < 0) {
       alert("Number of minors cannot be negative");
       return;
     }
-    console.log("Review booking information:", formData);
+
+    // Determine booking ID based on OTA selection
+    let bookingIdToUse = formData.bookingId;
+    let updatedFormData = { ...formData };
+
+    if (formData.ota === "Walk-In") {
+      try {
+        bookingIdToUse = generateWalkInBookingId();
+        console.log("Generated Walk-In Booking ID:", bookingIdToUse);
+
+        updatedFormData = {
+          ...formData,
+          bookingId: bookingIdToUse,
+        };
+        setFormData(updatedFormData);
+      } catch (error) {
+        alert("Failed to generate booking ID");
+        console.error("Walk-In ID generation error:", error);
+        return;
+      }
+    } else {
+      bookingIdToUse = formData.bookingId;
+    }
+
+    // Check if this booking ID has already been processed
+    if (processedBookingIds.has(bookingIdToUse)) {
+      console.log(`Booking ID ${bookingIdToUse} already processed. Skipping.`);
+      alert("This booking has already been verified");
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      console.log(`Calling API with Booking ID: ${bookingIdToUse}`);
+
+      // Add timeout protection (10 seconds)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timed out. Please try again.")),
+          10000
+        )
+      );
+
+      const response = await Promise.race([
+        verificationService.beginVerification(bookingIdToUse),
+        timeoutPromise,
+      ]);
+
+      // Basic response validation
+      if (!response || response.error) {
+        throw new Error(
+          response?.error?.message || "Verification service error"
+        );
+      }
+
+      setProcessedBookingIds((prev) => new Set([...prev, bookingIdToUse]));
+      console.log("Verification successful:", response);
+      console.log("Form Data submitted:", {
+        ...formData,
+        bookingId: bookingIdToUse,
+      });
+
+      navigate("/guest-verification", {
+        state: {
+          formData: {
+            ...updatedFormData,
+            bookingId: bookingIdToUse, // Ensure latest booking ID
+          },
+        },
+      });
+
+      // Optional success feedback
+      // alert(`Verification started for booking: ${bookingIdToUse}`);
+    } catch (error) {
+      console.error("Verification failed:", error.message);
+
+      // Better error messages
+      const userMessage = error.message.includes("timeout")
+        ? "Request took too long. Please check connection and try again."
+        : error.message.includes("network") || error.message.includes("Network")
+        ? "Network error. Please check internet connection."
+        : `Verification failed: ${error.message}`;
+
+      alert(userMessage);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const getCurrentFlag = () => {
-    const country = countryCodes.find((c) => c.code === formData.countryCode);
+    // Using getCountryByCode util
+    const country = getCountryByCode(formData.countryCode);
     return country ? country.flag : "🇺🇸";
   };
 
@@ -206,6 +250,7 @@ const Checkin = () => {
                 value={formData.ota}
                 onChange={handleOTASelection}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none"
+                disabled={isVerifying}
               >
                 <option value="">Select OTA platform</option>
                 {otaOptions.map((ota) => (
@@ -237,8 +282,20 @@ const Checkin = () => {
                   value={formData.bookingId}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg"
+                  disabled={isVerifying || formData.ota === "Walk-In"}
+                  readOnly={formData.ota === "Walk-In"}
                 />
+                {formData.ota === "Walk-In" && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">
+                    Auto-generated
+                  </div>
+                )}
               </div>
+              {formData.ota === "Walk-In" && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Booking ID will be automatically generated
+                </p>
+              )}
             </div>
           )}
 
@@ -257,6 +314,7 @@ const Checkin = () => {
                   value={formData.countryCode}
                   onChange={handleCountryCodeChange}
                   className="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg appearance-none"
+                  disabled={isVerifying}
                 >
                   {countryCodes.map(({ code, country, flag }) => (
                     <option key={code} value={code}>
@@ -276,6 +334,7 @@ const Checkin = () => {
                 onChange={handlePhoneNumberChange}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg"
                 required
+                disabled={isVerifying}
               />
             </div>
           </div>
@@ -296,6 +355,7 @@ const Checkin = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
+                  disabled={isVerifying}
                 />
                 <p className="text-sm text-gray-500 mt-1">Age 18+</p>
               </div>
@@ -311,6 +371,7 @@ const Checkin = () => {
                   value={formData.children}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                  disabled={isVerifying}
                 />
                 <p className="text-sm text-gray-500 mt-1">Under 18 years</p>
               </div>
@@ -321,15 +382,24 @@ const Checkin = () => {
           <div className="flex gap-3">
             <button
               onClick={handleCancel}
-              className="flex-1 px-6 py-3 border! border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer"
+              className="flex-1 px-6 py-3 border! border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isVerifying}
             >
               Cancel
             </button>
             <button
               onClick={handleReview}
-              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer"
+              disabled={isVerifying}
+              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Start Verification
+              {isVerifying ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Verifying...
+                </>
+              ) : (
+                "Start Verification"
+              )}
             </button>
           </div>
         </div>
