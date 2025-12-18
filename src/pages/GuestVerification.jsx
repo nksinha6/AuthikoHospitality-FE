@@ -2,106 +2,26 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import {
-  CheckCircle,
-  X,
-  Clock,
-  User,
-  Plus,
-  Edit2,
-} from "lucide-react";
+import { CheckCircle, X, Clock, User, Plus, Edit2 } from "lucide-react";
 import { UI_TEXT, ROUTES } from "../constants/ui.js";
-import { VERIFICATION_STATUS, GUEST_VERIFICATION } from "../constants/config.js";
-
-// Success Modal Component
-const SuccessModal = ({ show, message }) => {
-  if (!show) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-in zoom-in-95 duration-200">
-        <div className="mb-4 flex justify-center">
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-10 h-10 text-green-600" />
-          </div>
-        </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">{UI_TEXT.MODAL_SUCCESS_TITLE}</h3>
-        <p className="text-gray-500 text-sm">{message || "Operation successful."}</p>
-      </div>
-    </div>
-  );
-};
-
-// Guest Details Modal Component
-const GuestDetailsModal = ({ show, handleClose, guest }) => {
-  if (!show || !guest) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={handleClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="bg-[#1b3631] p-6 text-white flex items-center justify-between">
-          <h3 className="text-lg font-bold">{UI_TEXT.MODAL_GUEST_DETAILS_TITLE}</h3>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <span className="text-sm text-gray-500">{UI_TEXT.MODAL_PHONE_NUMBER}</span>
-            <span className="font-semibold text-gray-900 text-lg tracking-wide">{guest.phoneNumber}</span>
-          </div>
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <span className="text-sm text-gray-500">{UI_TEXT.MODAL_AADHAAR_STATUS}</span>
-            <span className={`font-semibold capitalize px-2 py-1 rounded-md text-sm ${guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'}`}>
-              {guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? UI_TEXT.GUEST_VERIFICATION_VERIFIED : guest.aadhaarStatus}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <span className="text-sm text-gray-500">{UI_TEXT.MODAL_FACE_STATUS}</span>
-            <span className={`font-semibold capitalize px-2 py-1 rounded-md text-sm ${guest.faceStatus === VERIFICATION_STATUS.VERIFIED ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'}`}>
-              {guest.faceStatus === VERIFICATION_STATUS.VERIFIED ? UI_TEXT.GUEST_VERIFICATION_VERIFIED : guest.faceStatus}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pb-3">
-            <span className="text-sm text-gray-500">Timestamp</span>
-            <span className="font-medium text-gray-900">{guest.timestamp}</span>
-          </div>
-
-          {/* Minors Section in Modal */}
-          {guest.minors && guest.minors.length > 0 && (
-            <div className="pt-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{UI_TEXT.GUEST_VERIFICATION_ACCOMPANYING_MINORS}</p>
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
-                {guest.minors.map((m, i) => (
-                  <div key={i} className="flex justify-between items-center text-sm">
-                    <span className="font-medium text-gray-900">{m.name}</span>
-                    <span className="text-gray-500 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100">{m.age} {UI_TEXT.GUEST_VERIFICATION_YEARS}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+import {
+  VERIFICATION_STATUS,
+  GUEST_VERIFICATION,
+} from "../constants/config.js";
+import SuuccessModal from "../components/SuccessModal.jsx";
+import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 
 export default function GuestVerification() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const formData = location.state?.formData || {};
-  const { adults = 0, minors: totalMinorsLimit = 0, bookingId, primaryGuest } = formData;
+  const {
+    adults = 0,
+    minors: totalMinorsLimit = 0,
+    bookingId,
+    primaryGuest,
+  } = formData;
 
   const [guests, setGuests] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -118,7 +38,10 @@ export default function GuestVerification() {
       const initialGuests = Array.from({ length: adults }, (_, index) => {
         if (index === 0 && primaryGuest) {
           return {
-            phoneNumber: (primaryGuest.countryCode || GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC) + (primaryGuest.phoneNumber || ""),
+            phoneNumber:
+              (primaryGuest.countryCode ||
+                GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC) +
+              (primaryGuest.phoneNumber || ""),
             isVerified: false,
             aadhaarStatus: VERIFICATION_STATUS.PENDING,
             faceStatus: VERIFICATION_STATUS.PENDING,
@@ -133,7 +56,7 @@ export default function GuestVerification() {
           faceStatus: VERIFICATION_STATUS.PENDING,
           timestamp: null,
           minors: [],
-        }
+        };
       });
       setGuests(initialGuests);
     }
@@ -160,7 +83,10 @@ export default function GuestVerification() {
     });
 
     const phone = updatedGuests[index].phoneNumber;
-    const phoneWithoutCode = phone.replace(new RegExp(`^${GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC}`), "");
+    const phoneWithoutCode = phone.replace(
+      new RegExp(`^${GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC}`),
+      ""
+    );
 
     if (phoneWithoutCode === GUEST_VERIFICATION.TEST_PHONE_NUMBER) {
       updatedGuests[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
@@ -168,9 +94,12 @@ export default function GuestVerification() {
       setGuests(updatedGuests);
 
       setTimeout(() => {
-        setGuests(prev => {
+        setGuests((prev) => {
           const newState = [...prev];
-          newState[index] = { ...newState[index], faceStatus: VERIFICATION_STATUS.VERIFIED };
+          newState[index] = {
+            ...newState[index],
+            faceStatus: VERIFICATION_STATUS.VERIFIED,
+          };
           return newState;
         });
       }, GUEST_VERIFICATION.FACE_PROCESSING_DELAY);
@@ -179,16 +108,23 @@ export default function GuestVerification() {
       setGuests(updatedGuests);
 
       setTimeout(() => {
-        setGuests(prev => {
+        setGuests((prev) => {
           const newState = [...prev];
-          newState[index] = { ...newState[index], aadhaarStatus: VERIFICATION_STATUS.VERIFIED, faceStatus: VERIFICATION_STATUS.PROCESSING };
+          newState[index] = {
+            ...newState[index],
+            aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+            faceStatus: VERIFICATION_STATUS.PROCESSING,
+          };
           return newState;
         });
 
         setTimeout(() => {
-          setGuests(prev => {
+          setGuests((prev) => {
             const newState = [...prev];
-            newState[index] = { ...newState[index], faceStatus: VERIFICATION_STATUS.VERIFIED };
+            newState[index] = {
+              ...newState[index],
+              faceStatus: VERIFICATION_STATUS.VERIFIED,
+            };
             return newState;
           });
         }, GUEST_VERIFICATION.FACE_PROCESSING_DELAY);
@@ -213,6 +149,7 @@ export default function GuestVerification() {
       setShowSuccessModal(false);
       navigate(ROUTES.DASHBOARD);
     }, GUEST_VERIFICATION.SUCCESS_MODAL_DELAY);
+    navigate(ROUTES.TODAYS_BOOKINGS);
   };
 
   const handleCancelVerification = () => {
@@ -227,7 +164,12 @@ export default function GuestVerification() {
   };
 
   const openEditMinorForm = (guestIndex, minorIndex, minor) => {
-    setActiveMinorForm({ guestIndex, minorIndex, name: minor.name, age: minor.age });
+    setActiveMinorForm({
+      guestIndex,
+      minorIndex,
+      name: minor.name,
+      age: minor.age,
+    });
   };
 
   const closeMinorForm = () => {
@@ -235,7 +177,7 @@ export default function GuestVerification() {
   };
 
   const handleMinorInputChange = (field, value) => {
-    setActiveMinorForm(prev => ({ ...prev, [field]: value }));
+    setActiveMinorForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const saveMinor = () => {
@@ -244,18 +186,24 @@ export default function GuestVerification() {
       return;
     }
 
-    setGuests(prev => {
+    setGuests((prev) => {
       const newState = [...prev];
       const gIndex = activeMinorForm.guestIndex;
 
       if (activeMinorForm.minorIndex !== null) {
         const newMinors = [...newState[gIndex].minors];
-        newMinors[activeMinorForm.minorIndex] = { name: activeMinorForm.name, age: activeMinorForm.age };
+        newMinors[activeMinorForm.minorIndex] = {
+          name: activeMinorForm.name,
+          age: activeMinorForm.age,
+        };
         newState[gIndex] = { ...newState[gIndex], minors: newMinors };
       } else {
         newState[gIndex] = {
           ...newState[gIndex],
-          minors: [...newState[gIndex].minors, { name: activeMinorForm.name, age: activeMinorForm.age }]
+          minors: [
+            ...newState[gIndex].minors,
+            { name: activeMinorForm.name, age: activeMinorForm.age },
+          ],
         };
       }
       return newState;
@@ -264,7 +212,7 @@ export default function GuestVerification() {
   };
 
   const removeMinor = (guestIndex, minorIndex) => {
-    setGuests(prev => {
+    setGuests((prev) => {
       const newState = [...prev];
       const newMinors = [...newState[guestIndex].minors];
       newMinors.splice(minorIndex, 1);
@@ -286,16 +234,16 @@ export default function GuestVerification() {
     );
 
   const hasAnyVerified = guests.some(
-    (g) => g.aadhaarStatus === VERIFICATION_STATUS.VERIFIED && g.faceStatus === VERIFICATION_STATUS.VERIFIED
+    (g) =>
+      g.aadhaarStatus === VERIFICATION_STATUS.VERIFIED &&
+      g.faceStatus === VERIFICATION_STATUS.VERIFIED
   );
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-
       {/* Main Content Area - Centered */}
       <div className="w-full max-w-7xl overflow-hidden">
         <div className="rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-
           {/* Header Section */}
           <div className="px-8 py-6 border-b border-gray-100 bg-[#1b3631]">
             <div className="flex justify-between items-center">
@@ -304,12 +252,18 @@ export default function GuestVerification() {
                   {UI_TEXT.GUEST_VERIFICATION_TITLE}
                 </h2>
                 <p className="text-sm text-white">
-                  {UI_TEXT.GUEST_VERIFICATION_BOOKING_ID}: <span className="font-semibold text-white">{bookingId || "VXXXXXX"}</span>
+                  {UI_TEXT.GUEST_VERIFICATION_BOOKING_ID}:{" "}
+                  <span className="font-semibold text-white">
+                    {bookingId || "VXXXXXX"}
+                  </span>
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm bg-blue-50 text-[#1b3631] px-3 py-1.5 rounded-full font-medium">
                 <User size={16} />
-                <span>{adults} {UI_TEXT.TABLE_ADULTS}, {totalMinorsLimit} {UI_TEXT.TABLE_MINORS}</span>
+                <span>
+                  {adults} {UI_TEXT.TABLE_ADULTS}, {totalMinorsLimit}{" "}
+                  {UI_TEXT.TABLE_MINORS}
+                </span>
               </div>
             </div>
           </div>
@@ -319,17 +273,29 @@ export default function GuestVerification() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4 w-16">{UI_TEXT.GUEST_VERIFICATION_SR_NO}</th>
-                  <th className="px-6 py-4 min-w-0 flex-1">{UI_TEXT.GUEST_VERIFICATION_GUEST_INFO}</th>
+                  <th className="px-6 py-4 w-16">
+                    {UI_TEXT.GUEST_VERIFICATION_SR_NO}
+                  </th>
+                  <th className="px-6 py-4 min-w-0 flex-1">
+                    {UI_TEXT.GUEST_VERIFICATION_GUEST_INFO}
+                  </th>
                   {guests.some((g) => g.isVerified) && (
                     <>
-                      <th className="px-6 py-4 w-24">{UI_TEXT.GUEST_VERIFICATION_ID_STATUS}</th>
-                      <th className="px-6 py-4 w-24">{UI_TEXT.GUEST_VERIFICATION_FACE_ID}</th>
-                      <th className="px-6 py-4 w-32">{UI_TEXT.GUEST_VERIFICATION_TIMESTAMP}</th>
+                      <th className="px-6 py-4 w-24">
+                        {UI_TEXT.GUEST_VERIFICATION_ID_STATUS}
+                      </th>
+                      <th className="px-6 py-4 w-24">
+                        {UI_TEXT.GUEST_VERIFICATION_FACE_ID}
+                      </th>
+                      <th className="px-6 py-4 w-32">
+                        {UI_TEXT.GUEST_VERIFICATION_TIMESTAMP}
+                      </th>
                     </>
                   )}
                   {hasAnyVerified && (
-                    <th className="px-6 py-4 w-28">{UI_TEXT.GUEST_VERIFICATION_ACTION}</th>
+                    <th className="px-6 py-4 w-28">
+                      {UI_TEXT.GUEST_VERIFICATION_ACTION}
+                    </th>
                   )}
                 </tr>
               </thead>
@@ -341,7 +307,7 @@ export default function GuestVerification() {
                     valign="top"
                   >
                     <td className="px-6 py-6 font-semibold text-gray-400">
-                      {String(index + 1).padStart(2, '0')}
+                      {String(index + 1).padStart(2, "0")}
                     </td>
 
                     <td className="px-6 py-6 space-y-4">
@@ -354,16 +320,16 @@ export default function GuestVerification() {
                               onChange={(value) =>
                                 handlePhoneNumberChange(index, value)
                               }
-                              placeholder={UI_TEXT.GUEST_VERIFICATION_PHONE_PLACEHOLDER}
+                              placeholder={
+                                UI_TEXT.GUEST_VERIFICATION_PHONE_PLACEHOLDER
+                              }
                               enableSearch={true}
                               countryCodeEditable={false}
                             />
                           </div>
                           <button
                             onClick={() => handleVerifyGuest(index)}
-                            disabled={
-                              !isValidPhoneNumber(guest.phoneNumber)
-                            }
+                            disabled={!isValidPhoneNumber(guest.phoneNumber)}
                             className="px-5 py-2.5 bg-[#1b3631] text-white rounded-lg hover:bg-[#144032] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium whitespace-nowrap shadow-sm hover:shadow-md"
                           >
                             {UI_TEXT.GUEST_VERIFICATION_VERIFY_BUTTON}
@@ -392,19 +358,28 @@ export default function GuestVerification() {
                       {guest.minors.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {guest.minors.map((minor, mIdx) => (
-                            <div key={mIdx} className="flex items-center gap-2 text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100 group/minor">
+                            <div
+                              key={mIdx}
+                              className="flex items-center gap-2 text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100 group/minor"
+                            >
                               <div className="bg-blue-100 p-1 rounded-full">
                                 <User size={12} className="text-[#1b3631]" />
                               </div>
                               <div className="flex flex-col leading-none">
-                                <span className="font-semibold text-xs">{minor.name}</span>
-                                <span className="text-[10px] opacity-70">{minor.age} yrs</span>
+                                <span className="font-semibold text-xs">
+                                  {minor.name}
+                                </span>
+                                <span className="text-[10px] opacity-70">
+                                  {minor.age} yrs
+                                </span>
                               </div>
 
                               {!guest.isVerified && (
                                 <div className="flex gap-1 ml-2 border-l border-blue-200 pl-2">
                                   <button
-                                    onClick={() => openEditMinorForm(index, mIdx, minor)}
+                                    onClick={() =>
+                                      openEditMinorForm(index, mIdx, minor)
+                                    }
                                     className="p-1 hover:bg-blue-100 rounded text-blue-500"
                                     title="Edit"
                                   >
@@ -425,27 +400,47 @@ export default function GuestVerification() {
                       )}
 
                       {(() => {
-                        if (activeMinorForm && activeMinorForm.guestIndex === index) {
+                        if (
+                          activeMinorForm &&
+                          activeMinorForm.guestIndex === index
+                        ) {
                           return (
                             <div className="flex items-center gap-2 mt-2 bg-white p-2 rounded-xl border border-blue-100 shadow-lg shadow-blue-50/50 animate-in fade-in zoom-in-95 duration-200 max-w-md ring-1 ring-[#1b3631]/20">
                               <div className="relative flex-1">
-                                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <User
+                                  size={14}
+                                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
                                 <input
                                   type="text"
-                                  placeholder={UI_TEXT.GUEST_VERIFICATION_CHILD_NAME_PLACEHOLDER}
+                                  placeholder={
+                                    UI_TEXT.GUEST_VERIFICATION_CHILD_NAME_PLACEHOLDER
+                                  }
                                   className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-[#1b3631]/20 text-gray-900 placeholder:text-gray-400"
                                   value={activeMinorForm.name}
-                                  onChange={(e) => handleMinorInputChange("name", e.target.value)}
+                                  onChange={(e) =>
+                                    handleMinorInputChange(
+                                      "name",
+                                      e.target.value
+                                    )
+                                  }
                                   autoFocus
                                 />
                               </div>
                               <div className="relative w-20">
                                 <input
                                   type="number"
-                                  placeholder={UI_TEXT.GUEST_VERIFICATION_AGE_PLACEHOLDER}
+                                  placeholder={
+                                    UI_TEXT.GUEST_VERIFICATION_AGE_PLACEHOLDER
+                                  }
                                   className="w-full px-3 py-2 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-[#1b3631]/20 text-gray-900 text-center"
                                   value={activeMinorForm.age}
-                                  onChange={(e) => handleMinorInputChange("age", e.target.value)}
+                                  onChange={(e) =>
+                                    handleMinorInputChange(
+                                      "age",
+                                      e.target.value
+                                    )
+                                  }
                                 />
                               </div>
                               <button
@@ -464,7 +459,7 @@ export default function GuestVerification() {
                           );
                         }
 
-                        if (!limitReached) {
+                        if (!limitReached && allGuestsFullyVerified) {
                           return (
                             <button
                               onClick={() => openAddMinorForm(index)}
@@ -485,17 +480,21 @@ export default function GuestVerification() {
                     {guest.isVerified && (
                       <>
                         <td className="px-6 py-6" valign="top">
-                          {guest.aadhaarStatus === VERIFICATION_STATUS.PROCESSING ? (
+                          {guest.aadhaarStatus ===
+                          VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                                 <Clock className="w-4 h-4 animate-spin-slow" />
-                                <span className="text-sm font-medium">{UI_TEXT.GUEST_VERIFICATION_PROCESSING}</span>
+                                <span className="text-sm font-medium">
+                                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                                </span>
                               </div>
                               <button className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1">
                                 {UI_TEXT.GUEST_VERIFICATION_RESEND_LINK}
                               </button>
                             </div>
-                          ) : guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? (
+                          ) : guest.aadhaarStatus ===
+                            VERIFICATION_STATUS.VERIFIED ? (
                             <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg w-fit border border-green-100">
                               <CheckCircle className="w-4 h-4" />
                               <span className="text-sm font-medium">
@@ -508,14 +507,18 @@ export default function GuestVerification() {
                         </td>
 
                         <td className="px-6 py-6" valign="top">
-                          {guest.faceStatus === VERIFICATION_STATUS.PROCESSING ? (
+                          {guest.faceStatus ===
+                          VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                                 <Clock className="w-4 h-4 animate-spin-slow" />
-                                <span className="text-sm font-medium">{UI_TEXT.GUEST_VERIFICATION_PROCESSING}</span>
+                                <span className="text-sm font-medium">
+                                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                                </span>
                               </div>
                             </div>
-                          ) : guest.faceStatus === VERIFICATION_STATUS.VERIFIED ? (
+                          ) : guest.faceStatus ===
+                            VERIFICATION_STATUS.VERIFIED ? (
                             <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg w-fit border border-green-100">
                               <CheckCircle className="w-4 h-4" />
                               <span className="text-sm font-medium">
@@ -534,7 +537,7 @@ export default function GuestVerification() {
                         {hasAnyVerified && (
                           <td className="px-6 py-6" valign="top">
                             {guest.aadhaarStatus === "verified" &&
-                              guest.faceStatus === "verified" ? (
+                            guest.faceStatus === "verified" ? (
                               <button
                                 onClick={() => {
                                   setSelectedGuest(guest);
@@ -569,20 +572,20 @@ export default function GuestVerification() {
               onClick={handleConfirmCheckIn}
               disabled={!allGuestsFullyVerified}
               className={`px-8 py-2.5 text-white font-medium rounded-lg shadow-sm transition-all
-                  ${allGuestsFullyVerified
-                  ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
-                  : "bg-gray-300 cursor-not-allowed text-gray-500"
-                }`}
+                  ${
+                    allGuestsFullyVerified
+                      ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
+                      : "bg-gray-300 cursor-not-allowed text-gray-500"
+                  }`}
             >
               {UI_TEXT.GUEST_VERIFICATION_CONFIRM_CHECKIN}
             </button>
           </div>
-
         </div>
       </div>
 
       {/* Success Modal */}
-      <SuccessModal
+      <SuuccessModal
         show={showSuccessModal}
         handleClose={() => setShowSuccessModal(false)}
         message={modalMessage}
