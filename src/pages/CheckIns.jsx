@@ -285,17 +285,7 @@ const Checkin = () => {
                   disabled={isVerifying || formData.ota === "Walk-In"}
                   readOnly={formData.ota === "Walk-In"}
                 />
-                {formData.ota === "Walk-In" && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">
-                    Auto-generated
-                  </div>
-                )}
               </div>
-              {formData.ota === "Walk-In" && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Booking ID will be automatically generated
-                </p>
-              )}
             </div>
           )}
 
