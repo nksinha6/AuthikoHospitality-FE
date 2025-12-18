@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 // Country Code
 export const countryCodes = [
   {
@@ -66,7 +68,7 @@ export const formatPhoneNumber = (value, countryCode) => {
 
 // Generate Walk-in Booking-Id
 export const generateWalkInBookingId = () => {
-  const year = new Date().getFullYear().toString().slice(-2);
+  const year = dayjs().format("YY");
   const randomNum = Math.floor(Math.random() * 999) + 1;
   const paddedNum = String(randomNum).padStart(3, "0");
   return `VVQ${year}${paddedNum}`;
