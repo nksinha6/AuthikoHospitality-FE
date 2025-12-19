@@ -10,6 +10,7 @@ import {
 } from "../constants/config.js";
 import SuuccessModal from "../components/SuccessModal.jsx";
 import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
+import ConfirmationModal from "../components/ConfirmationModal.jsx";
 
 export default function GuestVerification() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function GuestVerification() {
   const [modalMessage, setModalMessage] = useState("");
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Minor Logic State
   const [activeMinorForm, setActiveMinorForm] = useState(null);
@@ -153,9 +155,12 @@ export default function GuestVerification() {
   };
 
   const handleCancelVerification = () => {
-    if (window.confirm(UI_TEXT.GUEST_VERIFICATION_CANCEL_CONFIRM)) {
-      navigate(-1);
-    }
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelVerification = () => {
+    setShowCancelModal(false);
+    navigate(-1);
   };
 
   // Minor Logic
@@ -481,7 +486,7 @@ export default function GuestVerification() {
                       <>
                         <td className="px-6 py-6" valign="top">
                           {guest.aadhaarStatus ===
-                          VERIFICATION_STATUS.PROCESSING ? (
+                            VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                                 <Clock className="w-4 h-4 animate-spin-slow" />
@@ -508,7 +513,7 @@ export default function GuestVerification() {
 
                         <td className="px-6 py-6" valign="top">
                           {guest.faceStatus ===
-                          VERIFICATION_STATUS.PROCESSING ? (
+                            VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                                 <Clock className="w-4 h-4 animate-spin-slow" />
@@ -537,7 +542,7 @@ export default function GuestVerification() {
                         {hasAnyVerified && (
                           <td className="px-6 py-6" valign="top">
                             {guest.aadhaarStatus === "verified" &&
-                            guest.faceStatus === "verified" ? (
+                              guest.faceStatus === "verified" ? (
                               <button
                                 onClick={() => {
                                   setSelectedGuest(guest);
@@ -572,11 +577,10 @@ export default function GuestVerification() {
               onClick={handleConfirmCheckIn}
               disabled={!allGuestsFullyVerified}
               className={`px-8 py-2.5 text-white font-medium rounded-lg shadow-sm transition-all
-                  ${
-                    allGuestsFullyVerified
-                      ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
-                      : "bg-gray-300 cursor-not-allowed text-gray-500"
-                  }`}
+                  ${allGuestsFullyVerified
+                  ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
+                  : "bg-gray-300 cursor-not-allowed text-gray-500"
+                }`}
             >
               {UI_TEXT.GUEST_VERIFICATION_CONFIRM_CHECKIN}
             </button>
@@ -596,6 +600,18 @@ export default function GuestVerification() {
         show={showGuestModal}
         handleClose={() => setShowGuestModal(false)}
         guest={selectedGuest}
+      />
+
+      {/* Cancel Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={confirmCancelVerification}
+        title="Cancel Verification"
+        message={UI_TEXT.GUEST_VERIFICATION_CANCEL_CONFIRM}
+        confirmText="Yes, Cancel"
+        cancelText="No, Keep Verifying"
+        isDanger={true}
       />
     </div>
   );

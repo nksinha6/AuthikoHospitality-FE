@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { countryCodes, formatPhoneNumber } from "../utility/phoneUtils.js";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import { getCurrentDate } from "../utility/dateUtils.js";
+import { GUEST_VERIFICATION } from "../constants/config.js";
 
 const Checkin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ota: "",
     bookingId: "",
-    countryCode: "+91",
+    countryCode: "91", // Default numeric code
     phoneNumber: "",
     adults: 0,
     children: 0,
@@ -40,22 +42,11 @@ const Checkin = () => {
     setShowBookingId(selectedOTA !== "Walk-In");
   };
 
-  const handlePhoneNumberChange = (e) => {
-    const value = e.target.value;
-    const formattedValue = formatPhoneNumber(value, formData.countryCode);
-    setFormData((prev) => ({ ...prev, phoneNumber: formattedValue }));
-  };
-
-  const handleCountryCodeChange = (e) => {
-    const newCountryCode = e.target.value;
-    const formattedNumber = formatPhoneNumber(
-      formData.phoneNumber.replace(/\D/g, ""),
-      newCountryCode
-    );
+  const handlePhoneChange = (value, country) => {
     setFormData((prev) => ({
       ...prev,
-      countryCode: newCountryCode,
-      phoneNumber: formattedNumber,
+      phoneNumber: value.slice(country.dialCode.length),
+      countryCode: country.dialCode,
     }));
   };
 
@@ -73,7 +64,7 @@ const Checkin = () => {
     setFormData({
       ota: "",
       bookingId: "",
-      countryCode: "+91",
+      countryCode: "91",
       phoneNumber: "",
       adults: 0,
       children: 0,
@@ -112,7 +103,7 @@ const Checkin = () => {
       date: getCurrentDate(),
       firstName: formData.ota === "Walk-In" ? "Guest" : "OTA Guest",
       surname: "",
-      phone: formData.countryCode + " " + formData.phoneNumber,
+      phone: formData.countryCode + formData.phoneNumber,
       adults: parseInt(formData.adults) || 0,
       minors: parseInt(formData.children) || 0,
       totalGuests: (parseInt(formData.adults) || 0) + (parseInt(formData.children) || 0),
@@ -126,11 +117,6 @@ const Checkin = () => {
 
     // Navigate to GuestVerification with form data
     navigate("/guest-verification", { state: { formData: guestData } });
-  };
-
-  const getCurrentFlag = () => {
-    const country = countryCodes.find((c) => c.code === formData.countryCode);
-    return country ? country.flag : "🇺🇸";
   };
 
   return (
@@ -211,35 +197,18 @@ const Checkin = () => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Primary Guest Phone Number *
             </label>
-            <div className="flex gap-3">
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                  {getCurrentFlag()}
-                </span>
-                <select
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleCountryCodeChange}
-                  className="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg appearance-none"
-                >
-                  {countryCodes.map(({ code, country, flag }) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
-                  ▼
-                </div>
-              </div>
-              <input
-                type="tel"
-                name="phoneNumber"
+            <div className="w-full">
+              <PhoneInput
+                country={GUEST_VERIFICATION.DEFAULT_COUNTRY_CODE}
+                value={formData.countryCode + formData.phoneNumber}
+                onChange={handlePhoneChange}
+                inputClass="!w-full !h-12 !text-base !pl-12 !border-gray-300 !rounded-lg"
+                buttonClass="!border-gray-300 !rounded-l-lg !bg-white hover:!bg-gray-50"
+                containerClass="!w-full"
+                dropdownClass="!shadow-lg !rounded-lg !border-gray-200"
+                searchClass="!p-2 !border-gray-200"
+                enableSearch={true}
                 placeholder="Enter phone number"
-                value={formData.phoneNumber}
-                onChange={handlePhoneNumberChange}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg"
-                required
               />
             </div>
             {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
