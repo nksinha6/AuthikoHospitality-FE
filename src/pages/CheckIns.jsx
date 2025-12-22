@@ -1,61 +1,23 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import { getCurrentDate } from "../utility/dateUtils.js";
+import { GUEST_VERIFICATION } from "../constants/config.js";
 
 const Checkin = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ota: "",
     bookingId: "",
-    countryCode: "+91",
+    countryCode: "91", // Default numeric code
     phoneNumber: "",
-    adults: "",
-    children: "",
+    adults: 0,
+    children: 0,
   });
 
   const [showBookingId, setShowBookingId] = useState(true);
-
-  const countryCodes = [
-    {
-      code: "+91",
-      country: "India",
-      flag: "🇮🇳",
-      pattern: /^(\d{5})(\d{5})$/,
-      format: "$1-$2",
-    },
-    {
-      code: "+1",
-      country: "US/Canada",
-      flag: "🇺🇸",
-      pattern: /^(\d{3})(\d{3})(\d{4})$/,
-      format: "($1) $2-$3",
-    },
-    {
-      code: "+44",
-      country: "UK",
-      flag: "🇬🇧",
-      pattern: /^(\d{4})(\d{6})$/,
-      format: "$1 $2",
-    },
-    {
-      code: "+61",
-      country: "Australia",
-      flag: "🇦🇺",
-      pattern: /^(\d{4})(\d{3})(\d{3})$/,
-      format: "$1 $2 $3",
-    },
-    {
-      code: "+971",
-      country: "UAE",
-      flag: "🇦🇪",
-      pattern: /^(\d{2})(\d{3})(\d{4})$/,
-      format: "$1 $2 $3",
-    },
-    {
-      code: "+65",
-      country: "Singapore",
-      flag: "🇸🇬",
-      pattern: /^(\d{4})(\d{4})$/,
-      format: "$1 $2",
-    },
-  ];
+  const [errors, setErrors] = useState({});
 
   const otaOptions = [
     "Booking.com",
@@ -70,12 +32,6 @@ const Checkin = () => {
     "Walk-In",
   ];
 
-  const getCurrentDate = () => {
-    const today = new Date();
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return today.toLocaleDateString("en-US", options);
-  };
-
   const handleOTASelection = (e) => {
     const selectedOTA = e.target.value;
     setFormData((prev) => ({
@@ -86,36 +42,11 @@ const Checkin = () => {
     setShowBookingId(selectedOTA !== "Walk-In");
   };
 
-  const formatPhoneNumber = (value, countryCode) => {
-    if (!value) return "";
-    const country = countryCodes.find((c) => c.code === countryCode);
-    if (!country) return value;
-    const digits = value.replace(/\D/g, "");
-    if (country.pattern) {
-      const match = digits.match(country.pattern);
-      if (match) {
-        return country.format.replace(/\$(\d+)/g, (_, index) => match[index]);
-      }
-    }
-    return digits;
-  };
-
-  const handlePhoneNumberChange = (e) => {
-    const value = e.target.value;
-    const formattedValue = formatPhoneNumber(value, formData.countryCode);
-    setFormData((prev) => ({ ...prev, phoneNumber: formattedValue }));
-  };
-
-  const handleCountryCodeChange = (e) => {
-    const newCountryCode = e.target.value;
-    const formattedNumber = formatPhoneNumber(
-      formData.phoneNumber.replace(/\D/g, ""),
-      newCountryCode
-    );
+  const handlePhoneChange = (value, country) => {
     setFormData((prev) => ({
       ...prev,
-      countryCode: newCountryCode,
-      phoneNumber: formattedNumber,
+      phoneNumber: value.slice(country.dialCode.length),
+      countryCode: country.dialCode,
     }));
   };
 
@@ -123,7 +54,7 @@ const Checkin = () => {
     const { name, value } = e.target;
     if (name === "adults" || name === "children") {
       const numValue = parseInt(value) || 0;
-      setFormData((prev) => ({ ...prev, [name]: numValue < 0 ? "" : value }));
+      setFormData((prev) => ({ ...prev, [name]: numValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -133,42 +64,59 @@ const Checkin = () => {
     setFormData({
       ota: "",
       bookingId: "",
-      countryCode: "+91",
+      countryCode: "91",
       phoneNumber: "",
-      adults: "",
-      children: "",
+      adults: 0,
+      children: 0,
     });
     setShowBookingId(true);
+    setErrors({});
   };
 
   const handleReview = () => {
+    setErrors({});
+    let newErrors = {};
+
     if (!formData.ota) {
-      alert("Please select an OTA platform");
-      return;
+      newErrors.ota = "Please select an OTA platform";
     }
     if (showBookingId && !formData.bookingId.trim()) {
-      alert("Please enter booking ID");
-      return;
+      newErrors.bookingId = "Please enter booking ID";
     }
     if (!formData.phoneNumber.trim()) {
-      alert("Please enter phone number");
-      return;
+      newErrors.phoneNumber = "Please enter phone number";
     }
-    if (!formData.adults || parseInt(formData.adults) < 1) {
-      alert("Please enter at least one adult");
-      return;
+    if (!formData.adults || formData.adults < 1) {
+      newErrors.adults = "Please enter at least one adult";
     }
-    const childrenValue = parseInt(formData.children) || 0;
-    if (childrenValue < 0) {
-      alert("Number of minors cannot be negative");
-      return;
+    if (formData.children < 0) {
+      newErrors.children = "Number of minors cannot be negative";
     }
-    console.log("Review booking information:", formData);
-  };
 
-  const getCurrentFlag = () => {
-    const country = countryCodes.find((c) => c.code === formData.countryCode);
-    return country ? country.flag : "🇺🇸";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Prepare data for GuestVerification
+    const guestData = {
+      date: getCurrentDate(),
+      firstName: formData.ota === "Walk-In" ? "Guest" : "OTA Guest",
+      surname: "",
+      phone: formData.countryCode + formData.phoneNumber,
+      adults: parseInt(formData.adults) || 0,
+      minors: parseInt(formData.children) || 0,
+      totalGuests: (parseInt(formData.adults) || 0) + (parseInt(formData.children) || 0),
+      bookingId: formData.bookingId || `WALKIN-${Date.now().toString().slice(-6)}`,
+      ota: formData.ota,
+      primaryGuest: {
+        countryCode: formData.countryCode,
+        phoneNumber: formData.phoneNumber
+      }
+    };
+
+    // Navigate to GuestVerification with form data
+    navigate("/guest-verification", { state: { formData: guestData } });
   };
 
   return (
@@ -218,6 +166,7 @@ const Checkin = () => {
                 ▼
               </div>
             </div>
+            {errors.ota && <p className="text-red-500 text-sm mt-1">{errors.ota}</p>}
           </div>
 
           {/* Booking ID */}
@@ -239,6 +188,7 @@ const Checkin = () => {
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg"
                 />
               </div>
+              {errors.bookingId && <p className="text-red-500 text-sm mt-1">{errors.bookingId}</p>}
             </div>
           )}
 
@@ -247,37 +197,21 @@ const Checkin = () => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Primary Guest Phone Number *
             </label>
-            <div className="flex gap-3">
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                  {getCurrentFlag()}
-                </span>
-                <select
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleCountryCodeChange}
-                  className="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg appearance-none"
-                >
-                  {countryCodes.map(({ code, country, flag }) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
-                  ▼
-                </div>
-              </div>
-              <input
-                type="tel"
-                name="phoneNumber"
+            <div className="w-full">
+              <PhoneInput
+                country={GUEST_VERIFICATION.DEFAULT_COUNTRY_CODE}
+                value={formData.countryCode + formData.phoneNumber}
+                onChange={handlePhoneChange}
+                inputClass="!w-full !h-12 !text-base !pl-12 !border-gray-300 !rounded-lg"
+                buttonClass="!border-gray-300 !rounded-l-lg !bg-white hover:!bg-gray-50"
+                containerClass="!w-full"
+                dropdownClass="!shadow-lg !rounded-lg !border-gray-200"
+                searchClass="!p-2 !border-gray-200"
+                enableSearch={true}
                 placeholder="Enter phone number"
-                value={formData.phoneNumber}
-                onChange={handlePhoneNumberChange}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg"
-                required
               />
             </div>
+            {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
           </div>
 
           {/* Guest Count */}
@@ -298,6 +232,7 @@ const Checkin = () => {
                   required
                 />
                 <p className="text-sm text-gray-500 mt-1">Age 18+</p>
+                {errors.adults && <p className="text-red-500 text-sm mt-1">{errors.adults}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -313,6 +248,7 @@ const Checkin = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 />
                 <p className="text-sm text-gray-500 mt-1">Under 18 years</p>
+                {errors.children && <p className="text-red-500 text-sm mt-1">{errors.children}</p>}
               </div>
             </div>
           </div>
