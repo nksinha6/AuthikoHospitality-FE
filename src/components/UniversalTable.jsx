@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import PropTypes from "prop-types";
-import "./UniversalTable.css";
 
 const UniversalTable = memo(
   ({
@@ -11,35 +10,44 @@ const UniversalTable = memo(
     emptyMessage = "No data found.",
   }) => {
     return (
-      <div className="table-wrapper">
-        <table className="universal-table" role="table">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
-            <tr role="row">
+            <tr className="border-t border-b border-gray-200/65">
               {columns.map((col) => (
-                <th key={col.key} role="columnheader">
+                <th
+                  key={col.key}
+                  className="px-2 py-3 text-left font-bold text-xs text-gray-600 tracking-wider"
+                >
                   {col.label}
                 </th>
               ))}
-              {actions && <th role="columnheader">Actions</th>}
+              {actions && (
+                <th className="px-2 py-3 text-left font-bold text-xs text-gray-600 tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
 
           <tbody>
             {data.length === 0 ? (
-              <tr role="row">
+              <tr>
                 <td
                   colSpan={columns.length + (actions ? 1 : 0)}
-                  className="empty-row"
-                  role="cell"
+                  className="px-2 py-8 text-center text-gray-500"
                 >
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               data.map((row, i) => {
-                const rowKey = row.id || row.bookingId || i;
+                const rowKey = row.id ?? row.bookingId ?? i;
                 return (
-                  <tr key={rowKey} role="row">
+                  <tr
+                    key={rowKey}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
                     {columns.map((col) => {
                       const rawValue = row[col.key];
                       const formatter = format[col.key];
@@ -57,13 +65,20 @@ const UniversalTable = memo(
                       }
 
                       return (
-                        <td key={col.key} role="cell">
+                        <td
+                          key={col.key}
+                          className="px-2 py-3 text-sm text-gray-900"
+                        >
                           {cellValue}
                         </td>
                       );
                     })}
 
-                    {actions && <td role="cell">{actions(row)}</td>}
+                    {actions && (
+                      <td className="px-2 py-3 text-sm text-gray-900">
+                        {actions(row)}
+                      </td>
+                    )}
                   </tr>
                 );
               })
@@ -86,14 +101,6 @@ UniversalTable.propTypes = {
   format: PropTypes.objectOf(PropTypes.func),
   actions: PropTypes.func,
   emptyMessage: PropTypes.string,
-};
-
-UniversalTable.defaultProps = {
-  columns: [],
-  data: [],
-  format: {},
-  actions: null,
-  emptyMessage: "No data found.",
 };
 
 UniversalTable.displayName = "UniversalTable";

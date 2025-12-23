@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const clearAuthData = () => {
+    setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       // Remove auth data from both storages to be safe
       localStorage.removeItem(STORAGE_KEYS.AUTH);
@@ -80,7 +81,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({ isAuthenticated, loading, login, logout }),
-    [isAuthenticated, loading],
+    [isAuthenticated, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -93,4 +94,3 @@ export function useAuth() {
   }
   return context;
 }
-
