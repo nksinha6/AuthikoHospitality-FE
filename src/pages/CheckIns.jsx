@@ -1,9 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { getCurrentDate } from "../utility/dateUtils.js";
 import { GUEST_VERIFICATION } from "../constants/config.js";
+import { verificationService } from "../services/verificationService";
+import dayjs from "dayjs";
+import {
+  generateWalkInBookingId,
+  shouldRequireBookingId,
+} from "../utility/checkInUtils"; // Adjust the import path to your utils file
+
+import { OTA_OPTIONS } from "../constants/ui";
 
 const Checkin = () => {
   const navigate = useNavigate();
@@ -17,20 +24,32 @@ const Checkin = () => {
   });
 
   const [showBookingId, setShowBookingId] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [processedBookingIds, setProcessedBookingIds] = useState(new Set());
   const [errors, setErrors] = useState({});
 
-  const otaOptions = [
-    "Booking.com",
-    "Airbnb",
-    "Expedia",
-    "Hotels.com",
-    "Agoda",
-    "Vrbo",
-    "Tripadvisor",
-    "MakeMyTrip",
-    "Goibibo",
-    "Walk-In",
-  ];
+  const otaOptions = Object.values(OTA_OPTIONS);
+
+  useEffect(() => {
+    const storedIds =
+      JSON.parse(localStorage.getItem("processedBookingIds")) || [];
+    setProcessedBookingIds(new Set(storedIds));
+  }, []);
+
+  const addProcessedBookingId = (bookingId) => {
+    setProcessedBookingIds((prev) => {
+      const updatedSet = new Set([...prev, bookingId]);
+      localStorage.setItem(
+        "processedBookingIds",
+        JSON.stringify([...updatedSet])
+      );
+      return updatedSet;
+    });
+  };
+
+  const getCurrentDate = () => {
+    return dayjs().format("DD MMM YY"); // "01 Jan 24"
+  };
 
   const handleOTASelection = (e) => {
     const selectedOTA = e.target.value;
@@ -43,10 +62,19 @@ const Checkin = () => {
   };
 
   const handlePhoneChange = (value, country) => {
+    const dialCode = country?.dialCode || "";
+    const phoneNumber = value.slice(dialCode.length);
+
     setFormData((prev) => ({
       ...prev,
-      phoneNumber: value.slice(country.dialCode.length),
-      countryCode: country.dialCode,
+      countryCode: dialCode,
+      phoneNumber,
+    }));
+
+    // clear phone error once user types
+    setErrors((prev) => ({
+      ...prev,
+      phoneNumber: "",
     }));
   };
 
@@ -73,23 +101,36 @@ const Checkin = () => {
     setErrors({});
   };
 
-  const handleReview = () => {
+  const handleReview = async () => {
     setErrors({});
     let newErrors = {};
+    // Add duplicate submission prevention
+    if (isVerifying) {
+      console.log("Already verifying, please wait");
+      return;
+    }
 
     if (!formData.ota) {
       newErrors.ota = "Please select an OTA platform";
     }
-    if (showBookingId && !formData.bookingId.trim()) {
+
+    if (
+      showBookingId &&
+      !shouldRequireBookingId(formData.bookingId, formData.ota)
+    ) {
       newErrors.bookingId = "Please enter booking ID";
     }
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = "Please enter phone number";
+
+    if (!formData.phoneNumber || formData.phoneNumber.length < 10) {
+      newErrors.phoneNumber = "Please enter a valid phone number";
     }
-    if (!formData.adults || formData.adults < 1) {
+
+    if (!formData.adults || parseInt(formData.adults) < 1) {
       newErrors.adults = "Please enter at least one adult";
     }
-    if (formData.children < 0) {
+
+    const childrenValue = parseInt(formData.children) || 0;
+    if (childrenValue < 0) {
       newErrors.children = "Number of minors cannot be negative";
     }
 
@@ -98,25 +139,91 @@ const Checkin = () => {
       return;
     }
 
-    // Prepare data for GuestVerification
-    const guestData = {
-      date: getCurrentDate(),
-      firstName: formData.ota === "Walk-In" ? "Guest" : "OTA Guest",
-      surname: "",
-      phone: formData.countryCode + formData.phoneNumber,
-      adults: parseInt(formData.adults) || 0,
-      minors: parseInt(formData.children) || 0,
-      totalGuests: (parseInt(formData.adults) || 0) + (parseInt(formData.children) || 0),
-      bookingId: formData.bookingId || `WALKIN-${Date.now().toString().slice(-6)}`,
-      ota: formData.ota,
-      primaryGuest: {
-        countryCode: formData.countryCode,
-        phoneNumber: formData.phoneNumber
-      }
-    };
+    // Determine booking ID based on OTA selection
+    let bookingIdToUse = formData.bookingId;
+    let updatedFormData = { ...formData };
 
-    // Navigate to GuestVerification with form data
-    navigate("/guest-verification", { state: { formData: guestData } });
+    if (formData.ota === "Walk-In") {
+      try {
+        bookingIdToUse = generateWalkInBookingId();
+        console.log("Generated Walk-In Booking ID:", bookingIdToUse);
+
+        updatedFormData = {
+          ...formData,
+          bookingId: bookingIdToUse,
+        };
+        setFormData(updatedFormData);
+      } catch (error) {
+        console.error("Walk-In ID generation error:", error);
+        newErrors.general = "Failed to generate booking ID";
+        setErrors(newErrors);
+        return;
+      }
+    } else {
+      bookingIdToUse = formData.bookingId;
+    }
+
+    // Check if this booking ID has already been processed
+    if (processedBookingIds.has(bookingIdToUse)) {
+      console.log(`Booking ID ${bookingIdToUse} already processed. Skipping.`);
+      newErrors.general = "This booking has already been verified";
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      console.log(`Calling API with Booking ID: ${bookingIdToUse}`);
+
+      // Add timeout protection (10 seconds)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Request timed out. Please try again.")),
+          10000
+        )
+      );
+
+      const response = await Promise.race([
+        verificationService.beginVerification(bookingIdToUse),
+        timeoutPromise,
+      ]);
+
+      // Basic response validation
+      if (!response || response.error) {
+        throw new Error(
+          response?.error?.message || "Verification service error"
+        );
+      }
+
+      addProcessedBookingId(bookingIdToUse);
+      console.log("Verification successful:", response);
+      console.log("Form Data submitted:", {
+        ...formData,
+        bookingId: bookingIdToUse,
+      });
+
+      navigate("/guest-verification", {
+        state: {
+          formData: {
+            ...updatedFormData,
+            bookingId: bookingIdToUse, // Ensure latest booking ID
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Verification failed:", error.message);
+
+      // Better error messages
+      const userMessage = error.message.includes("timeout")
+        ? "Request took too long. Please check connection and try again."
+        : error.message.includes("network") || error.message.includes("Network")
+        ? "Network error. Please check internet connection."
+        : `Verification failed: ${error.message}`;
+
+      setErrors(userMessage);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   return (
@@ -154,6 +261,7 @@ const Checkin = () => {
                 value={formData.ota}
                 onChange={handleOTASelection}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none"
+                disabled={isVerifying}
               >
                 <option value="">Select OTA platform</option>
                 {otaOptions.map((ota) => (
@@ -166,7 +274,9 @@ const Checkin = () => {
                 ▼
               </div>
             </div>
-            {errors.ota && <p className="text-red-500 text-sm mt-1">{errors.ota}</p>}
+            {errors.ota && (
+              <p className="text-red-500 text-sm mt-1">{errors.ota}</p>
+            )}
           </div>
 
           {/* Booking ID */}
@@ -186,9 +296,13 @@ const Checkin = () => {
                   value={formData.bookingId}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg"
+                  disabled={isVerifying || formData.ota === "Walk-In"}
+                  readOnly={formData.ota === "Walk-In"}
                 />
               </div>
-              {errors.bookingId && <p className="text-red-500 text-sm mt-1">{errors.bookingId}</p>}
+              {errors.bookingId && (
+                <p className="text-red-500 text-sm mt-1">{errors.bookingId}</p>
+              )}
             </div>
           )}
 
@@ -211,7 +325,9 @@ const Checkin = () => {
                 placeholder="Enter phone number"
               />
             </div>
-            {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
+            {errors.phoneNumber && (
+              <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
+            )}
           </div>
 
           {/* Guest Count */}
@@ -230,9 +346,12 @@ const Checkin = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                   required
+                  disabled={isVerifying}
                 />
                 <p className="text-sm text-gray-500 mt-1">Age 18+</p>
-                {errors.adults && <p className="text-red-500 text-sm mt-1">{errors.adults}</p>}
+                {errors.adults && (
+                  <p className="text-red-500 text-sm mt-1">{errors.adults}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -246,9 +365,12 @@ const Checkin = () => {
                   value={formData.children}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                  disabled={isVerifying}
                 />
                 <p className="text-sm text-gray-500 mt-1">Under 18 years</p>
-                {errors.children && <p className="text-red-500 text-sm mt-1">{errors.children}</p>}
+                {errors.children && (
+                  <p className="text-red-500 text-sm mt-1">{errors.children}</p>
+                )}
               </div>
             </div>
           </div>
@@ -257,15 +379,24 @@ const Checkin = () => {
           <div className="flex gap-3">
             <button
               onClick={handleCancel}
-              className="flex-1 px-6 py-3 border! border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer"
+              className="flex-1 px-6 py-3 border! border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isVerifying}
             >
               Cancel
             </button>
             <button
               onClick={handleReview}
-              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer"
+              disabled={isVerifying}
+              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Start Verification
+              {isVerifying ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Verifying...
+                </>
+              ) : (
+                "Start Verification"
+              )}
             </button>
           </div>
         </div>

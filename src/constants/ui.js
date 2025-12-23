@@ -175,3 +175,17 @@ export const DATE_CONDITIONS = {
   LAST: "is in the last",
   EQUAL: "is equal to",
 };
+
+// Booking OTA
+export const OTA_OPTIONS = {
+  BOOKING_COM: "Booking.com",
+  AIRBNB: "Airbnb",
+  EXPEDIA: "Expedia",
+  HOTELS_COM: "Hotels.com",
+  AGODA: "Agoda",
+  VRBO: "Vrbo",
+  TRIPADVISOR: "Tripadvisor",
+  MAKE_MY_TRIP: "MakeMyTrip",
+  GOIBIBO: "Goibibo",
+  WALK_IN: "Walk-In",
+};
