@@ -1,4 +1,4 @@
-import apiClient from "./ApiClient.js";
+import apiClient from "./apiClient.js";
 import { API_ENDPOINTS } from "../constants/config.js";
 
 /**
@@ -17,20 +17,28 @@ export const verificationService = {
         null,
         {
           params: { bookingId },
-          headers: {
-            "Content-Type": "application/json",
-          },
+          timeout: 10000,
         }
       );
 
       return response.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Verification failed. Please try again.";
+      const status = error.response?.status;
 
-      throw new Error(errorMessage);
+      if (status === 409) {
+        throw { code: "ALREADY_VERIFIED", message: "Already verified" };
+      }
+
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Verification failed. Please try again.",
+      };
     }
   },
 };

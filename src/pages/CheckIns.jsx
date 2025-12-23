@@ -7,7 +7,7 @@ import { verificationService } from "../services/verificationService";
 import dayjs from "dayjs";
 import {
   generateWalkInBookingId,
-  isValidBookingId,
+  shouldRequireBookingId,
 } from "../utility/checkInUtils"; // Adjust the import path to your utils file
 
 import { OTA_OPTIONS } from "../constants/ui";
@@ -114,7 +114,10 @@ const Checkin = () => {
       newErrors.ota = "Please select an OTA platform";
     }
 
-    if (showBookingId && !isValidBookingId(formData.bookingId, formData.ota)) {
+    if (
+      showBookingId &&
+      !shouldRequireBookingId(formData.bookingId, formData.ota)
+    ) {
       newErrors.bookingId = "Please enter booking ID";
     }
 
@@ -151,8 +154,9 @@ const Checkin = () => {
         };
         setFormData(updatedFormData);
       } catch (error) {
-        alert("Failed to generate booking ID");
         console.error("Walk-In ID generation error:", error);
+        newErrors.general = "Failed to generate booking ID";
+        setErrors(newErrors);
         return;
       }
     } else {
@@ -162,7 +166,8 @@ const Checkin = () => {
     // Check if this booking ID has already been processed
     if (processedBookingIds.has(bookingIdToUse)) {
       console.log(`Booking ID ${bookingIdToUse} already processed. Skipping.`);
-      alert("This booking has already been verified");
+      newErrors.general = "This booking has already been verified";
+      setErrors(newErrors);
       return;
     }
 
@@ -205,9 +210,6 @@ const Checkin = () => {
           },
         },
       });
-
-      // Optional success feedback
-      // alert(`Verification started for booking: ${bookingIdToUse}`);
     } catch (error) {
       console.error("Verification failed:", error.message);
 
@@ -218,7 +220,7 @@ const Checkin = () => {
         ? "Network error. Please check internet connection."
         : `Verification failed: ${error.message}`;
 
-      alert(userMessage);
+      setErrors(userMessage);
     } finally {
       setIsVerifying(false);
     }

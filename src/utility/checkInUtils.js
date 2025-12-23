@@ -9,7 +9,7 @@ export const generateWalkInBookingId = () => {
 };
 
 // Valid Booking-Id
-export const isValidBookingId = (bookingId, ota) => {
+export const shouldRequireBookingId = (bookingId, ota) => {
   if (ota === "Walk-In") return true;
   return bookingId && bookingId.trim().length > 0;
 };
