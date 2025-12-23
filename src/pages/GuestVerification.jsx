@@ -275,13 +275,13 @@ export default function GuestVerification() {
 
           {/* Guest Verification Table */}
           <div className="overflow-hidden">
-            <table className="w-full text-sm text-left">
+            <table className="w-full text-sm text-left table-fixed">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-4 w-16">
                     {UI_TEXT.GUEST_VERIFICATION_SR_NO}
                   </th>
-                  <th className="px-6 py-4 min-w-0 flex-1">
+                  <th className="px-6 py-4 w-80">
                     {UI_TEXT.GUEST_VERIFICATION_GUEST_INFO}
                   </th>
                   {guests.some((g) => g.isVerified) && (
@@ -315,7 +315,7 @@ export default function GuestVerification() {
                       {String(index + 1).padStart(2, "0")}
                     </td>
 
-                    <td className="px-6 py-6 space-y-4">
+                    <td className="px-6 py-6 space-y-4 overflow-hidden">
                       {!guest.isVerified ? (
                         <div className="flex items-center gap-3 relative">
                           <div className="flex-1">
