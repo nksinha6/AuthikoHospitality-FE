@@ -1,3 +1,4 @@
+import apiClient from "./apiClient.js";
 /**
  * Service for check-in related API calls
  */

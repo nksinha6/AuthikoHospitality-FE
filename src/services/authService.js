@@ -1,4 +1,4 @@
-import apiClient from "./ApiClient.js";
+import apiClient from "./apiClient.js";
 import { API_ENDPOINTS, TENANT_ID } from "../constants/config.js";
 
 /**
