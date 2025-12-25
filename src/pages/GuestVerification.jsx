@@ -20,9 +20,10 @@ export default function GuestVerification() {
   const formData = location.state?.formData || {};
   const {
     adults = 0,
-    minors: totalMinorsLimit = 0,
+    children = 0, // Changed from minors to children to match checkin screen
     bookingId,
-    primaryGuest,
+    countryCode = "91",
+    phoneNumber = "",
   } = formData;
 
   const [guests, setGuests] = useState([]);
@@ -42,14 +43,14 @@ export default function GuestVerification() {
 
   // Initialize guest list
   useEffect(() => {
-    if (adults) {
+    if (adults > 0) {
       const initialGuests = Array.from({ length: adults }, (_, index) => {
-        if (index === 0 && primaryGuest) {
+        // First guest gets the phone number from checkin
+        if (index === 0 && phoneNumber) {
+          // Combine country code and phone number
+          const fullPhoneNumber = countryCode + phoneNumber;
           return {
-            phoneNumber:
-              (primaryGuest.countryCode ||
-                GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC) +
-              (primaryGuest.phoneNumber || ""),
+            phoneNumber: fullPhoneNumber,
             isVerified: false,
             aadhaarStatus: VERIFICATION_STATUS.PENDING,
             faceStatus: VERIFICATION_STATUS.PENDING,
@@ -68,7 +69,7 @@ export default function GuestVerification() {
       });
       setGuests(initialGuests);
     }
-  }, [adults, primaryGuest]);
+  }, [adults, phoneNumber, countryCode]);
 
   // Cleanup polling intervals on unmount
   useEffect(() => {
@@ -281,9 +282,8 @@ export default function GuestVerification() {
     setModalMessage(UI_TEXT.GUEST_VERIFICATION_SUCCESS_MESSAGE);
     setTimeout(() => {
       setShowSuccessModal(false);
-      navigate(ROUTES.DASHBOARD);
+      navigate(ROUTES.TODAYS_BOOKINGS);
     }, GUEST_VERIFICATION.SUCCESS_MODAL_DELAY);
-    navigate(ROUTES.TODAYS_BOOKINGS);
   };
 
   const handleCancelVerification = () => {
@@ -323,6 +323,12 @@ export default function GuestVerification() {
       return;
     }
 
+    const age = parseInt(activeMinorForm.age);
+    if (age < 0 || age > 17) {
+      alert("Minor age must be between 0 and 17 years.");
+      return;
+    }
+
     setGuests((prev) => {
       const newState = [...prev];
       const gIndex = activeMinorForm.guestIndex;
@@ -359,7 +365,8 @@ export default function GuestVerification() {
   };
 
   const totalAddedMinors = guests.reduce((sum, g) => sum + g.minors.length, 0);
-  const limitReached = totalAddedMinors >= totalMinorsLimit;
+  const minorsLimit = parseInt(children) || 0;
+  const limitReached = totalAddedMinors >= minorsLimit;
 
   const allGuestsFullyVerified =
     guests.length > 0 &&
@@ -398,7 +405,7 @@ export default function GuestVerification() {
               <div className="flex items-center gap-2 text-sm bg-blue-50 text-[#1b3631] px-3 py-1.5 rounded-full font-medium">
                 <User size={16} />
                 <span>
-                  {adults} {UI_TEXT.TABLE_ADULTS}, {totalMinorsLimit}{" "}
+                  {adults} {UI_TEXT.TABLE_ADULTS}, {minorsLimit}{" "}
                   {UI_TEXT.TABLE_MINORS}
                 </span>
               </div>
@@ -578,6 +585,8 @@ export default function GuestVerification() {
                                       e.target.value
                                     )
                                   }
+                                  min="0"
+                                  max="17"
                                 />
                               </div>
                               <button

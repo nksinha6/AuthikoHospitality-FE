@@ -198,7 +198,7 @@ const Checkin = () => {
       addProcessedBookingId(bookingIdToUse);
       console.log("Verification successful:", response);
       console.log("Form Data submitted:", {
-        ...formData,
+        ...updatedFormData,
         bookingId: bookingIdToUse,
       });
 
@@ -207,6 +207,11 @@ const Checkin = () => {
           formData: {
             ...updatedFormData,
             bookingId: bookingIdToUse, // Ensure latest booking ID
+            // Pass phone data for the primary guest
+            countryCode: formData.countryCode,
+            phoneNumber: formData.phoneNumber,
+            adults: parseInt(formData.adults),
+            children: parseInt(formData.children),
           },
         },
       });
