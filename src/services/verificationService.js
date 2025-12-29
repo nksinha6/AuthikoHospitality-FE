@@ -41,4 +41,75 @@ export const verificationService = {
       };
     }
   },
+
+  /**
+   * Ensure verification for a guest by phone number
+   * @param {string} phoneCountryCode - The country code of the phone number
+   * @param {string} phoneno - The phone number
+   * @returns {Promise<Object>} Response containing verification status
+   */
+  async ensureVerification(phoneCountryCode, phoneno) {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.ENSURE_VERIFICATION,
+        {
+          params: { phoneCountryCode, phoneno },
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      const status = error.response?.status;
+
+      if (status === 404) {
+        throw { code: "USER_NOT_FOUND", message: "User not found" };
+      }
+
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Verification check failed. Please try again.",
+      };
+    }
+  },
+
+  /**
+   * Get guest details by phone number
+   * @param {string} phoneCountryCode - The country code of the phone number
+   * @param {string} phoneno - The phone number
+   * @returns {Promise<Object>} Response containing guest details
+   */
+  async getGuestById(phoneCountryCode, phoneno) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.GET_GUEST_BY_ID, {
+        params: { phoneCountryCode, phoneno },
+        timeout: 10000,
+      });
+
+      return response.data;
+    } catch (error) {
+      const status = error.response?.status;
+
+      if (status === 404) {
+        throw { code: "USER_NOT_FOUND", message: "User not found" };
+      }
+
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Failed to get guest details. Please try again.",
+      };
+    }
+  },
 };
