@@ -112,4 +112,39 @@ export const verificationService = {
       };
     }
   },
+  /**
+   * Initiate face match process for a guest
+   * @param {string} bookingId - The booking ID
+   * @param {string} phoneCountryCode - The country code of the phone number
+   * @param {string} phoneNumber - The phone number
+   * @returns {Promise<Object>} Response indicating initiation status
+   */
+  async initiateFaceMatch(bookingId, phoneCountryCode, phoneNumber) {
+    try {
+      // POST request as per requirement (Fire & Forget nature handled by caller, but we await response for success signal)
+      const response = await apiClient.post(
+        API_ENDPOINTS.INITIATE_FACE_MATCH,
+        {
+          bookingId,
+          phoneCountryCode,
+          phoneNumber,
+        },
+        {
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Failed to initiate face match. Please try again.",
+      };
+    }
+  },
 };

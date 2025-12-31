@@ -33,6 +33,7 @@ export default function GuestVerification() {
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [manualVerificationGuestIndex, setManualVerificationGuestIndex] = useState(null);
+  const [showForceVerifyModal, setShowForceVerifyModal] = useState(false);
 
   // Polling and retry state
   const [pollingIntervals, setPollingIntervals] = useState({});
@@ -122,11 +123,11 @@ export default function GuestVerification() {
         setGuests(prev => {
           const newState = [...prev];
           newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-          newState[index].faceStatus = VERIFICATION_STATUS.PROCESSING;
+          // Face status remains pending until manually initiated
+          newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
           return newState;
         });
-        // Start polling for face match status
-        startFaceMatchPolling(index, phoneCountryCode, phoneno);
+        // Stop polling for face match status (Wait for manual trigger)
       } else {
         // Case 2: No verified user - start polling for ID verification
         startIdVerificationWithDelay(index, phoneCountryCode, phoneno);
@@ -169,11 +170,12 @@ export default function GuestVerification() {
           setGuests(prev => {
             const newState = [...prev];
             newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            newState[index].faceStatus = VERIFICATION_STATUS.PROCESSING;
+            // Face status remains pending until manually initiated
+            newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
             return newState;
           });
-          // Start face match polling
-          startFaceMatchPolling(index, phoneCountryCode, phoneno);
+          // Stop auto-polling for face match
+          // startFaceMatchPolling(index, phoneCountryCode, phoneno);
           // Clear polling interval
           clearInterval(pollingIntervals[index]);
           setPollingIntervals(prev => {
@@ -299,6 +301,35 @@ export default function GuestVerification() {
     handleVerifyGuest(index);
   };
 
+  const handleInitiateFaceMatch = async (index) => {
+    const guest = guests[index];
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneno = guest.phoneNumber.replace(new RegExp(`^${phoneCountryCode}`), "");
+
+    // Update status to processing
+    setGuests(prev => {
+      const newState = [...prev];
+      newState[index].faceStatus = VERIFICATION_STATUS.PROCESSING;
+      return newState;
+    });
+
+    try {
+      // Fire & Forget call (we await only for checking successful dispatch)
+      await verificationService.initiateFaceMatch(bookingId, phoneCountryCode, phoneno);
+
+      // Start polling
+      startFaceMatchPolling(index, phoneCountryCode, phoneno);
+    } catch (error) {
+      // Revert status on failure to initiate
+      setGuests(prev => {
+        const newState = [...prev];
+        newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+        return newState;
+      });
+      alert(error.message || "Failed to initiate face match.");
+    }
+  };
+
   const handleManualVerification = async () => {
     const index = manualVerificationGuestIndex;
     const guest = guests[index];
@@ -307,32 +338,41 @@ export default function GuestVerification() {
 
     try {
       const guestResponse = await verificationService.getGuestById(phoneCountryCode, phoneno);
-      setGuests(prev => {
-        const newState = [...prev];
-        newState[index].aadhaarStatus = guestResponse.aadhaar_verified
-          ? VERIFICATION_STATUS.VERIFIED
-          : VERIFICATION_STATUS.PENDING;
-        newState[index].faceStatus = guestResponse.face_verified
-          ? VERIFICATION_STATUS.VERIFIED
-          : guestResponse.aadhaar_verified
-          ? VERIFICATION_STATUS.PROCESSING
-          : VERIFICATION_STATUS.PENDING;
-        return newState;
-      });
 
-      // If aadhaar is verified but face is not, start face polling
-      if (guestResponse.aadhaar_verified && !guestResponse.face_verified) {
-        startFaceMatchPolling(index, phoneCountryCode, phoneno);
+      if (guestResponse.aadhaar_verified) {
+        setGuests(prev => {
+          const newState = [...prev];
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          // Logic for face status: if verified, set verified. If aadhaar verified but face not, set pending (waiting for init).
+          newState[index].faceStatus = guestResponse.face_verified
+            ? VERIFICATION_STATUS.VERIFIED
+            : VERIFICATION_STATUS.PENDING;
+          return newState;
+        });
+        setManualVerificationGuestIndex(null);
+      } else {
+        // If not verified in backend, show force verify modal
+        setShowForceVerifyModal(true);
       }
     } catch (error) {
-      // If fetch fails, keep as pending
-      setGuests(prev => {
-        const newState = [...prev];
-        newState[index].aadhaarStatus = VERIFICATION_STATUS.PENDING;
-        newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
-        return newState;
-      });
+      // If error (e.g. 404 or network), show force verify modal
+      setShowForceVerifyModal(true);
     }
+  };
+
+  const confirmForcedVerification = () => {
+    const index = manualVerificationGuestIndex;
+    if (index === null) return;
+
+    setGuests(prev => {
+      const newState = [...prev];
+      newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+      // Should be ready for face match init
+      newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+      return newState;
+    });
+
+    setShowForceVerifyModal(false);
     setManualVerificationGuestIndex(null);
   };
 
@@ -767,6 +807,13 @@ export default function GuestVerification() {
                                 {UI_TEXT.GUEST_VERIFICATION_VERIFIED}
                               </span>
                             </div>
+                          ) : guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? (
+                            <button
+                              onClick={() => handleInitiateFaceMatch(index)}
+                              className="px-3 py-1.5 bg-[#1b3631] text-white rounded-lg hover:bg-[#144032] transition-colors text-xs font-medium shadow-sm"
+                            >
+                              Initiate Face Match
+                            </button>
                           ) : (
                             <span className="text-gray-300">-</span>
                           )}
@@ -849,6 +896,17 @@ export default function GuestVerification() {
         confirmText="Yes, Cancel"
         cancelText="No, Keep Verifying"
         isDanger={true}
+      />
+
+      {/* Force Verify Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showForceVerifyModal}
+        onClose={() => setShowForceVerifyModal(false)}
+        onConfirm={confirmForcedVerification}
+        title="Verify Identity Manually?"
+        message="The system could not verify this guest's identity automatically. Do you want to manually mark them as ID Verified and proceed?"
+        confirmText="Yes, Verify Manually"
+        cancelText="Cancel"
       />
     </div>
   );

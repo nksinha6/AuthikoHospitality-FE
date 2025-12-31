@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   BEGIN_VERIFICATION: "booking/begin_verification",
   ENSURE_VERIFICATION: "HotelGuestRead/verification/ensure",
   GET_GUEST_BY_ID: "HotelGuestRead/guest_by_id",
+  INITIATE_FACE_MATCH: "booking/face-match/initiate",
 };
 
 // Storage Keys
