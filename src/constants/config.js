@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   ENSURE_VERIFICATION: "HotelGuestRead/verification/ensure",
   GET_GUEST_BY_ID: "HotelGuestRead/guest_by_id",
   INITIATE_FACE_MATCH: "booking/face-match/initiate",
+  FACE_MATCH_STATUS: "booking/face-match/status",
 };
 
 // Storage Keys
@@ -38,6 +39,6 @@ export const GUEST_VERIFICATION = {
   POLL_INITIAL_DELAY: 30000, // 60 seconds before starting poll
   POLL_INTERVAL: 10000, // 10 seconds between polls
   MAX_RETRY_ATTEMPTS: 2, // Maximum retry attempts for ID verification
-  ID_VERIFICATION_TIMEOUT: 180000, // 3 minutes timeout for ID verification polling
-  FACE_VERIFICATION_TIMEOUT: 300000, // 5 minutes timeout for face verification polling
+  ID_VERIFICATION_TIMEOUT: 30000, // 60 sec timeout for ID verification polling
+  FACE_VERIFICATION_TIMEOUT: 30000, // 60 sec timeout for face verification polling
 };
