@@ -101,7 +101,10 @@ export default function GuestVerification() {
       return;
     }
 
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
@@ -338,7 +341,10 @@ export default function GuestVerification() {
 
   const handleInitiateFaceMatch = async (index) => {
     const guest = guests[index];
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
@@ -375,7 +381,10 @@ export default function GuestVerification() {
   const handleManualVerification = async () => {
     const index = manualVerificationGuestIndex;
     const guest = guests[index];
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
