@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   GET_GUEST_BY_ID: "HotelGuestRead/guest_by_id",
   INITIATE_FACE_MATCH: "booking/face-match/initiate",
   FACE_MATCH_STATUS: "booking/face-match/status",
+  END_VERIFICATION: "booking/end_verification",
 };
 
 // Storage Keys

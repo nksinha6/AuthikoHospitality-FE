@@ -35,6 +35,7 @@ export default function GuestVerification() {
   const [manualVerificationGuestIndex, setManualVerificationGuestIndex] =
     useState(null);
   const [showForceVerifyModal, setShowForceVerifyModal] = useState(false);
+  const [isConfirmingCheckin, setIsConfirmingCheckin] = useState(false);
 
   // Polling and retry state
   const [pollingIntervals, setPollingIntervals] = useState({});
@@ -100,7 +101,10 @@ export default function GuestVerification() {
       return;
     }
 
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
@@ -337,7 +341,10 @@ export default function GuestVerification() {
 
   const handleInitiateFaceMatch = async (index) => {
     const guest = guests[index];
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
@@ -374,7 +381,10 @@ export default function GuestVerification() {
   const handleManualVerification = async () => {
     const index = manualVerificationGuestIndex;
     const guest = guests[index];
-    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC;
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
     const phoneno = guest.phoneNumber.replace(
       new RegExp(`^${phoneCountryCode}`),
       ""
@@ -433,13 +443,34 @@ export default function GuestVerification() {
     setGuests(updatedGuests);
   };
 
-  const handleConfirmCheckIn = () => {
-    setShowSuccessModal(true);
-    setModalMessage(UI_TEXT.GUEST_VERIFICATION_SUCCESS_MESSAGE);
-    setTimeout(() => {
-      setShowSuccessModal(false);
-      navigate(ROUTES.TODAYS_BOOKINGS);
-    }, GUEST_VERIFICATION.SUCCESS_MODAL_DELAY);
+  const handleConfirmCheckIn = async () => {
+    if (!allGuestsFullyVerified || !bookingId) {
+      return;
+    }
+
+    setIsConfirmingCheckin(true);
+
+    try {
+      // Call end_verification API
+      const response = await verificationService.endVerification(bookingId);
+      console.log("response", response);
+      
+      // Show success modal
+      setShowSuccessModal(true);
+      setModalMessage(UI_TEXT.GUEST_VERIFICATION_SUCCESS_MESSAGE);
+      console.log("response", response);
+      
+      // Navigate after delay
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        navigate(ROUTES.TODAYS_BOOKINGS);
+      }, GUEST_VERIFICATION.SUCCESS_MODAL_DELAY);
+    } catch (error) {
+      // Handle API error
+      alert(error.message || "Failed to complete check-in. Please try again.");
+    } finally {
+      setIsConfirmingCheckin(false);
+    }
   };
 
   const handleCancelVerification = () => {
@@ -630,7 +661,7 @@ export default function GuestVerification() {
                           <button
                             onClick={() => handleVerifyGuest(index)}
                             disabled={!isValidPhoneNumber(guest.phoneNumber)}
-                            className="px-5 py-2.5 bg-[#1b3631] text-white rounded-lg hover:bg-[#144032] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium whitespace-nowrap shadow-sm hover:shadow-md"
+                            className="px-5 py-2.5 bg-[#1b3631] text-white rounded-lg hover:bg-[#144032] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium whitespace-nowrap shadow-sm hover:shadow-md cursor-pointer"
                           >
                             {UI_TEXT.GUEST_VERIFICATION_VERIFY_BUTTON}
                           </button>
@@ -888,7 +919,7 @@ export default function GuestVerification() {
                                   setSelectedGuest(guest);
                                   setShowGuestModal(true);
                                 }}
-                                className="text-[#1b3631] hover:text-[#144032] text-sm font-medium bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                                className="text-[#1b3631] hover:text-[#144032] text-sm font-medium bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
                               >
                                 {UI_TEXT.GUEST_VERIFICATION_VIEW_DETAILS}
                               </button>
@@ -909,21 +940,28 @@ export default function GuestVerification() {
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex gap-4 justify-end">
             <button
               onClick={handleCancelVerification}
-              className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm cursor-pointer"
             >
               {UI_TEXT.GUEST_VERIFICATION_CANCEL}
             </button>
             <button
               onClick={handleConfirmCheckIn}
-              disabled={!allGuestsFullyVerified}
-              className={`px-8 py-2.5 text-white font-medium rounded-lg shadow-sm transition-all
+              disabled={!allGuestsFullyVerified || isConfirmingCheckin}
+              className={`px-8 py-2.5 text-white font-medium rounded-lg shadow-sm transition-all flex items-center justify-center min-w-35 cursor-pointer
                   ${
                     allGuestsFullyVerified
                       ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
                       : "bg-gray-300 cursor-not-allowed text-gray-500"
                   }`}
             >
-              {UI_TEXT.GUEST_VERIFICATION_CONFIRM_CHECKIN}
+              {isConfirmingCheckin ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                </>
+              ) : (
+                UI_TEXT.GUEST_VERIFICATION_CONFIRM_CHECKIN
+              )}
             </button>
           </div>
         </div>

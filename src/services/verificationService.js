@@ -43,6 +43,39 @@ export const verificationService = {
   },
 
   /**
+   * End verification process for a booking
+   * @param {string} bookingId - The booking ID to end verification for
+   * @returns {Promise<Object>} Response containing end verification details
+   */
+  async endVerification(bookingId) {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.END_VERIFICATION,
+        null,
+        {
+          params: { bookingId },
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      const status = error.response?.status;
+
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Failed to complete check-in. Please try again.",
+      };
+    }
+  },
+
+  /**
    * Ensure verification for a guest by phone number
    * @param {string} phoneCountryCode - The country code of the phone number
    * @param {string} phoneno - The phone number
@@ -109,6 +142,7 @@ export const verificationService = {
       };
     }
   },
+  
   /**
    * Initiate face match process for a guest
    * @param {string} bookingId - The booking ID
@@ -118,7 +152,6 @@ export const verificationService = {
    */
   async initiateFaceMatch(bookingId, phoneCountryCode, phoneNumber) {
     try {
-      // POST request as per requirement (Fire & Forget nature handled by caller, but we await response for success signal)
       const response = await apiClient.post(
         API_ENDPOINTS.INITIATE_FACE_MATCH,
         {
@@ -172,7 +205,6 @@ export const verificationService = {
         throw { code: "TIMEOUT", message: "Request timed out" };
       }
 
-      // For 404, return null to indicate no face match status yet
       if (error.response?.status === 404) {
         return null;
       }
