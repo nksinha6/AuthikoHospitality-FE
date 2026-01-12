@@ -11,10 +11,9 @@ export default function ProtectedRoute({ children }) {
     return <Loader />;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && location.pathname !== ROUTES.LOGIN) {
     return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;
   }
 
   return children;
 }
-
