@@ -50,13 +50,10 @@ export const verificationService = {
    */
   async ensureVerification(phoneCountryCode, phoneno) {
     try {
-      const response = await apiClient.get(
-        API_ENDPOINTS.ENSURE_VERIFICATION,
-        {
-          params: { phoneCountryCode, phoneno },
-          timeout: 10000,
-        }
-      );
+      const response = await apiClient.get(API_ENDPOINTS.ENSURE_VERIFICATION, {
+        params: { phoneCountryCode, phoneno },
+        timeout: 10000,
+      });
 
       return response.data;
     } catch (error) {
@@ -144,6 +141,47 @@ export const verificationService = {
         message:
           error.response?.data?.message ||
           "Failed to initiate face match. Please try again.",
+      };
+    }
+  },
+
+  /**
+   * Get face match status for a guest
+   * @param {string} bookingId - The booking ID
+   * @param {string} phoneCountryCode - The country code of the phone number
+   * @param {string} phoneNumber - The phone number
+   * @returns {Promise<Object>} Response containing face match status
+   */
+  async getFaceMatchStatus(bookingId, phoneCountryCode, phoneNumber) {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.FACE_MATCH_STATUS,
+        {
+          bookingId,
+          phoneCountryCode,
+          phoneNumber,
+        },
+        {
+          timeout: 10000,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "Request timed out" };
+      }
+
+      // For 404, return null to indicate no face match status yet
+      if (error.response?.status === 404) {
+        return null;
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Failed to get face match status. Please try again.",
       };
     }
   },
