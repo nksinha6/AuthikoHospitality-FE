@@ -10,7 +10,7 @@ import {
   filterBookings,
   formatPhone,
   formatGuests,
-} from "../utility/BdookingUtils.js";
+} from "../utility/bookingUtils.js";
 import { bookingService } from "../services/bookingService.js";
 
 export default function TodaysBookings() {
