@@ -10,8 +10,8 @@ import {
   filterBookings,
   formatPhone,
   formatGuests,
-} from "../utility/BookingUtils.js";
-import { bookingService } from "../services/BookingService.js";
+} from "../utility/BdookingUtils.js";
+import { bookingService } from "../services/bookingService.js";
 
 export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
