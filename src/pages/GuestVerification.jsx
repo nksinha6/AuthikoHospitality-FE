@@ -131,7 +131,7 @@ export default function GuestVerification() {
       );
 
       // Case 1: Verified 1Pass user exists
-      if (ensureResponse.verified) {
+      if (ensureResponse.verificationStatus === "verified") {
         setGuests((prev) => {
           const newState = [...prev];
           newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
@@ -140,8 +140,8 @@ export default function GuestVerification() {
           return newState;
         });
         // Stop polling for face match status (Wait for manual trigger)
-      } else {
-        // Case 2: No verified user - start polling for ID verification
+      } else if (ensureResponse.verificationStatus === "pending") {
+        // Case 2: Status pending - start polling for ID verification
         startIdVerificationWithDelay(index, phoneCountryCode, phoneno);
       }
     } catch (error) {
