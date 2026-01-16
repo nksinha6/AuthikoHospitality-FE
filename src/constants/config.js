@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   ENSURE_VERIFICATION: "HotelGuestRead/verification/ensure",
   GET_GUEST_BY_ID: "HotelGuestRead/guest_by_id",
   INITIATE_FACE_MATCH: "booking/face-match/initiate",
-  FACE_MATCH_STATUS: "booking/face-match/status",
+  FACE_MATCH_STATUS: "HotelBookingRead/face-match/status",
   END_VERIFICATION: "booking/end_verification",
 };
 

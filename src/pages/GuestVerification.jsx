@@ -12,6 +12,7 @@ import { verificationService } from "../services/verificationService.js";
 import SuuccessModal from "../components/SuccessModal.jsx";
 import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
+import { showToast } from '../utility/toast.js';
 
 export default function GuestVerification() {
   const navigate = useNavigate();
@@ -156,7 +157,7 @@ export default function GuestVerification() {
           newState[index].timestamp = null;
           return newState;
         });
-        alert(error.message || "Verification failed. Please try again.");
+        showToast("error", error.message || "Verification failed. Please try again.");
       }
     }
   };
@@ -179,17 +180,16 @@ export default function GuestVerification() {
           phoneCountryCode,
           phoneno
         );
-        if (guestResponse.aadhaar_verified) {
+        if (guestResponse.verificationStatus === "verified" || guestResponse.aadhaar_verified) {
           // ID verification successful
           setGuests((prev) => {
             const newState = [...prev];
             newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            // Face status remains pending until manually initiated
+            // Face status remains pending until manually initiated which we do right after
             newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
             return newState;
           });
-          // Stop auto-polling for face match
-          // startFaceMatchPolling(index, phoneCountryCode, phoneno);
+
           // Clear polling interval
           clearInterval(pollingIntervals[index]);
           setPollingIntervals((prev) => {
@@ -197,6 +197,9 @@ export default function GuestVerification() {
             delete newIntervals[index];
             return newIntervals;
           });
+
+          // Auto-initiate Face Match
+          handleInitiateFaceMatch(index);
         }
         // Continue polling if not verified
       } catch (error) {
@@ -220,27 +223,26 @@ export default function GuestVerification() {
       }
     };
 
-    // Start polling every 15 seconds
+    // Start polling every 10 seconds
     const intervalId = setInterval(poll, GUEST_VERIFICATION.POLL_INTERVAL);
     setPollingIntervals((prev) => ({ ...prev, [index]: intervalId }));
 
-    // Stop polling after 3 minutes and show manual verification option
+    // Stop polling after timeout and show manual status check option
     setTimeout(() => {
-      clearInterval(intervalId);
+      // Check if interval still exists (verification hasn't completed)
       setPollingIntervals((prev) => {
-        const newIntervals = { ...prev };
-        delete newIntervals[index];
-        return newIntervals;
-      });
+        if (prev[index]) {
+          clearInterval(prev[index]);
+          const newIntervals = { ...prev };
+          delete newIntervals[index];
 
-      // Update status to pending and show manual verification option
-      setGuests((prev) => {
-        const newState = [...prev];
-        newState[index].aadhaarStatus = VERIFICATION_STATUS.PENDING;
-        return newState;
+          // Mark for manual verification check
+          setManualVerificationGuestIndex(index);
+          return newIntervals;
+        }
+        return prev;
       });
-      setManualVerificationGuestIndex(index);
-    }, GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT); // 3 minutes timeout
+    }, GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT);
   };
 
   const startFaceMatchPolling = (index, phoneCountryCode, phoneno) => {
@@ -257,7 +259,10 @@ export default function GuestVerification() {
           phoneno
         );
 
-        if (faceMatchResponse && faceMatchResponse.isFaceMatched) {
+        if (
+          faceMatchResponse &&
+          faceMatchResponse.status === "verified"
+        ) {
           // Face match successful
           setGuests((prev) => {
             const newState = [...prev];
@@ -302,30 +307,25 @@ export default function GuestVerification() {
       }
     };
 
-    // Start polling every 15 seconds
+    // Start polling
     const intervalId = setInterval(poll, GUEST_VERIFICATION.POLL_INTERVAL);
     setPollingIntervals((prev) => ({ ...prev, [index]: intervalId }));
 
-    // Stop polling after some time
+    // Stop polling after timeout
     setTimeout(() => {
-      if (pollingIntervals[index]) {
-        clearInterval(intervalId);
-        setPollingIntervals((prev) => {
+      setPollingIntervals((prev) => {
+        if (prev[index]) {
+          clearInterval(intervalId); // Clear the specific interval ID
           const newIntervals = { ...prev };
           delete newIntervals[index];
-          return newIntervals;
-        });
 
-        // Update status to pending if still processing
-        setGuests((prev) => {
-          const newState = [...prev];
-          if (newState[index].faceStatus === VERIFICATION_STATUS.PROCESSING) {
-            newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
-          }
-          return newState;
-        });
-      }
-    }, GUEST_VERIFICATION.FACE_VERIFICATION_TIMEOUT); // Stop after 5 minutes
+          // Mark for manual face match check (reusing the same state variable, logic in render handles per status)
+          setManualVerificationGuestIndex(index);
+          return newIntervals;
+        }
+        return prev;
+      });
+    }, GUEST_VERIFICATION.FACE_VERIFICATION_TIMEOUT);
   };
 
   const handleRetryVerification = (index) => {
@@ -374,7 +374,7 @@ export default function GuestVerification() {
         newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
         return newState;
       });
-      alert(error.message || "Failed to initiate face match.");
+      showToast("error", error.message || "Failed to initiate face match.");
     }
   };
 
@@ -396,7 +396,7 @@ export default function GuestVerification() {
         phoneno
       );
 
-      if (guestResponse.aadhaar_verified) {
+      if (guestResponse.verificationStatus === "verified" || guestResponse.aadhaar_verified) {
         setGuests((prev) => {
           const newState = [...prev];
           newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
@@ -407,13 +407,85 @@ export default function GuestVerification() {
           return newState;
         });
         setManualVerificationGuestIndex(null);
+        handleInitiateFaceMatch(index);
       } else {
-        // If not verified in backend, show force verify modal
-        setShowForceVerifyModal(true);
+        // If not verified yet, restart polling
+        showToast("info", "Verification still pending. Resuming automatic checks...");
+        setManualVerificationGuestIndex(null);
+        // Reset status to processing to indicate polling is back on
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.PROCESSING;
+          return newState;
+        });
+        startIdVerificationPolling(index, phoneCountryCode, phoneno);
       }
     } catch (error) {
-      // If error (e.g. 404 or network), show force verify modal
-      setShowForceVerifyModal(true);
+      // On error, also restart polling (retry)
+      showToast("info", "Verification check failed. Resuming automatic checks...");
+      setManualVerificationGuestIndex(null);
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index].aadhaarStatus = VERIFICATION_STATUS.PROCESSING;
+        return newState;
+      });
+      startIdVerificationPolling(index, phoneCountryCode, phoneno);
+    }
+  };
+
+  const handleManualFaceMatchCheck = async () => {
+    const index = manualVerificationGuestIndex;
+    const guest = guests[index];
+    const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
+      /^\+/,
+      ""
+    );
+    const phoneno = guest.phoneNumber.replace(
+      new RegExp(`^${phoneCountryCode}`),
+      ""
+    );
+
+    try {
+      const faceMatchResponse = await verificationService.getFaceMatchStatus(
+        bookingId,
+        phoneCountryCode,
+        phoneno
+      );
+
+      if (
+        faceMatchResponse &&
+        faceMatchResponse.status === "verified"
+      ) {
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index].faceStatus = VERIFICATION_STATUS.VERIFIED;
+          newState[index].faceMatchScore = faceMatchResponse.faceMatchScore;
+          newState[index].faceMatchData = faceMatchResponse;
+          return newState;
+        });
+        setManualVerificationGuestIndex(null);
+      } else {
+        // If not verified yet, restart polling
+        showToast("info", "Face match still pending. Resuming automatic checks...");
+        setManualVerificationGuestIndex(null);
+        // Reset status to processing to indicate polling is back on
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index].faceStatus = VERIFICATION_STATUS.PROCESSING;
+          return newState;
+        });
+        startFaceMatchPolling(index, phoneCountryCode, phoneno);
+      }
+    } catch (error) {
+      // On error, also restart polling
+      showToast("info", "Status check failed. Resuming automatic checks...");
+      setManualVerificationGuestIndex(null);
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index].faceStatus = VERIFICATION_STATUS.PROCESSING;
+        return newState;
+      });
+      startFaceMatchPolling(index, phoneCountryCode, phoneno);
     }
   };
 
@@ -431,6 +503,7 @@ export default function GuestVerification() {
 
     setShowForceVerifyModal(false);
     setManualVerificationGuestIndex(null);
+    handleInitiateFaceMatch(index);
   };
 
   const handleChangeNumber = (index) => {
@@ -454,12 +527,12 @@ export default function GuestVerification() {
       // Call end_verification API
       const response = await verificationService.endVerification(bookingId);
       console.log("response", response);
-      
+
       // Show success modal
       setShowSuccessModal(true);
       setModalMessage(UI_TEXT.GUEST_VERIFICATION_SUCCESS_MESSAGE);
       console.log("response", response);
-      
+
       // Navigate after delay
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -467,7 +540,7 @@ export default function GuestVerification() {
       }, GUEST_VERIFICATION.SUCCESS_MODAL_DELAY);
     } catch (error) {
       // Handle API error
-      alert(error.message || "Failed to complete check-in. Please try again.");
+      showToast("error", error.message || "Failed to complete check-in. Please try again.");
     } finally {
       setIsConfirmingCheckin(false);
     }
@@ -506,13 +579,13 @@ export default function GuestVerification() {
 
   const saveMinor = () => {
     if (!activeMinorForm.name || !activeMinorForm.age) {
-      alert("Please enter both name and age.");
+      showToast("error", "Please enter both name and age.");
       return;
     }
 
     const age = parseInt(activeMinorForm.age);
     if (age < 0 || age > 17) {
-      alert("Minor age must be between 0 and 17 years.");
+      showToast("error", "Minor age must be between 0 and 17 years.");
       return;
     }
 
@@ -813,16 +886,24 @@ export default function GuestVerification() {
                     {guest.isVerified && (
                       <>
                         <td className="px-6 py-6" valign="top">
-                          {manualVerificationGuestIndex === index ? (
+                          {guest.aadhaarStatus ===
+                            VERIFICATION_STATUS.VERIFIED ? (
+                            <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg w-fit border border-green-100">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-sm font-medium">
+                                ID Verified
+                              </span>
+                            </div>
+                          ) : manualVerificationGuestIndex === index ? (
                             <div className="space-y-1">
                               <span className="text-orange-500 text-sm font-medium">
-                                Verification Timeout
+                                Timeout
                               </span>
                               <button
                                 onClick={handleManualVerification}
                                 className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1 cursor-pointer"
                               >
-                                Manual Verification
+                                Check Status Manually
                               </button>
                             </div>
                           ) : guest.aadhaarStatus ===
@@ -839,18 +920,10 @@ export default function GuestVerification() {
                               </button>
                             </div>
                           ) : guest.aadhaarStatus ===
-                            VERIFICATION_STATUS.VERIFIED ? (
-                            <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg w-fit border border-green-100">
-                              <CheckCircle className="w-4 h-4" />
-                              <span className="text-sm font-medium">
-                                ID Verified
-                              </span>
-                            </div>
-                          ) : guest.aadhaarStatus ===
-                              VERIFICATION_STATUS.PENDING &&
+                            VERIFICATION_STATUS.PENDING &&
                             retryAttempts[index] > 0 &&
                             retryAttempts[index] <
-                              GUEST_VERIFICATION.MAX_RETRY_ATTEMPTS ? (
+                            GUEST_VERIFICATION.MAX_RETRY_ATTEMPTS ? (
                             <div className="space-y-1">
                               <span className="text-red-500 text-sm font-medium">
                                 Verification Failed
@@ -869,14 +942,28 @@ export default function GuestVerification() {
 
                         <td className="px-6 py-6" valign="top">
                           {guest.faceStatus ===
-                          VERIFICATION_STATUS.PROCESSING ? (
+                            VERIFICATION_STATUS.PROCESSING ? (
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
-                                <Clock className="w-4 h-4 animate-spin-slow" />
-                                <span className="text-sm font-medium">
-                                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
-                                </span>
-                              </div>
+                              {manualVerificationGuestIndex === index ? (
+                                <>
+                                  <span className="text-orange-500 text-sm font-medium">
+                                    Timeout
+                                  </span>
+                                  <button
+                                    onClick={handleManualFaceMatchCheck}
+                                    className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1 cursor-pointer block"
+                                  >
+                                    Check Status Manually
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
+                                  <Clock className="w-4 h-4 animate-spin-slow" />
+                                  <span className="text-sm font-medium">
+                                    {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           ) : guest.faceStatus ===
                             VERIFICATION_STATUS.VERIFIED ? (
@@ -913,7 +1000,7 @@ export default function GuestVerification() {
                         {hasAnyVerified && (
                           <td className="px-6 py-6" valign="top">
                             {guest.aadhaarStatus === "verified" &&
-                            guest.faceStatus === "verified" ? (
+                              guest.faceStatus === "verified" ? (
                               <button
                                 onClick={() => {
                                   setSelectedGuest(guest);
@@ -948,11 +1035,10 @@ export default function GuestVerification() {
               onClick={handleConfirmCheckIn}
               disabled={!allGuestsFullyVerified || isConfirmingCheckin}
               className={`px-8 py-2.5 text-white font-medium rounded-lg shadow-sm transition-all flex items-center justify-center min-w-35 cursor-pointer
-                  ${
-                    allGuestsFullyVerified
-                      ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
-                      : "bg-gray-300 cursor-not-allowed text-gray-500"
-                  }`}
+                  ${allGuestsFullyVerified
+                  ? "bg-[#1b3631] hover:bg-[#144032] hover:shadow-lg hover:shadow-[#1b3631]/20 transform hover:-translate-y-0.5"
+                  : "bg-gray-300 cursor-not-allowed text-gray-500"
+                }`}
             >
               {isConfirmingCheckin ? (
                 <>
