@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
       sessionStorage.removeItem(STORAGE_KEYS.AUTH);
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 export default apiClient;

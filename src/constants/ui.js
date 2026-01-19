@@ -107,7 +107,8 @@ export const UI_TEXT = {
 
   // Guest Verification
   GUEST_VERIFICATION_TITLE: "Guest Verification",
-  GUEST_VERIFICATION_SUBTITLE: "Verify guest identities and complete check-in process",
+  GUEST_VERIFICATION_SUBTITLE:
+    "Verify guest identities and complete check-in process",
   GUEST_VERIFICATION_BOOKING_ID: "Booking ID",
   GUEST_VERIFICATION_ADULTS_MINORS: "Adults, Minors",
   GUEST_VERIFICATION_SR_NO: "Sr. No.",

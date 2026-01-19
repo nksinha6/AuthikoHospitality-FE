@@ -37,7 +37,7 @@ export default function TodaysBookings() {
       setError(null);
     } catch (err) {
       setError(
-        err.message || "Failed to load today's bookings. Please try again."
+        err.message || "Failed to load today's bookings. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export default function TodaysBookings() {
 
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
-    [bookings, filters]
+    [bookings, filters],
   );
 
   const updateFilter = (key, value) => {
@@ -133,8 +133,8 @@ export default function TodaysBookings() {
               {filters.status === ""
                 ? UI_TEXT.FILTER_STATUS
                 : filters.status === "checked-in"
-                ? "Checked In"
-                : "Not Checked In"}
+                  ? "Checked In"
+                  : "Not Checked In"}
             </span>
           </button>
 

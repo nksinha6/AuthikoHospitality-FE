@@ -41,7 +41,7 @@ const Checkin = () => {
       const updatedSet = new Set([...prev, bookingId]);
       localStorage.setItem(
         "processedBookingIds",
-        JSON.stringify([...updatedSet])
+        JSON.stringify([...updatedSet]),
       );
       return updatedSet;
     });
@@ -179,19 +179,28 @@ const Checkin = () => {
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error("Request timed out. Please try again.")),
-          10000
-        )
+          10000,
+        ),
       );
 
+      const verificationPayload = {
+        bookingId: bookingIdToUse,
+        ota: formData.ota,
+        phoneCountryCode: formData.countryCode,
+        phoneNumber: formData.phoneNumber,
+        adultsCount: parseInt(formData.adults),
+        minorsCount: parseInt(formData.children) || 0,
+      };
+
       const response = await Promise.race([
-        verificationService.beginVerification(bookingIdToUse),
+        verificationService.beginVerification(verificationPayload),
         timeoutPromise,
       ]);
 
       // Basic response validation
       if (!response || response.error) {
         throw new Error(
-          response?.error?.message || "Verification service error"
+          response?.error?.message || "Verification service error",
         );
       }
 
@@ -222,8 +231,8 @@ const Checkin = () => {
       const userMessage = error.message.includes("timeout")
         ? "Request took too long. Please check connection and try again."
         : error.message.includes("network") || error.message.includes("Network")
-        ? "Network error. Please check internet connection."
-        : `Verification failed: ${error.message}`;
+          ? "Network error. Please check internet connection."
+          : `Verification failed: ${error.message}`;
 
       setErrors(userMessage);
     } finally {
