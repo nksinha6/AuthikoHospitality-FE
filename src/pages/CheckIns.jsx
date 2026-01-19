@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import {
   generateWalkInBookingId,
   shouldRequireBookingId,
-} from "../utility/checkInUtils"; // Adjust the import path to your utils file
+} from "../utility/checkInUtils";
 
 import { OTA_OPTIONS } from "../constants/ui";
 
@@ -17,7 +17,7 @@ const Checkin = () => {
   const [formData, setFormData] = useState({
     ota: "",
     bookingId: "",
-    countryCode: "91", // Default numeric code
+    countryCode: "91",
     phoneNumber: "",
     adults: 0,
     children: 0,
@@ -29,6 +29,11 @@ const Checkin = () => {
   const [errors, setErrors] = useState({});
 
   const otaOptions = Object.values(OTA_OPTIONS);
+
+  // Check if button should be disabled
+  const isButtonDisabled = () => {
+    return isVerifying || formData.adults === 0;
+  };
 
   useEffect(() => {
     const storedIds =
@@ -48,7 +53,7 @@ const Checkin = () => {
   };
 
   const getCurrentDate = () => {
-    return dayjs().format("DD MMM YY"); // "01 Jan 24"
+    return dayjs().format("DD MMM YY");
   };
 
   const handleOTASelection = (e) => {
@@ -71,7 +76,6 @@ const Checkin = () => {
       phoneNumber,
     }));
 
-    // clear phone error once user types
     setErrors((prev) => ({
       ...prev,
       phoneNumber: "",
@@ -104,10 +108,15 @@ const Checkin = () => {
   const handleReview = async () => {
     setErrors({});
     let newErrors = {};
-    // Add duplicate submission prevention
+    
     if (isVerifying) {
       console.log("Already verifying, please wait");
       return;
+    }
+
+    // Check if adults is 0 (though button should already be disabled)
+    if (formData.adults === 0) {
+      newErrors.adults = "Please enter at least one adult";
     }
 
     if (!formData.ota) {
@@ -175,7 +184,6 @@ const Checkin = () => {
       setIsVerifying(true);
       console.log(`Calling API with Booking ID: ${bookingIdToUse}`);
 
-      // Add timeout protection (10 seconds)
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error("Request timed out. Please try again.")),
@@ -197,7 +205,6 @@ const Checkin = () => {
         timeoutPromise,
       ]);
 
-      // Basic response validation
       if (!response || response.error) {
         throw new Error(
           response?.error?.message || "Verification service error",
@@ -215,8 +222,7 @@ const Checkin = () => {
         state: {
           formData: {
             ...updatedFormData,
-            bookingId: bookingIdToUse, // Ensure latest booking ID
-            // Pass phone data for the primary guest
+            bookingId: bookingIdToUse,
             countryCode: formData.countryCode,
             phoneNumber: formData.phoneNumber,
             adults: parseInt(formData.adults),
@@ -227,7 +233,6 @@ const Checkin = () => {
     } catch (error) {
       console.error("Verification failed:", error.message);
 
-      // Better error messages
       const userMessage = error.message.includes("timeout")
         ? "Request took too long. Please check connection and try again."
         : error.message.includes("network") || error.message.includes("Network")
@@ -355,7 +360,7 @@ const Checkin = () => {
                   type="number"
                   name="adults"
                   placeholder="Enter number"
-                  min="1"
+                  min="0"
                   value={formData.adults}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
@@ -400,8 +405,12 @@ const Checkin = () => {
             </button>
             <button
               onClick={handleReview}
-              disabled={isVerifying}
-              className="flex-1 px-6 py-3 bg-brand! text-white rounded-lg font-semibold hover:bg-brand/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={isButtonDisabled()} // Updated this line
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold cursor-pointer flex items-center justify-center gap-2 ${
+                isButtonDisabled()
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-brand! text-white hover:bg-brand/90"
+              }`}
             >
               {isVerifying ? (
                 <>

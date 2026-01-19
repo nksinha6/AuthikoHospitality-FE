@@ -7,6 +7,7 @@ import { FiPlus } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
 import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
+import { bookingService } from "../services/bookingService.js";
 import {
   formatShortDate,
   formatPhone,
@@ -14,7 +15,6 @@ import {
   normalizeBookings,
   applyBookingFilters,
 } from "../utility/bookingUtils.js";
-import { bookingService } from "../services/bookingService.js";
 
 export default function AllBookings() {
   const [loading, setLoading] = useState(true);
