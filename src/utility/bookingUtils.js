@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { DATE_CONDITIONS } from "../constants/ui";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 // today's date formatter
 export const getTodayDateFormatted = () => {
@@ -8,42 +13,13 @@ export const getTodayDateFormatted = () => {
 
 export const getFullHeaderDate = () => {
   const today = dayjs();
-
-  const dayName = today.format("dddd"); // Monday
-  const shortDate = today.format("DD MMM YY"); // 17 Dec 25
-
-  return `${dayName} / ${shortDate}`;
+  return `${today.format("dddd")} / ${today.format("DD MMM YY")}`;
 };
 
 // short date formatter
 export const formatShortDate = (d) => {
   if (!d) return "";
   return dayjs(d).format("DD MMM YY");
-};
-
-// Filter Bookings Based on criteria for Todays Bookings
-export const filterBookings = (bookings, filters) => {
-  const guestQuery = (filters.guest || "").toLowerCase();
-  const otaQuery = (filters.ota || "").toLowerCase();
-  const phoneQuery = filters.phone || "";
-
-  return bookings.filter((b) => {
-    const leadGuest = (b.leadGuest || "").toLowerCase();
-    const ota = (b.ota || "").toLowerCase();
-    const phone = b.phone || "";
-
-    const matchesGuest = leadGuest.includes(guestQuery);
-    const matchesPhone = phone.includes(phoneQuery);
-    const matchesOta = ota.includes(otaQuery);
-    const matchesStatus =
-      filters.status === ""
-        ? true
-        : filters.status === "checked-in"
-        ? b.checkedIn === true
-        : b.checkedIn === false;
-
-    return matchesGuest && matchesPhone && matchesOta && matchesStatus;
-  });
 };
 
 // phone number formatter
@@ -63,12 +39,7 @@ export const formatPhone = (phone) => {
   return String(phone);
 };
 
-// booking status formatter
-export const formatBookingStatus = (checkedIn) => {
-  return checkedIn ? "Checked In" : "Not Checked In";
-};
-
-// guests Seperator
+// guests formatter
 export const formatGuests = (adults, minors) => {
   const adultCount = adults || 0;
   const minorCount = minors || 0;
@@ -80,19 +51,61 @@ export const formatGuests = (adults, minors) => {
   }`;
 };
 
-// All Bookings Utilitys
+export const filterBookings = (bookings = [], filters = {}) => {
+  const guestQuery = (filters.guest || "").toLowerCase();
+  const otaQuery = (filters.ota || "").toLowerCase();
+  const phoneQuery = filters.phone || "";
+  const status = filters.status || "";
 
-// Used in All Bookings page to normalize booking dates
-export const normalizeBookings = (bookings = []) => {
-  return bookings.map((b) => ({
-    ...b,
-    date: dayjs.isDayjs(b.date)
-      ? b.date.startOf("day")
-      : dayjs(b.date).startOf("day"),
-  }));
+  return bookings.filter((b) => {
+    const fullName = `${b.firstName || ""} ${b.surname || ""}`.toLowerCase();
+    const ota = (b.ota || "").toLowerCase();
+    const phone = b.phone || "";
+
+    const matchesGuest = fullName.includes(guestQuery);
+    const matchesPhone = phone.includes(phoneQuery);
+    const matchesOta = ota.includes(otaQuery);
+
+    // ✅ FIXED STATUS LOGIC
+    let matchesStatus = true;
+
+    if (status === "checked-in") {
+      matchesStatus = !!b.windowEnd;
+    } else if (status === "not-checked-in") {
+      matchesStatus = !b.windowEnd;
+    }
+
+    return matchesGuest && matchesPhone && matchesOta && matchesStatus;
+  });
 };
 
-// Used in All Bookings page to filter bookings based on date and text filters
+export const normalizeBookings = (bookings = []) => {
+  return bookings.map((b) => {
+    const [firstName = "", ...rest] = (b.primaryGuestFullName || "").split(" ");
+    const surname = rest.join(" ");
+
+    return {
+      bookingId: b.bookingId,
+      ota: b.ota,
+
+      // 🔹 date comes from windowStart
+      date: dayjs(b.windowStart).startOf("day"),
+
+      firstName,
+      surname,
+
+      phone: `+${b.phoneCountryCode} ${b.phoneNumber}`,
+
+      adults: b.adultsCount,
+      minors: b.minorsCount,
+      guests: (b.adultsCount || 0) + (b.minorsCount || 0),
+
+      // 🔑 STATUS DRIVER
+      windowEnd: b.windowEnd,
+    };
+  });
+};
+
 export const applyBookingFilters = ({
   bookings = [],
   dateFilter = null,
@@ -124,26 +137,18 @@ export const applyBookingFilters = ({
           include =
             !!start &&
             !!end &&
-            (bookingDate.isAfter(start, "day") ||
-              bookingDate.isSame(start, "day")) &&
-            (bookingDate.isBefore(end, "day") ||
-              bookingDate.isSame(end, "day"));
+            bookingDate.isSameOrAfter(start, "day") &&
+            bookingDate.isSameOrBefore(end, "day");
           break;
 
         case DATE_CONDITIONS.ON_OR_AFTER:
         case DATE_CONDITIONS.AFTER:
-          include =
-            !!selected &&
-            (bookingDate.isAfter(selected, "day") ||
-              bookingDate.isSame(selected, "day"));
+          include = !!selected && bookingDate.isSameOrAfter(selected, "day");
           break;
 
         case DATE_CONDITIONS.BEFORE:
         case DATE_CONDITIONS.BEFORE_OR_ON:
-          include =
-            !!selected &&
-            (bookingDate.isBefore(selected, "day") ||
-              bookingDate.isSame(selected, "day"));
+          include = !!selected && bookingDate.isSameOrBefore(selected, "day");
           break;
 
         case DATE_CONDITIONS.EQUAL:
@@ -156,10 +161,8 @@ export const applyBookingFilters = ({
           const lastStart = now.subtract(value, unit);
 
           include =
-            (bookingDate.isAfter(lastStart, "day") ||
-              bookingDate.isSame(lastStart, "day")) &&
-            (bookingDate.isBefore(now, "day") ||
-              bookingDate.isSame(now, "day"));
+            bookingDate.isSameOrAfter(lastStart, "day") &&
+            bookingDate.isSameOrBefore(now, "day");
           break;
         }
 
