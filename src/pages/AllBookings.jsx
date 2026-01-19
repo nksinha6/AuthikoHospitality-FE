@@ -14,7 +14,6 @@ import {
   applyBookingFilters,
 } from "../utility/bookingUtils.js";
 
-// ✅ REAL API SERVICE
 import { bookingReadService } from "../services/bookingService.js";
 
 export default function AllBookings() {
