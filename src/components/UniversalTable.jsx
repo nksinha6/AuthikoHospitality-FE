@@ -59,7 +59,7 @@ const UniversalTable = memo(
                       } catch (error) {
                         console.error(
                           `Error formatting column ${col.key}:`,
-                          error
+                          error,
                         );
                         cellValue = rawValue;
                       }
@@ -87,7 +87,7 @@ const UniversalTable = memo(
         </table>
       </div>
     );
-  }
+  },
 );
 
 UniversalTable.propTypes = {
@@ -95,7 +95,7 @@ UniversalTable.propTypes = {
     PropTypes.shape({
       key: PropTypes.string.isRequired,
       label: PropTypes.string.isRequired,
-    })
+    }),
   ),
   data: PropTypes.arrayOf(PropTypes.object),
   format: PropTypes.objectOf(PropTypes.func),

@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
         } else {
           // Token expired, clear storage
           clearAuthData();
+          setIsAuthenticated(false);
         }
       } else {
         setIsAuthenticated(false);

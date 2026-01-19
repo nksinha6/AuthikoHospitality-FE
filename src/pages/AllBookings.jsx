@@ -42,7 +42,7 @@ export default function AllBookings() {
 
   const normalizedBookings = useMemo(
     () => normalizeBookings(bookings),
-    [bookings]
+    [bookings],
   );
 
   const [filteredBookings, setFilteredBookings] = useState([]);
