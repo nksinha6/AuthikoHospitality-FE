@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import CheckIns from "./pages/CheckIns.jsx";
-import TodaysBookings from "./pages/TodaysBookings.jsx";
+// import TodaysBookings from "./pages/TodaysBookings.jsx";
 import AllBookings from "./pages/AllBookings.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -18,7 +18,7 @@ export const router = createBrowserRouter([
     children: [
       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
       { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
-      { path: ROUTES.TODAYS_BOOKINGS, element: <TodaysBookings /> },
+      // { path: ROUTES.TODAYS_BOOKINGS, element: <TodaysBookings /> },
       { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
     ],
   },

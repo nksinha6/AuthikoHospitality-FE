@@ -45,6 +45,10 @@ export default function GuestVerification() {
   // Minor Logic State
   const [activeMinorForm, setActiveMinorForm] = useState(null);
 
+  // Checks Status Timer State
+  const [checkStatusTimers, setCheckStatusTimers] = useState({});
+  const [timeRemaining, setTimeRemaining] = useState({});
+
   // Initialize guest list
   useEffect(() => {
     if (adults > 0) {
@@ -75,7 +79,6 @@ export default function GuestVerification() {
     }
   }, [adults, phoneNumber, countryCode]);
 
-  // Cleanup polling intervals on unmount
   useEffect(() => {
     return () => {
       Object.values(pollingIntervals).forEach((intervalId) => {
@@ -83,6 +86,38 @@ export default function GuestVerification() {
       });
     };
   }, [pollingIntervals]);
+
+  // Check Status Timer Logic
+  useEffect(() => {
+    const timerInterval = setInterval(() => {
+      const now = Date.now();
+      const newTimeRemaining = {};
+      let hasActiveTimers = false;
+
+      Object.keys(checkStatusTimers).forEach((index) => {
+        const targetTime = checkStatusTimers[index];
+        if (targetTime > now) {
+          newTimeRemaining[index] = Math.ceil((targetTime - now) / 1000);
+          hasActiveTimers = true;
+        } else {
+          // Timer expired
+          newTimeRemaining[index] = 0;
+          // We can optionally remove it from checkStatusTimers here, or just let it stay as expired
+        }
+      });
+
+      if (hasActiveTimers || Object.keys(timeRemaining).some(k => timeRemaining[k] > 0)) {
+        setTimeRemaining((prev) => {
+          // Only update if changed to avoid unnecessary re-renders (optimization)
+          const updated = { ...prev, ...newTimeRemaining };
+          // Simple check if actually different? For now just set it.
+          return updated;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(timerInterval);
+  }, [checkStatusTimers]);
 
   const handlePhoneNumberChange = (index, value) => {
     const updatedGuests = [...guests];
@@ -143,11 +178,31 @@ export default function GuestVerification() {
       } else if (ensureResponse.verificationStatus === "pending") {
         // Case 2: Status pending - start polling for ID verification
         startIdVerificationWithDelay(index, phoneCountryCode, phoneno);
+
+        // Start 2-minute timer for "Check Status" button
+        setCheckStatusTimers((prev) => ({
+          ...prev,
+          [index]: Date.now() + GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT,
+        }));
+        setTimeRemaining((prev) => ({
+          ...prev,
+          [index]: GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT / 1000,
+        }));
       }
     } catch (error) {
       if (error.code === "USER_NOT_FOUND") {
         // Backend sends SMS, start polling after delay
         startIdVerificationWithDelay(index, phoneCountryCode, phoneno);
+
+        // Start 2-minute timer for "Check Status" button
+        setCheckStatusTimers((prev) => ({
+          ...prev,
+          [index]: Date.now() + GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT,
+        }));
+        setTimeRemaining((prev) => ({
+          ...prev,
+          [index]: GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT / 1000,
+        }));
       } else {
         // Handle other errors
         setGuests((prev) => {
@@ -326,6 +381,16 @@ export default function GuestVerification() {
         return prev;
       });
     }, GUEST_VERIFICATION.FACE_VERIFICATION_TIMEOUT);
+
+    // Start 30-second timer for "Check Status" button for Face Match
+    setCheckStatusTimers((prev) => ({
+      ...prev,
+      [index]: Date.now() + GUEST_VERIFICATION.FACE_VERIFICATION_TIMEOUT,
+    }));
+    setTimeRemaining((prev) => ({
+      ...prev,
+      [index]: GUEST_VERIFICATION.FACE_VERIFICATION_TIMEOUT / 1000,
+    }));
   };
 
   const handleRetryVerification = (index) => {
@@ -378,8 +443,20 @@ export default function GuestVerification() {
     }
   };
 
-  const handleManualVerification = async () => {
-    const index = manualVerificationGuestIndex;
+  const handleManualVerification = async (index) => {
+    // const index = manualVerificationGuestIndex; // passed as arg now or from closure
+    // But modifying to take index as argument if called directly from button click
+
+    // Set 30s cooldown timer
+    setCheckStatusTimers((prev) => ({
+      ...prev,
+      [index]: Date.now() + GUEST_VERIFICATION.MANUAL_CHECK_COOLDOWN,
+    }));
+    setTimeRemaining((prev) => ({
+      ...prev,
+      [index]: GUEST_VERIFICATION.MANUAL_CHECK_COOLDOWN / 1000,
+    }));
+
     const guest = guests[index];
     const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
       /^\+/,
@@ -433,8 +510,19 @@ export default function GuestVerification() {
     }
   };
 
-  const handleManualFaceMatchCheck = async () => {
-    const index = manualVerificationGuestIndex;
+  const handleManualFaceMatchCheck = async (index) => {
+    // const index = manualVerificationGuestIndex; // passed now
+
+    // Set 30s cooldown timer
+    setCheckStatusTimers((prev) => ({
+      ...prev,
+      [index]: Date.now() + GUEST_VERIFICATION.MANUAL_CHECK_COOLDOWN,
+    }));
+    setTimeRemaining((prev) => ({
+      ...prev,
+      [index]: GUEST_VERIFICATION.MANUAL_CHECK_COOLDOWN / 1000,
+    }));
+
     const guest = guests[index];
     const phoneCountryCode = GUEST_VERIFICATION.COUNTRY_CODE_NUMERIC.replace(
       /^\+/,
@@ -509,7 +597,7 @@ export default function GuestVerification() {
   const handleChangeNumber = (index) => {
     const updatedGuests = [...guests];
     updatedGuests[index].isVerified = false;
-    updatedGuests[index].phoneNumber = "";
+    updatedGuests[index].phoneNumber = countryCode;
     updatedGuests[index].aadhaarStatus = VERIFICATION_STATUS.PENDING;
     updatedGuests[index].faceStatus = VERIFICATION_STATUS.PENDING;
     updatedGuests[index].timestamp = null;
@@ -655,12 +743,12 @@ export default function GuestVerification() {
                 <h2 className="text-2xl font-bold text-white mb-1">
                   {UI_TEXT.GUEST_VERIFICATION_TITLE}
                 </h2>
-                <p className="text-sm text-white">
+                {/* <p className="text-sm text-white">
                   {UI_TEXT.GUEST_VERIFICATION_BOOKING_ID}:{" "}
                   <span className="font-semibold text-white">
                     {bookingId || "VXXXXXX"}
                   </span>
-                </p>
+                </p> */}
               </div>
               <div className="flex items-center gap-2 text-sm bg-blue-50 text-[#1b3631] px-3 py-1.5 rounded-full font-medium">
                 <User size={16} />
@@ -673,7 +761,7 @@ export default function GuestVerification() {
           </div>
 
           {/* Guest Verification Table */}
-          <div className="overflow-hidden">
+          <div className="">
             <table className="w-full text-sm text-left table-fixed">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
@@ -714,7 +802,7 @@ export default function GuestVerification() {
                       {String(index + 1).padStart(2, "0")}
                     </td>
 
-                    <td className="px-6 py-6 space-y-4 overflow-hidden">
+                    <td className="px-6 py-6 space-y-4">
                       {!guest.isVerified ? (
                         <div className="flex items-center gap-3 relative">
                           <div className="flex-1">
@@ -751,7 +839,7 @@ export default function GuestVerification() {
                           {guest.aadhaarStatus !== "verified" && (
                             <button
                               onClick={() => handleChangeNumber(index)}
-                              className="text-[#1b3631] hover:text-[#144032] text-sm font-medium underline-offset-2 hover:underline"
+                              className="text-[#1b3631] hover:text-[#144032] text-sm font-medium underline-offset-2 hover:underline cursor-pointer"
                             >
                               {UI_TEXT.GUEST_VERIFICATION_CHANGE_BUTTON}
                             </button>
@@ -896,11 +984,11 @@ export default function GuestVerification() {
                             </div>
                           ) : manualVerificationGuestIndex === index ? (
                             <div className="space-y-1">
-                              <span className="text-orange-500 text-sm font-medium">
+                              {/* <span className="text-orange-500 text-sm font-medium">
                                 Timeout
-                              </span>
+                              </span> */}
                               <button
-                                onClick={handleManualVerification}
+                                onClick={() => handleManualVerification(index)}
                                 className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1 cursor-pointer"
                               >
                                 Check Status Manually
@@ -912,11 +1000,20 @@ export default function GuestVerification() {
                               <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
                                 <Clock className="w-4 h-4 animate-spin-slow" />
                                 <span className="text-sm font-medium">
-                                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                                  {UI_TEXT.GUEST_VERIFICATION_VERIFYING}
                                 </span>
                               </div>
-                              <button className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1 cursor-pointer">
-                                {UI_TEXT.GUEST_VERIFICATION_RESEND_LINK}
+                              <button
+                                onClick={() => handleManualVerification(index)}
+                                disabled={timeRemaining[index] > 0}
+                                className={`text-xs font-medium pl-1 transition-colors ${timeRemaining[index] > 0
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "text-[#1b3631] hover:text-[#144032] cursor-pointer"
+                                  }`}
+                              >
+                                {timeRemaining[index] > 0
+                                  ? `Check Status (${Math.floor(timeRemaining[index] / 60)}:${String(timeRemaining[index] % 60).padStart(2, '0')})`
+                                  : UI_TEXT.GUEST_VERIFICATION_CHECK_STATUS}
                               </button>
                             </div>
                           ) : guest.aadhaarStatus ===
@@ -946,23 +1043,37 @@ export default function GuestVerification() {
                             <div className="space-y-1">
                               {manualVerificationGuestIndex === index ? (
                                 <>
-                                  <span className="text-orange-500 text-sm font-medium">
+                                  {/* <span className="text-orange-500 text-sm font-medium">
                                     Timeout
-                                  </span>
+                                  </span> */}
                                   <button
-                                    onClick={handleManualFaceMatchCheck}
+                                    onClick={() => handleManualFaceMatchCheck(index)}
                                     className="text-[#1b3631] hover:text-[#144032] text-xs font-medium pl-1 cursor-pointer block"
                                   >
                                     Check Status Manually
                                   </button>
                                 </>
                               ) : (
-                                <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
-                                  <Clock className="w-4 h-4 animate-spin-slow" />
-                                  <span className="text-sm font-medium">
-                                    {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
-                                  </span>
-                                </div>
+                                <>
+                                  <div className="flex items-center gap-2 text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg w-fit">
+                                    <Clock className="w-4 h-4 animate-spin-slow" />
+                                    <span className="text-sm font-medium">
+                                      {UI_TEXT.GUEST_VERIFICATION_VERIFYING}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleManualFaceMatchCheck(index)}
+                                    disabled={timeRemaining[index] > 0}
+                                    className={`text-xs font-medium pl-1 transition-colors ${timeRemaining[index] > 0
+                                      ? "text-gray-400 cursor-not-allowed"
+                                      : "text-[#1b3631] hover:text-[#144032] cursor-pointer"
+                                      }`}
+                                  >
+                                    {timeRemaining[index] > 0
+                                      ? `Check Status (${Math.floor(timeRemaining[index] / 60)}:${String(timeRemaining[index] % 60).padStart(2, '0')})`
+                                      : UI_TEXT.GUEST_VERIFICATION_CHECK_STATUS}
+                                  </button>
+                                </>
                               )}
                             </div>
                           ) : guest.faceStatus ===
@@ -1043,7 +1154,7 @@ export default function GuestVerification() {
               {isConfirmingCheckin ? (
                 <>
                   <Clock className="w-4 h-4 mr-2 animate-spin" />
-                  {UI_TEXT.GUEST_VERIFICATION_PROCESSING}
+                  {UI_TEXT.GUEST_VERIFICATION_VERIFYING}
                 </>
               ) : (
                 UI_TEXT.GUEST_VERIFICATION_CONFIRM_CHECKIN
@@ -1089,6 +1200,6 @@ export default function GuestVerification() {
         confirmText="Yes, Verify Manually"
         cancelText="Cancel"
       />
-    </div>
+    </div >
   );
 }

@@ -40,6 +40,7 @@ export const GUEST_VERIFICATION = {
   POLL_INITIAL_DELAY: 30000, // 60 seconds before starting poll
   POLL_INTERVAL: 10000, // 10 seconds between polls
   MAX_RETRY_ATTEMPTS: 2, // Maximum retry attempts for ID verification
-  ID_VERIFICATION_TIMEOUT: 30000, // 60 sec timeout for ID verification polling
-  FACE_VERIFICATION_TIMEOUT: 30000, // 60 sec timeout for face verification polling
+  ID_VERIFICATION_TIMEOUT: 120000, // 2 minutes timeout for ID verification polling
+  FACE_VERIFICATION_TIMEOUT: 30000, // 30 sec timeout for face verification polling
+  MANUAL_CHECK_COOLDOWN: 30000, // 30 seconds cooldown for manual status check
 };

@@ -1,16 +1,17 @@
 // Topbar.jsx
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { UI_TEXT, ROUTES } from "../constants/ui.js";
 
 export default function Topbar() {
   const [showDropdown, setShowDropdown] = useState(false);
+  const location = useLocation();
 
   return (
     <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        <SearchInput />
+        {location.pathname !== ROUTES.CHECK_INS && location.pathname !== ROUTES.GUEST_VERIFICATION ? <SearchInput /> : <div></div>}
 
         <div className="flex items-center gap-6">
           <HelpButton />
