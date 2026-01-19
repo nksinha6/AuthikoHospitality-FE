@@ -246,7 +246,7 @@ const DateHourFilter = ({ onApply }) => {
                         placeholder="0"
                       />
                       <select
-                        className="flex-1 px-2 py-2 border border-gray-300 rounded text-sm bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[url('data:image/svg+xml;utf8,<svg fill=%22black%22 height=%2216%22 width=%2216%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M4 6l4 4 4-4z%22/></svg>')] bg-no-repeat bg-[right_10px_center] bg-[length:12px]"
+                        className="flex-1 px-2 py-2 border border-gray-300 rounded text-sm bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[url('data:image/svg+xml;utf8,<svg fill=%22black%22 height=%2216%22 width=%2216%22 xmlns=%22http://www.w3.org/2000/svg%22><path d=%22M4 6l4 4 4-4z%22/></svg>')] bg-no-repeat bg-position-[right_10px_center] bg-size-[12px]"
                         value={timeUnit}
                         onChange={(e) => handleTimeUnitChange(e.target.value)}
                       >

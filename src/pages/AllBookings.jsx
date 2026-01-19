@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
 import UniversalTable from "../components/UniversalTable.jsx";
+import { bookingService } from "../services/bookingService.js";
 import {
   formatShortDate,
   formatPhone,
@@ -13,9 +14,6 @@ import {
   normalizeBookings,
   applyBookingFilters,
 } from "../utility/bookingUtils.js";
-
-// ✅ REAL API SERVICE
-import { bookingReadService } from "../services/bookingService.js";
 
 export default function AllBookings() {
   const [loading, setLoading] = useState(true);
