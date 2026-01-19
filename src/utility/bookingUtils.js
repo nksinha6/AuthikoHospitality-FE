@@ -172,34 +172,24 @@ export const applyBookingFilters = ({
     }
 
     /* ---------- TEXT FILTERS ---------- */
-
-    // NAME
-    if (filters?.name?.trim()) {
+    if (filters?.name) {
       const q = filters.name.toLowerCase();
-      if (
-        !(
-          (b.firstName || "").toLowerCase().includes(q) ||
-          (b.surname || "").toLowerCase().includes(q)
-        )
-      ) {
-        return false;
-      }
+      include =
+        include &&
+        ((b.firstName || "").toLowerCase().includes(q) ||
+          (b.surname || "").toLowerCase().includes(q));
     }
 
-    // PHONE
-    if (filters?.phone?.trim()) {
-      if (
-        !(b.phone || "").toLowerCase().includes(filters.phone.toLowerCase())
-      ) {
-        return false;
-      }
+    if (filters?.phone) {
+      include =
+        include &&
+        (b.phone || "").toLowerCase().includes(filters.phone.toLowerCase());
     }
 
-    // OTA ✅ FIXED
-    if (filters?.ota?.trim()) {
-      if (!(b.ota || "").toLowerCase().includes(filters.ota.toLowerCase())) {
-        return false;
-      }
+    if (filters?.ota) {
+      include =
+        include &&
+        (b.ota || "").toLowerCase().includes(filters.ota.toLowerCase());
     }
 
     return include;
