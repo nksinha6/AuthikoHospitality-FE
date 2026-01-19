@@ -74,7 +74,7 @@ export const UI_TEXT = {
   BUTTON_CREATE_WALKIN: "Create walk-in",
   BUTTON_VERIFY_NOW: "Verify Now",
   BUTTON_VIEW_DETAILS: "View Details",
-  BUTTON_VIEW_CHECKIN_DETAILS: "View verification details",
+  BUTTON_VIEW_CHECKEDIN: "Verified",
   BUTTON_START_CHECKIN: "Start verification",
   BUTTON_NO_SHOW: "No show",
 

@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   INITIATE_FACE_MATCH: "booking/face-match/initiate",
   FACE_MATCH_STATUS: "HotelBookingRead/face-match/status",
   END_VERIFICATION: "booking/end_verification",
+  ALL_BOOKINGS: "HotelBookingRead/all_booking",
 };
 
 // Storage Keys
