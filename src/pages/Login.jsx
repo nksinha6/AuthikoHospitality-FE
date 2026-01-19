@@ -27,7 +27,8 @@ export default function Login() {
   });
   const [logoError, setLogoError] = useState(false);
 
-  const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
+  // const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
+  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-full max-w-[420px]">
+      <div className="w-full max-w-105">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-10">
           {/* Header Section */}
           <div className="text-center">
@@ -194,16 +195,16 @@ export default function Login() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <a
+              {/* <a
                 href="#forgot-password"
                 className="text-sm text-brand font-medium hover:text-brand/80 transition-colors float-right mt-2"
               >
                 Forgot password?
-              </a>
+              </a> */}
             </div>
 
             {/* Remember Me Checkbox */}
-            <div className="mb-8 flex items-center">
+            {/* <div className="mb-8 flex items-center">
               <input
                 type="checkbox"
                 id="remember-me"
@@ -218,7 +219,7 @@ export default function Login() {
               >
                 Remember me on this device
               </label>
-            </div>
+            </div> */}
 
             {/* Sign In Button */}
             <button
@@ -241,7 +242,7 @@ export default function Login() {
           </form>
 
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          {/* <div className="mt-8 pt-6 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
               <a
@@ -251,7 +252,7 @@ export default function Login() {
                 Contact Us
               </a>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
