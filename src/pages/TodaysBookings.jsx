@@ -11,8 +11,9 @@ import {
   filterBookings,
   formatPhone,
   formatGuests,
+  normalizeBookings,
 } from "../utility/bookingUtils.js";
-import { bookingService } from "../services/bookingService.js";
+import { bookingReadService } from "../services/bookingService.js";
 
 export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
