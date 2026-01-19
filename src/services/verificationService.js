@@ -14,7 +14,7 @@ export const verificationService = {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.BEGIN_VERIFICATION,
-        payload, // ✅ SEND BODY HERE
+        payload,
         {
           timeout: 10000,
         },
