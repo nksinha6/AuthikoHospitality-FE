@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
 import UniversalTable from "../components/UniversalTable.jsx";
-import { bookingService } from "../services/bookingService.js";
 import {
   formatShortDate,
   formatPhone,
