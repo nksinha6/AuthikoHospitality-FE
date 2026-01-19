@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import dayjs from "dayjs";
 import { UI_TEXT } from "../constants/ui.js";
 import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
@@ -10,30 +11,41 @@ import {
   filterBookings,
   formatPhone,
   formatGuests,
-} from "../utility/BookingUtils.js";
-import { bookingService } from "../services/BookingService.js";
+  normalizeBookings,
+} from "../utility/bookingUtils.js";
+
+// ✅ SAME API AS ALL BOOKINGS
+import { bookingReadService } from "../services/bookingService.js";
 
 export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
+
+  // ✅ SAME AS OLD CODE (REQUIRED FOR DROPDOWN)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const [filters, setFilters] = useState({
     guest: "",
     phone: "",
     ota: "",
-    status: "not-checked-in",
+    status: "not-checked-in", // SAME AS OLD UI
   });
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
 
-      // Use the booking service to fetch data
-      const data = await bookingService.fetchTodaysBookings();
+      const response = await bookingReadService.fetchAllBookings();
+      const data = Array.isArray(response) ? response : response?.data || [];
 
-      setBookings(data);
+      // normalize backend response
+      const normalized = normalizeBookings(data);
+
+      // ONLY TODAY'S BOOKINGS
+      const todays = normalized.filter((b) => b.date.isSame(dayjs(), "day"));
+
+      setBookings(todays);
       setError(null);
     } catch (err) {
       setError(
@@ -57,9 +69,7 @@ export default function TodaysBookings() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   if (error) {
     return (
@@ -94,7 +104,7 @@ export default function TodaysBookings() {
         </button>
       </div>
 
-      {/* FILTERS INPUT ROW - FIRST LINE */}
+      {/* FILTERS INPUT ROW - FIRST LINE (UNCHANGED) */}
       <div className="flex gap-3 mb-4">
         <input
           type="text"
@@ -121,7 +131,7 @@ export default function TodaysBookings() {
         />
       </div>
 
-      {/* FILTERS INPUT ROW - SECOND LINE */}
+      {/* FILTERS INPUT ROW - SECOND LINE (UNCHANGED UI) */}
       <div className="flex justify-between items-center mb-6">
         {/* STATUS DROPDOWN */}
         <div className="relative">
@@ -174,20 +184,20 @@ export default function TodaysBookings() {
         </div>
 
         {/* EXPORT BUTTONS */}
-        <div className="flex gap-3 ">
-          <button className="flex text-sm items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+        <div className="flex gap-3">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export PDF
           </button>
 
-          <button className="flex text-sm items-center gap-2 px-4 py-2 border! border-gray-300! rounded-lg hover:bg-gray-50 cursor-pointer">
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
             <FiDownload />
             Export EXL
           </button>
         </div>
       </div>
 
-      {/* BOOKINGS TABLE */}
+      {/* BOOKINGS TABLE (UI UNCHANGED) */}
       <UniversalTable
         columns={[
           { key: "date", label: UI_TEXT.TABLE_DATE },
@@ -204,21 +214,23 @@ export default function TodaysBookings() {
         format={{
           date: (d) => formatShortDate(d),
           phone: (p) => formatPhone(p),
-          guests: (_, row) => formatGuests(row.adults, row.minors), // Using the utility function
+          guests: (_, row) => formatGuests(row.adults, row.minors),
+
+          // ✅ LOGIC UPDATED, UI SAME
           checkedIn: (_, row) => {
-            if (!row.checkedIn) {
+            if (!row.windowEnd) {
               return (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <FaCircle className="text-yellow-500 text-xs" />
+                <div className="flex items-center gap-2 text-gray-600 leading-none">
+                  <FaCircle className="text-yellow-500 text-xs mt-[1px]" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </div>
               );
             }
 
             return (
-              <div className="flex items-center gap-2 text-gray-600">
-                <FaCircle className="text-green-500 text-xs" />
-                {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
+              <div className="flex items-center gap-2 text-gray-600 leading-none">
+                <FaCircle className="text-green-500 text-xs mt-[1px]" />
+                {UI_TEXT.BUTTON_VIEW_CHECKEDIN}
               </div>
             );
           },

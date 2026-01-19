@@ -3,9 +3,8 @@ import { UI_TEXT } from "../constants/ui.js";
 import DateFilter from "../components/DateHourFilter.jsx";
 import Loader from "../components/Loader.jsx";
 import dayjs from "dayjs";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
-import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
 import {
   formatShortDate,
@@ -14,23 +13,36 @@ import {
   normalizeBookings,
   applyBookingFilters,
 } from "../utility/bookingUtils.js";
-import { bookingService } from "../services/bookingService.js";
+
+// ✅ REAL API SERVICE
+import { bookingReadService } from "../services/bookingService.js";
 
 export default function AllBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [dateFilter, setDateFilter] = useState(null); // Store date filter state
+  const [dateFilter, setDateFilter] = useState(null);
 
+  // ✅ UPDATED: fetch from real API + log response
   const fetchAllBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await bookingService.fetchBookings();
-      setBookings(data);
+      const response = await bookingReadService.fetchAllBookings();
+
+      // 🔹 LOG API RESPONSE
+      console.log("📦 All Bookings API Response:", response);
+
+      // Handle different response shapes
+      const bookingsData = Array.isArray(response)
+        ? response
+        : response?.data || [];
+
+      setBookings(bookingsData);
     } catch (err) {
-      setError("Failed to load bookings. Please try again.");
+      console.error("❌ Fetch bookings error:", err);
+      setError(err.message || "Failed to load bookings. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +50,7 @@ export default function AllBookings() {
 
   useEffect(() => {
     fetchAllBookings();
-  }, []);
+  }, [fetchAllBookings]);
 
   const normalizedBookings = useMemo(
     () => normalizeBookings(bookings),
@@ -54,14 +66,7 @@ export default function AllBookings() {
   });
 
   const handleDateFilterApply = (filterData) => {
-    // Handle both apply and clear actions
-    if (!filterData) {
-      // Clear filter
-      setDateFilter(null);
-    } else {
-      // Apply filter
-      setDateFilter(filterData);
-    }
+    setDateFilter(filterData || null);
   };
 
   const applyAllFilters = useCallback(() => {
@@ -74,7 +79,6 @@ export default function AllBookings() {
     setFilteredBookings(filtered);
   }, [normalizedBookings, dateFilter, filters]);
 
-  // Apply all filters whenever any filter changes
   useEffect(() => {
     applyAllFilters();
   }, [applyAllFilters]);
@@ -84,9 +88,7 @@ export default function AllBookings() {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   if (error) {
     return (
@@ -114,13 +116,13 @@ export default function AllBookings() {
           </h2>
           <p className="text-gray-600 mt-1">{UI_TEXT.ALL_BOOKINGS_SUBTITLE}</p>
         </div>
-        <button className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand/90 cursor-pointer">
+        <button className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand/90">
           <FiPlus className="text-lg" />
           {UI_TEXT.BUTTON_CREATE_WALKIN}
         </button>
       </div>
 
-      {/* Filters */}
+      {/* FILTERS */}
       <div className="mb-6">
         <div className="flex gap-3 mb-3">
           <input
@@ -129,7 +131,7 @@ export default function AllBookings() {
             name="name"
             value={filters.name}
             onChange={handleInputChange}
-            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           />
           <input
             type="text"
@@ -137,7 +139,7 @@ export default function AllBookings() {
             name="phone"
             value={filters.phone}
             onChange={handleInputChange}
-            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           />
           <input
             type="text"
@@ -145,7 +147,7 @@ export default function AllBookings() {
             name="ota"
             value={filters.ota}
             onChange={handleInputChange}
-            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:border-transparent hover:bg-gray-50 hover:border-gray-400"
+            className="flex-1 text-sm max-w-xs px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           />
         </div>
       </div>
@@ -153,13 +155,11 @@ export default function AllBookings() {
       <div className="flex justify-between items-center mb-6">
         <DateFilter onApply={handleDateFilterApply} />
         <div className="flex gap-3">
-          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-            <FiDownload />
-            Export PDF
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <FiDownload /> Export PDF
           </button>
-          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
-            <FiDownload />
-            Export EXL
+          <button className="flex text-sm items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <FiDownload /> Export EXL
           </button>
         </div>
       </div>
@@ -182,30 +182,32 @@ export default function AllBookings() {
           date: (d) => formatShortDate(d),
           phone: (p) => formatPhone(p),
           guests: (_, row) => formatGuests(row.adults, row.minors),
-
-          checkedIn: (value, row) => {
-            if (!row.checkedIn && row.date.isBefore(dayjs(), "day")) {
+          checkedIn: (_, row) => {
+            // 🔴 No-show (past date + not completed)
+            if (!row.windowEnd && row.date.isBefore(dayjs(), "day")) {
               return (
-                <div className="flex items-center gap-2 text-gray-600 ">
+                <div className="flex items-center gap-2 text-gray-600">
                   <FaCircle className="text-red-500 text-xs" />
                   {UI_TEXT.BUTTON_NO_SHOW}
                 </div>
               );
             }
 
-            if (!row.checkedIn) {
+            // 🟡 Pending → Start Verification
+            if (!row.windowEnd) {
               return (
-                <div className="flex items-center gap-2 text-gray-600 ">
-                  <FaCircle className="text-yellow-500 text-xs" />
+                <div className="flex items-center gap-2 text-gray-600 leading-none">
+                  <FaCircle className="text-yellow-500 text-xs mt-[1px]" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </div>
               );
             }
 
+            // 🟢 Completed → View Verification
             return (
-              <div className="flex items-center gap-2 text-gray-600 ">
-                <FaCircle className="text-green-500 text-xs" />
-                {UI_TEXT.BUTTON_VIEW_CHECKIN_DETAILS}
+              <div className="flex items-center gap-2 text-gray-600 leading-none">
+                <FaCircle className="text-green-500 text-xs mt-[1px]" />
+                {UI_TEXT.BUTTON_VIEW_CHECKEDIN}
               </div>
             );
           },
