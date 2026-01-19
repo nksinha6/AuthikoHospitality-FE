@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
-import { authService } from "../services/authService.js";
+import { authService } from "../services/AuthService.js";
 import Loader from "../components/Loader.jsx";
 import { UI_TEXT, FORM_FIELDS, ROUTES } from "../constants/ui.js";
 import { STORAGE_KEYS } from "../constants/storage.js";

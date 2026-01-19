@@ -1,5 +1,4 @@
 import apiClient from "./apiClient.js";
-
 /**
  * Service for check-in related API calls
  */
@@ -17,13 +16,14 @@ export const checkInService = {
       // TODO: Replace with actual API endpoint when available
       // const response = await apiClient.post("/check-ins", checkInData);
       // return response.data;
-      
+
       // Simulate API call for now
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return { success: true, data: checkInData };
     } catch (error) {
-      throw new Error(error.response?.data?.message || "Failed to submit check-in");
+      throw new Error(
+        error.response?.data?.message || "Failed to submit check-in"
+      );
     }
   },
 };
-

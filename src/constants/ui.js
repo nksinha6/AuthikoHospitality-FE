@@ -105,6 +105,44 @@ export const UI_TEXT = {
   START_VERIFICATION_BUTTON: "Start Guest Verification",
   CANCEL_BUTTON: "Cancel",
 
+  // Guest Verification
+  GUEST_VERIFICATION_TITLE: "Guest Verification",
+  GUEST_VERIFICATION_SUBTITLE:
+    "Verify guest identities and complete check-in process",
+  GUEST_VERIFICATION_BOOKING_ID: "Booking ID",
+  GUEST_VERIFICATION_ADULTS_MINORS: "Adults, Minors",
+  GUEST_VERIFICATION_SR_NO: "Sr. No.",
+  GUEST_VERIFICATION_GUEST_INFO: "Guest Information",
+  GUEST_VERIFICATION_ID_STATUS: "ID Status",
+  GUEST_VERIFICATION_FACE_ID: "Face ID",
+  GUEST_VERIFICATION_TIMESTAMP: "Timestamp",
+  GUEST_VERIFICATION_ACTION: "Action",
+  GUEST_VERIFICATION_VERIFY_BUTTON: "Verify",
+  GUEST_VERIFICATION_CHANGE_BUTTON: "Change",
+  GUEST_VERIFICATION_ADD_MINOR: "Add Minor",
+  GUEST_VERIFICATION_RESEND_LINK: "Resend link",
+  GUEST_VERIFICATION_VIEW_DETAILS: "View Details",
+  GUEST_VERIFICATION_CANCEL: "Cancel",
+  GUEST_VERIFICATION_CONFIRM_CHECKIN: "Confirm Check-in",
+  GUEST_VERIFICATION_PROCESSING: "Processing...",
+  GUEST_VERIFICATION_VERIFIED: "Verified",
+  GUEST_VERIFICATION_SUCCESS_MESSAGE: "Booking check-in Successful!",
+  GUEST_VERIFICATION_CANCEL_CONFIRM: "Cancel verification process?",
+  GUEST_VERIFICATION_PHONE_PLACEHOLDER: "Enter mobile number",
+  GUEST_VERIFICATION_CHILD_NAME_PLACEHOLDER: "Child Name",
+  GUEST_VERIFICATION_AGE_PLACEHOLDER: "Age",
+  GUEST_VERIFICATION_MINOR_NAME_LABEL: "Name",
+  GUEST_VERIFICATION_MINOR_AGE_LABEL: "Age",
+  GUEST_VERIFICATION_ACCOMPANYING_MINORS: "Accompanying Minors",
+  GUEST_VERIFICATION_YEARS: "years",
+
+  // Modal
+  MODAL_SUCCESS_TITLE: "Success!",
+  MODAL_GUEST_DETAILS_TITLE: "Guest Details",
+  MODAL_PHONE_NUMBER: "Phone Number",
+  MODAL_AADHAAR_STATUS: "Aadhaar Status",
+  MODAL_FACE_STATUS: "Face Status",
+
   // Loader
   LOADER_TEXT: "Loading...",
 };
@@ -122,9 +160,33 @@ export const FORM_FIELDS = {
 // Routes
 export const ROUTES = {
   LOGIN: "/login",
-  DASHBOARD: "/",
-  ALL_BOOKINGS: "/all-bookings",
-  TODAYS_BOOKINGS: "/todays-bookings",
   CHECK_INS: "/check-ins",
   GUEST_VERIFICATION: "/guest-verification",
+  TODAYS_BOOKINGS: "/todays-bookings",
+  ALL_BOOKINGS: "/all-bookings",
+};
+
+// Filter Conditions
+export const DATE_CONDITIONS = {
+  AFTER: "is after",
+  ON_OR_AFTER: "is on or after",
+  BEFORE: "is before",
+  BEFORE_OR_ON: "is before or on",
+  BETWEEN: "is between",
+  LAST: "is in the last",
+  EQUAL: "is equal to",
+};
+
+// Booking OTA
+export const OTA_OPTIONS = {
+  BOOKING_COM: "Booking.com",
+  AIRBNB: "Airbnb",
+  EXPEDIA: "Expedia",
+  HOTELS_COM: "Hotels.com",
+  AGODA: "Agoda",
+  VRBO: "Vrbo",
+  TRIPADVISOR: "Tripadvisor",
+  MAKE_MY_TRIP: "MakeMyTrip",
+  GOIBIBO: "Goibibo",
+  WALK_IN: "Walk-In",
 };

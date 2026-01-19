@@ -5,15 +5,25 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import { DATE_CONDITIONS } from "../constants/ui";
+
+import {
+  DEFAULT_DATE_FILTER,
+  sanitizeNumberInput,
+  requiresTimeUnitInput,
+  getFormattedFilterText,
+} from "../utility/dateFilterUtils";
 
 const DateHourFilter = ({ onApply }) => {
-  const [condition, setCondition] = useState("is after");
-  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [condition, setCondition] = useState(DEFAULT_DATE_FILTER.condition);
+  const [selectedDate, setSelectedDate] = useState(
+    DEFAULT_DATE_FILTER.selectedDate
+  );
   const [selectedDateOpen, setSelectedDateOpen] = useState(false);
-  const [startDate, setStartDate] = useState(dayjs());
-  const [endDate, setEndDate] = useState(dayjs());
-  const [value, setValue] = useState("1");
-  const [timeUnit, setTimeUnit] = useState("months");
+  const [startDate, setStartDate] = useState(DEFAULT_DATE_FILTER.startDate);
+  const [endDate, setEndDate] = useState(DEFAULT_DATE_FILTER.endDate);
+  const [value, setValue] = useState(DEFAULT_DATE_FILTER.value);
+  const [timeUnit, setTimeUnit] = useState(DEFAULT_DATE_FILTER.timeUnit);
   const [isFilterActive, setIsFilterActive] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isConditionDropdownOpen, setIsConditionDropdownOpen] = useState(false);
@@ -23,15 +33,7 @@ const DateHourFilter = ({ onApply }) => {
   const popupRef = useRef(null);
   const filterRef = useRef(null);
 
-  const conditionOptions = [
-    "is after",
-    "is in the last",
-    "is equal to",
-    "is between",
-    "is on or after",
-    "is before or on",
-    "is before",
-  ];
+  const conditionOptions = Object.values(DATE_CONDITIONS);
 
   const timeUnitOptions = ["months", "days", "hours"];
 
@@ -50,8 +52,7 @@ const DateHourFilter = ({ onApply }) => {
   }, []);
 
   const handleValueChange = useCallback((e) => {
-    const v = e.target.value.replace(/[^0-9]/g, "");
-    setValue(v);
+    setValue(sanitizeNumberInput(e.target.value));
   }, []);
 
   const handleTimeUnitChange = useCallback((unit) => {
@@ -76,43 +77,25 @@ const DateHourFilter = ({ onApply }) => {
 
   const handleClearFilter = useCallback(() => {
     setIsFilterActive(false);
-    setCondition("is after");
-    setSelectedDate(dayjs());
-    setStartDate(dayjs());
-    setEndDate(dayjs());
-    setValue("1");
-    setTimeUnit("months");
+    setCondition(DEFAULT_DATE_FILTER.condition);
+    setSelectedDate(DEFAULT_DATE_FILTER.selectedDate);
+    setStartDate(DEFAULT_DATE_FILTER.startDate);
+    setEndDate(DEFAULT_DATE_FILTER.endDate);
+    setValue(DEFAULT_DATE_FILTER.value);
+    setTimeUnit(DEFAULT_DATE_FILTER.timeUnit);
 
-    // Reset the filter by sending null or empty values
-    if (onApply) {
-      onApply(null); // or send empty filter object
-    }
+    onApply(null);
   }, [onApply]);
 
-  const formatDate = (dateObj) => {
-    if (!dateObj) return "";
-    return dayjs(dateObj).format("DD/MMM/YY");
-  };
-
-  const getFormattedFilterText = useCallback(() => {
-    switch (condition) {
-      case "is in the last":
-        return `${condition} ${value} ${timeUnit}`;
-      case "is between":
-        return `${condition} ${formatDate(startDate)} and ${formatDate(
-          endDate
-        )}`;
-      case "is after":
-      case "is on or after":
-        return `${condition} ${formatDate(selectedDate)}`;
-      case "is before":
-      case "is before or on":
-        return `${condition} ${formatDate(selectedDate)}`;
-      case "is equal to":
-        return `${condition} ${formatDate(selectedDate)}`;
-      default:
-        return `${condition} ${formatDate(selectedDate)}`;
-    }
+  const formattedFilterText = useCallback(() => {
+    return getFormattedFilterText({
+      condition,
+      value,
+      timeUnit,
+      startDate,
+      endDate,
+      selectedDate,
+    });
   }, [condition, value, timeUnit, startDate, endDate, selectedDate]);
 
   // Click outside handler for both dropdowns and popup
@@ -155,7 +138,7 @@ const DateHourFilter = ({ onApply }) => {
     };
   }, [isPopupOpen, isConditionDropdownOpen]);
 
-  const requiresTimeUnitInput = condition === "is in the last";
+  const showTimeUnitInput = requiresTimeUnitInput(condition);
 
   return (
     <div className="relative inline-block font-sans" ref={filterRef}>
@@ -172,7 +155,7 @@ const DateHourFilter = ({ onApply }) => {
       >
         <span className="text-sm  text-gray-500 pl-2">Date filter</span>
         <span className="flex-1 ml-2 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-gray-600">
-          {isFilterActive ? getFormattedFilterText() : ""}
+          {isFilterActive ? formattedFilterText() : ""}
         </span>
 
         {/* Clear icon (only shown when filter is active) */}
@@ -249,7 +232,7 @@ const DateHourFilter = ({ onApply }) => {
 
               {/* INPUT SECTION */}
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                {requiresTimeUnitInput ? (
+                {showTimeUnitInput ? (
                   <div className="flex items-center gap-2 w-full">
                     <div className="rotate-180">
                       <FiCornerUpLeft size={20} className="text-blue-500" />
@@ -285,7 +268,7 @@ const DateHourFilter = ({ onApply }) => {
                         label=""
                         value={startDate}
                         onChange={(newValue) => setStartDate(newValue)}
-                        format="DD/MMM/YY"
+                        format="DD MMM YY"
                         open={startDateOpen}
                         onOpen={() => setStartDateOpen(true)}
                         onClose={() => setStartDateOpen(false)}
@@ -293,7 +276,7 @@ const DateHourFilter = ({ onApply }) => {
                         slotProps={{
                           textField: {
                             size: "small",
-                            placeholder: "DD/MMM/YY",
+                            placeholder: "DD MMM YY",
                             InputProps: {
                               endAdornment: null,
                               sx: {
@@ -320,7 +303,7 @@ const DateHourFilter = ({ onApply }) => {
                         label=""
                         value={endDate}
                         onChange={(newValue) => setEndDate(newValue)}
-                        format="DD/MMM/YY"
+                        format="DD MMM YY"
                         open={endDateOpen}
                         onOpen={() => setEndDateOpen(true)}
                         onClose={() => setEndDateOpen(false)}
@@ -328,7 +311,7 @@ const DateHourFilter = ({ onApply }) => {
                         slotProps={{
                           textField: {
                             size: "small",
-                            placeholder: "DD/MMM/YY",
+                            placeholder: "DD MMM YY",
                             InputProps: {
                               endAdornment: null,
                               sx: {
@@ -361,7 +344,7 @@ const DateHourFilter = ({ onApply }) => {
                       label=""
                       value={selectedDate}
                       onChange={(newValue) => setSelectedDate(newValue)}
-                      format="DD/MMM/YY"
+                      format="DD MMM YY"
                       open={selectedDateOpen}
                       onOpen={() => setSelectedDateOpen(true)}
                       onClose={() => setSelectedDateOpen(false)}
@@ -369,7 +352,7 @@ const DateHourFilter = ({ onApply }) => {
                       slotProps={{
                         textField: {
                           size: "small",
-                          placeholder: "DD/MMM/YY",
+                          placeholder: "DD MMM YY",
                           InputProps: {
                             endAdornment: null,
                             sx: {

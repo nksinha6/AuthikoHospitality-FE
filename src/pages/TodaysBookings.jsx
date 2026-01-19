@@ -1,64 +1,23 @@
 import { useMemo, useState, useEffect } from "react";
 import { UI_TEXT } from "../constants/ui.js";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
-import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
 import Loader from "../components/Loader.jsx";
-
-const getTodayDateFormatted = () => {
-  return new Date().toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const getFullHeaderDate = () => {
-  const date = new Date();
-  const dayName = date.toLocaleDateString("en-IN", { weekday: "long" });
-  const shortDate = date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
-  return `${dayName} / ${shortDate}`;
-};
-
-const formatShortDate = (d) => {
-  return new Date(d).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
-};
-
-const filterBookings = (bookings, filters) => {
-  const guestQuery = filters.guest.toLowerCase();
-  const otaQuery = filters.ota.toLowerCase();
-
-  return bookings.filter((b) => {
-    const matchesGuest = b.leadGuest.toLowerCase().includes(guestQuery);
-    const matchesPhone = b.phone.includes(filters.phone);
-    const matchesOta = b.ota.toLowerCase().includes(otaQuery);
-    const matchesStatus =
-      filters.status === ""
-        ? true
-        : filters.status === "checked-in"
-        ? b.checkedIn === true
-        : b.checkedIn === false;
-
-    return matchesGuest && matchesPhone && matchesOta && matchesStatus;
-  });
-};
+import {
+  getFullHeaderDate,
+  formatShortDate,
+  filterBookings,
+  formatPhone,
+  formatGuests,
+} from "../utility/BookingUtils.js";
+import { bookingService } from "../services/BookingService.js";
 
 export default function TodaysBookings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-
-  const today = getTodayDateFormatted();
 
   const [filters, setFilters] = useState({
     guest: "",
@@ -67,308 +26,35 @@ export default function TodaysBookings() {
     status: "not-checked-in",
   });
 
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+
+      // Use the booking service to fetch data
+      const data = await bookingService.fetchTodaysBookings();
+
+      setBookings(data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err.message || "Failed to load today's bookings. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const mockBookings = [
-          {
-            date: today,
-            bookingId: "BK202503",
-            ota: "MakeMyTrip",
-            leadGuest: "Rahul Verma",
-            firstName: "Rahul",
-            surname: "Verma",
-            phone: "+91-9123456780",
-            guests: 4,
-            adults: 3,
-            minors: 1,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202504",
-            ota: "Agoda",
-            leadGuest: "Sneha Patel",
-            firstName: "Sneha",
-            surname: "Patel",
-            phone: "+91-9876501234",
-            guests: 2,
-            adults: 2,
-            minors: 0,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202505",
-            ota: "Booking.com",
-            leadGuest: "Amit Shah",
-            firstName: "Amit",
-            surname: "Shah",
-            phone: "+91-9001122334",
-            guests: 3,
-            adults: 2,
-            minors: 1,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202506",
-            ota: "Goibibo",
-            leadGuest: "Pooja Singh",
-            firstName: "Pooja",
-            surname: "Singh",
-            phone: "+91-9887766554",
-            guests: 1,
-            adults: 1,
-            minors: 0,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202507",
-            ota: "MakeMyTrip",
-            leadGuest: "Karan Malhotra",
-            firstName: "Karan",
-            surname: "Malhotra",
-            phone: "+91-9765432109",
-            guests: 5,
-            adults: 4,
-            minors: 1,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202508",
-            ota: "Booking.com",
-            leadGuest: "Neha Joshi",
-            firstName: "Neha",
-            surname: "Joshi",
-            phone: "+91-9876123456",
-            guests: 2,
-            adults: 1,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202509",
-            ota: "Agoda",
-            leadGuest: "Suresh Kumar",
-            firstName: "Suresh",
-            surname: "Kumar",
-            phone: "+91-9012345678",
-            guests: 3,
-            adults: 3,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202510",
-            ota: "Goibibo",
-            leadGuest: "Ritika Arora",
-            firstName: "Ritika",
-            surname: "Arora",
-            phone: "+91-9345678123",
-            guests: 4,
-            adults: 2,
-            minors: 2,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202511",
-            ota: "MakeMyTrip",
-            leadGuest: "Vikas Yadav",
-            firstName: "Vikas",
-            surname: "Yadav",
-            phone: "+91-9988112233",
-            guests: 2,
-            adults: 2,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202512",
-            ota: "Booking.com",
-            leadGuest: "Anjali Desai",
-            firstName: "Anjali",
-            surname: "Desai",
-            phone: "+91-9877012345",
-            guests: 3,
-            adults: 2,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202513",
-            ota: "Agoda",
-            leadGuest: "Rohit Jain",
-            firstName: "Rohit",
-            surname: "Jain",
-            phone: "+91-9898989898",
-            guests: 1,
-            adults: 1,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202514",
-            ota: "Goibibo",
-            leadGuest: "Nisha Kapoor",
-            firstName: "Nisha",
-            surname: "Kapoor",
-            phone: "+91-9123987654",
-            guests: 4,
-            adults: 3,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202515",
-            ota: "MakeMyTrip",
-            leadGuest: "Manish Gupta",
-            firstName: "Manish",
-            surname: "Gupta",
-            phone: "+91-9009009009",
-            guests: 2,
-            adults: 2,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202516",
-            ota: "Booking.com",
-            leadGuest: "Swati Mishra",
-            firstName: "Swati",
-            surname: "Mishra",
-            phone: "+91-9765123487",
-            guests: 3,
-            adults: 2,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202517",
-            ota: "Agoda",
-            leadGuest: "Deepak Rana",
-            firstName: "Deepak",
-            surname: "Rana",
-            phone: "+91-9876547890",
-            guests: 5,
-            adults: 4,
-            minors: 1,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202518",
-            ota: "Goibibo",
-            leadGuest: "Isha Khanna",
-            firstName: "Isha",
-            surname: "Khanna",
-            phone: "+91-9011223344",
-            guests: 2,
-            adults: 1,
-            minors: 1,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202519",
-            ota: "MakeMyTrip",
-            leadGuest: "Sanjay Bansal",
-            firstName: "Sanjay",
-            surname: "Bansal",
-            phone: "+91-9888771234",
-            guests: 3,
-            adults: 3,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202520",
-            ota: "Booking.com",
-            leadGuest: "Kavita Nair",
-            firstName: "Kavita",
-            surname: "Nair",
-            phone: "+91-9823456712",
-            guests: 4,
-            adults: 2,
-            minors: 2,
-            checkedIn: false,
-          },
-          {
-            date: today,
-            bookingId: "BK202521",
-            ota: "Agoda",
-            leadGuest: "Pranav Kulkarni",
-            firstName: "Pranav",
-            surname: "Kulkarni",
-            phone: "+91-9090909090",
-            guests: 1,
-            adults: 1,
-            minors: 0,
-            checkedIn: true,
-          },
-          {
-            date: today,
-            bookingId: "BK202522",
-            ota: "Goibibo",
-            leadGuest: "Ayesha Khan",
-            firstName: "Ayesha",
-            surname: "Khan",
-            phone: "+91-9871234567",
-            guests: 3,
-            adults: 2,
-            minors: 1,
-            checkedIn: false,
-          },
-        ];
-
-        setBookings(mockBookings);
-        setError(null);
-      } catch {
-        setError("Failed to load today's bookings. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBookings();
   }, []);
 
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
-    [bookings, filters]
+    [bookings, filters],
   );
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const formatPhone = (phone) => {
-    const digits = phone.replace(/\D/g, "");
-
-    if (digits.length === 12 && digits.startsWith("91")) {
-      return `+91-${digits.substring(2, 7)}-${digits.substring(7)}`;
-    }
-
-    if (digits.length === 10) {
-      return `${digits.substring(0, 5)}-${digits.substring(5)}`;
-    }
-
-    return phone;
   };
 
   if (loading) {
@@ -381,7 +67,7 @@ export default function TodaysBookings() {
         <div className="text-center">
           <p className="text-red-600 text-lg mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={fetchBookings}
             className="bg-brand text-white px-4 py-2 rounded hover:bg-brand/90"
           >
             Retry
@@ -447,8 +133,8 @@ export default function TodaysBookings() {
               {filters.status === ""
                 ? UI_TEXT.FILTER_STATUS
                 : filters.status === "checked-in"
-                ? "Checked In"
-                : "Not Checked In"}
+                  ? "Checked In"
+                  : "Not Checked In"}
             </span>
           </button>
 
@@ -518,12 +204,7 @@ export default function TodaysBookings() {
         format={{
           date: (d) => formatShortDate(d),
           phone: (p) => formatPhone(p),
-          guests: (_, row) =>
-            `${row.adults} ${row.adults === 1 ? "Adult" : "Adults"}${
-              row.minors > 0
-                ? `, ${row.minors} ${row.minors === 1 ? "Minor" : "Minors"}`
-                : ""
-            }`,
+          guests: (_, row) => formatGuests(row.adults, row.minors), // Using the utility function
           checkedIn: (_, row) => {
             if (!row.checkedIn) {
               return (
