@@ -6,19 +6,18 @@ import { API_ENDPOINTS } from "../constants/config.js";
  */
 export const verificationService = {
   /**
-   * Begin OTA verification process for a booking
-   * @param {string} bookingId - The booking ID to verify
+   * Begin OTA verification process
+   * @param {Object} payload - Verification payload
    * @returns {Promise<Object>} Response containing verification details
    */
-  async beginVerification(bookingId) {
+  async beginVerification(payload) {
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.BEGIN_VERIFICATION,
-        null,
+        payload, // ✅ SEND BODY HERE
         {
-          params: { bookingId },
           timeout: 10000,
-        }
+        },
       );
 
       return response.data;
@@ -55,7 +54,7 @@ export const verificationService = {
         {
           params: { bookingId },
           timeout: 10000,
-        }
+        },
       );
 
       return response.data;
@@ -142,7 +141,7 @@ export const verificationService = {
       };
     }
   },
-  
+
   /**
    * Initiate face match process for a guest
    * @param {string} bookingId - The booking ID
@@ -161,7 +160,7 @@ export const verificationService = {
         },
         {
           timeout: 10000,
-        }
+        },
       );
 
       return response.data;
@@ -196,7 +195,7 @@ export const verificationService = {
         },
         {
           timeout: 10000,
-        }
+        },
       );
 
       return response.data;
