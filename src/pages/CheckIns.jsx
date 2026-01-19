@@ -188,8 +188,8 @@ const Checkin = () => {
         ota: formData.ota,
         phoneCountryCode: formData.countryCode,
         phoneNumber: formData.phoneNumber,
-        adults: parseInt(formData.adults),
-        minors: parseInt(formData.children) || 0,
+        adultsCount: parseInt(formData.adults),
+        minorsCount: parseInt(formData.children) || 0,
       };
 
       const response = await Promise.race([
