@@ -15,15 +15,15 @@ import { OTA_OPTIONS } from "../constants/ui";
 const Checkin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    ota: "",
+    ota: "Walk-In",
     bookingId: "",
     countryCode: "91",
     phoneNumber: "",
-    adults: 0,
+    adults: 1,
     children: 0,
   });
 
-  const [showBookingId, setShowBookingId] = useState(true);
+  const [showBookingId, setShowBookingId] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [processedBookingIds, setProcessedBookingIds] = useState(new Set());
   const [errors, setErrors] = useState({});
@@ -94,21 +94,21 @@ const Checkin = () => {
 
   const handleCancel = () => {
     setFormData({
-      ota: "",
+      ota: "Walk-In",
       bookingId: "",
       countryCode: "91",
       phoneNumber: "",
-      adults: 0,
+      adults: 1,
       children: 0,
     });
-    setShowBookingId(true);
+    setShowBookingId(false);
     setErrors({});
   };
 
   const handleReview = async () => {
     setErrors({});
     let newErrors = {};
-    
+
     if (isVerifying) {
       console.log("Already verifying, please wait");
       return;
