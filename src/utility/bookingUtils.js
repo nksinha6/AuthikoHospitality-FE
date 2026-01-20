@@ -141,14 +141,22 @@ export const applyBookingFilters = ({
             bookingDate.isSameOrBefore(end, "day");
           break;
 
-        case DATE_CONDITIONS.ON_OR_AFTER:
         case DATE_CONDITIONS.AFTER:
-          include = !!selected && bookingDate.isSameOrAfter(selected, "day");
+          include =
+            !!selected && bookingDate.isAfter(selected.endOf("day"), "day"); // ❌ excludes today
+          break;
+
+        case DATE_CONDITIONS.ON_OR_AFTER:
+          include = !!selected && bookingDate.isSameOrAfter(selected, "day"); // ✅ includes today
           break;
 
         case DATE_CONDITIONS.BEFORE:
+          include =
+            !!selected && bookingDate.isBefore(selected.startOf("day"), "day"); // ❌ excludes today
+          break;
+
         case DATE_CONDITIONS.BEFORE_OR_ON:
-          include = !!selected && bookingDate.isSameOrBefore(selected, "day");
+          include = !!selected && bookingDate.isSameOrBefore(selected, "day"); // ✅ includes today
           break;
 
         case DATE_CONDITIONS.EQUAL:
