@@ -3,6 +3,9 @@
 // Tenant ID - Hardcoded for now
 export const TENANT_ID = 1;
 
+// Property ID - Hardcoded for now
+export const PROPERTY_ID = 1;
+
 // API Endpoints
 export const API_ENDPOINTS = {
   LOGIN: "HotelUser/login",

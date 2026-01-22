@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { GUEST_VERIFICATION } from "../constants/config.js";
+import { GUEST_VERIFICATION, TENANT_ID, PROPERTY_ID } from "../constants/config.js";
 import { verificationService } from "../services/verificationService";
 import dayjs from "dayjs";
 import {
@@ -154,7 +154,7 @@ const Checkin = () => {
 
     if (formData.ota === "Walk-In") {
       try {
-        bookingIdToUse = generateWalkInBookingId();
+        bookingIdToUse = generateWalkInBookingId(TENANT_ID, PROPERTY_ID);
         console.log("Generated Walk-In Booking ID:", bookingIdToUse);
 
         updatedFormData = {
