@@ -1,5 +1,5 @@
 import apiClient from "./apiClient.js";
-import { API_ENDPOINTS, TENANT_ID } from "../constants/config.js";
+import { API_ENDPOINTS } from "../constants/config.js";
 
 /**
  * Service for authentication-related API calls
@@ -16,7 +16,6 @@ export const authService = {
     try {
       const response = await apiClient.post(API_ENDPOINTS.LOGIN, {
         userId: credentials.userId,
-        tenantId: TENANT_ID,
         password: credentials.password,
       });
 

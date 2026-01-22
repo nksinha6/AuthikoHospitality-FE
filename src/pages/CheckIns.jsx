@@ -2,18 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { GUEST_VERIFICATION, TENANT_ID, PROPERTY_ID } from "../constants/config.js";
+import { GUEST_VERIFICATION } from "../constants/config.js";
 import { verificationService } from "../services/verificationService";
 import dayjs from "dayjs";
 import {
   generateWalkInBookingId,
   shouldRequireBookingId,
 } from "../utility/checkInUtils";
-
+import { useAuth } from "../context/AuthContext.jsx"; // Import useAuth hook
 import { OTA_OPTIONS } from "../constants/ui";
 
 const Checkin = () => {
   const navigate = useNavigate();
+  const { userData } = useAuth(); // Get userData from auth context
+  
   const [formData, setFormData] = useState({
     ota: "Walk-In",
     bookingId: "",
@@ -32,7 +34,7 @@ const Checkin = () => {
 
   // Check if button should be disabled
   const isButtonDisabled = () => {
-    return isVerifying || formData.adults === 0;
+    return isVerifying || formData.adults === 0 || !userData.tenantId || userData.propertyIds.length === 0;
   };
 
   useEffect(() => {
@@ -114,6 +116,22 @@ const Checkin = () => {
       return;
     }
 
+    // Check if tenant and property IDs are available
+    if (!userData.tenantId) {
+      newErrors.general = "Tenant ID not found. Please log in again.";
+      setErrors(newErrors);
+      return;
+    }
+
+    if (userData.propertyIds.length === 0) {
+      newErrors.general = "Property ID not found. Please log in again.";
+      setErrors(newErrors);
+      return;
+    }
+
+    // Use the first property ID (or you can let user select if multiple)
+    const propertyId = userData.propertyIds[0];
+
     // Check if adults is 0 (though button should already be disabled)
     if (formData.adults === 0) {
       newErrors.adults = "Please enter at least one adult";
@@ -154,8 +172,11 @@ const Checkin = () => {
 
     if (formData.ota === "Walk-In") {
       try {
-        bookingIdToUse = generateWalkInBookingId(TENANT_ID, PROPERTY_ID);
+        // Use tenantId and propertyId from token
+        bookingIdToUse = generateWalkInBookingId(userData.tenantId, propertyId);
         console.log("Generated Walk-In Booking ID:", bookingIdToUse);
+        console.log("Using Tenant ID from token:", userData.tenantId);
+        console.log("Using Property ID from token:", propertyId);
 
         updatedFormData = {
           ...formData,
@@ -183,6 +204,7 @@ const Checkin = () => {
     try {
       setIsVerifying(true);
       console.log(`Calling API with Booking ID: ${bookingIdToUse}`);
+      console.log(`Using Tenant ID: ${userData.tenantId}, Property ID: ${propertyId}`);
 
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
@@ -216,6 +238,8 @@ const Checkin = () => {
       console.log("Form Data submitted:", {
         ...updatedFormData,
         bookingId: bookingIdToUse,
+        tenantId: userData.tenantId,
+        propertyId: propertyId,
       });
 
       navigate("/guest-verification", {
@@ -227,6 +251,8 @@ const Checkin = () => {
             phoneNumber: formData.phoneNumber,
             adults: parseInt(formData.adults),
             children: parseInt(formData.children),
+            tenantId: userData.tenantId,
+            propertyId: propertyId,
           },
         },
       });
@@ -239,11 +265,33 @@ const Checkin = () => {
           ? "Network error. Please check internet connection."
           : `Verification failed: ${error.message}`;
 
-      setErrors(userMessage);
+      setErrors({ general: userMessage });
     } finally {
       setIsVerifying(false);
     }
   };
+
+  // Show loading or error if IDs are not available
+  if (!userData.tenantId || userData.propertyIds.length === 0) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden p-8">
+          <h2 className="text-2xl font-semibold mb-4 text-red-600">
+            Configuration Error
+          </h2>
+          <p className="text-gray-700 mb-4">
+            {!userData.tenantId 
+              ? "Tenant ID not found in your session."
+              : "Property ID not found in your session."
+            }
+          </p>
+          <p className="text-gray-600">
+            Please log out and log in again, or contact your administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -251,14 +299,30 @@ const Checkin = () => {
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Card Header */}
         <div className="bg-brand px-8 py-6 text-white">
-          <h2 className="text-2xl font-semibold mb-2">Guest Verification</h2>
-          <p className="opacity-95">
-            Enter booking details to begin verification
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Guest Verification</h2>
+              <p className="opacity-95">
+                Enter booking details to begin verification
+              </p>
+            </div>
+            <div className="text-sm opacity-90">
+              <div>Tenant: {userData.tenantId}</div>
+              <div>Property: {userData.propertyIds[0]}</div>
+              <div>Role: {userData.role}</div>
+            </div>
+          </div>
         </div>
 
         {/* Form Content */}
         <div className="p-8">
+          {/* Display error message if any */}
+          {errors.general && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{errors.general}</p>
+            </div>
+          )}
+
           {/* Verification Date */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -369,7 +433,7 @@ const Checkin = () => {
                 />
                 <p className="text-sm text-gray-500 mt-1">Age 18+</p>
                 {errors.adults && (
-                  <p className="text-red-500 text-sm mt-1">{errors.adults}</p>
+                  <p className="text-red500 text-sm mt-1">{errors.adults}</p>
                 )}
               </div>
               <div>
@@ -398,18 +462,18 @@ const Checkin = () => {
           <div className="flex gap-3">
             <button
               onClick={handleCancel}
-              className="flex-1 px-6 py-3 border! border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isVerifying}
             >
               Cancel
             </button>
             <button
               onClick={handleReview}
-              disabled={isButtonDisabled()} // Updated this line
+              disabled={isButtonDisabled()}
               className={`flex-1 px-6 py-3 rounded-lg font-semibold cursor-pointer flex items-center justify-center gap-2 ${
                 isButtonDisabled()
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-brand! text-white hover:bg-brand/90"
+                  : "bg-brand text-white hover:bg-brand/90"
               }`}
             >
               {isVerifying ? (
