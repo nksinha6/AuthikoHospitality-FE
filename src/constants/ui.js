@@ -10,6 +10,7 @@ export const UI_TEXT = {
   NAV_CHECK_INS: "Walk-in Check-ins", // "Check-ins"
   NAV_ALL_BOOKINGS: "All Bookings",
   NAV_TODAYS_BOOKINGS: "Today's Bookings",
+  NAV_GUEST_DETAILS: "Guest Details",
   BUTTON_LOGOUT: "Logout",
 
   // Login
@@ -166,6 +167,7 @@ export const ROUTES = {
   GUEST_VERIFICATION: "/guest-verification",
   TODAYS_BOOKINGS: "/todays-bookings",
   ALL_BOOKINGS: "/all-bookings",
+  GUEST_DETAILS: "/guest-details",
 };
 
 // Filter Conditions
