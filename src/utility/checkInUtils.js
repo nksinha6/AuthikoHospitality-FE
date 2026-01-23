@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 
 // Generate Walk-in Booking-Id
-export const generateWalkInBookingId = () => {
-  const year = dayjs().format("YY");
+export const generateWalkInBookingId = (tenantId, propertyId) => {
+  const timestamp = dayjs().format("YYMMDDHHmmss");
   const randomNum = Math.floor(Math.random() * 999) + 1;
   const paddedNum = String(randomNum).padStart(3, "0");
-  return `VVQ${year}${paddedNum}`;
+  return `VVQ${tenantId}${propertyId}${timestamp}${paddedNum}`;
 };
 
 // Valid Booking-Id

@@ -181,14 +181,17 @@ export const DATE_CONDITIONS = {
 
 // Booking OTA
 export const OTA_OPTIONS = {
-  // BOOKING_COM: "Booking.com",
+  BOOKING_COM: "Booking.com",
   // AIRBNB: "Airbnb",
   // EXPEDIA: "Expedia",
   // HOTELS_COM: "Hotels.com",
-  // AGODA: "Agoda",
+  AGODA: "Agoda",
   // VRBO: "Vrbo",
   // TRIPADVISOR: "Tripadvisor",
-  // MAKE_MY_TRIP: "MakeMyTrip",
+  MAKE_MY_TRIP: "MakeMyTrip",
   // GOIBIBO: "Goibibo",
+  OYO:"Oyo",
+  FABHOTELS:"FabHotels",
+  OTHERS: "Others",
   WALK_IN: "Walk-In",
 };
