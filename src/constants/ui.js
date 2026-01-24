@@ -163,8 +163,8 @@ export const FORM_FIELDS = {
 export const ROUTES = {
   LOGIN: "/login",
   CHECK_INS: "/check-ins",
-  GUEST_VERIFICATION: "/guest-verification",
-  TODAYS_BOOKINGS: "/todays-bookings",
+  // GUEST_VERIFICATION: "/guest-verification",
+  // TODAYS_BOOKINGS: "/todays-bookings",
   ALL_BOOKINGS: "/all-bookings",
 };
 
