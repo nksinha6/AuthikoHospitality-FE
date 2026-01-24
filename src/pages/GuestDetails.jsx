@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { FiDownload } from "react-icons/fi";
 import UniversalTable from "../components/UniversalTable.jsx";
 import DateFilter from "../components/DateHourFilter.jsx";
+import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 import { formatShortDate, formatPhone } from "../utility/bookingUtils.js";
 import { exportToPDF, exportToExcel } from "../utility/exportUtils";
 
@@ -44,6 +45,8 @@ export default function GuestDetails() {
   const [guests, setGuests] = useState([]);
   const [filteredGuests, setFilteredGuests] = useState([]);
   const [dateFilter, setDateFilter] = useState(null);
+  const [selectedGuest, setSelectedGuest] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   const GUEST_COLUMNS = [
     { key: "dateTime", label: "Date / Time" },
@@ -227,12 +230,25 @@ export default function GuestDetails() {
         format={{
           dateTime: (_, row) => `${formatShortDate(row.date)} • ${row.time}`,
           phone: (p) => formatPhone(p),
-          actions: () => (
-            <button className="text-brand text-sm font-medium hover:underline">
+          actions: (_, row) => (
+            <button 
+              className="text-brand text-sm font-medium hover:underline"
+              onClick={() => {
+                setSelectedGuest(row);
+                setShowModal(true);
+              }}
+            >
               View
             </button>
           ),
         }}
+      />
+
+      {/* Guest Details Modal */}
+      <GuestDetailsModal 
+        show={showModal} 
+        handleClose={() => setShowModal(false)} 
+        guest={selectedGuest} 
       />
     </div>
   );
