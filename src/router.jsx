@@ -5,7 +5,7 @@ import AllBookings from "./pages/AllBookings.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
-import GuestVerification from "./pages/GuestVerification.jsx";
+// import GuestVerification from "./pages/GuestVerification.jsx";
 
 // ✅ Compute basename as a string first
 const basename = import.meta.env.DEV ? "/" : "/biz";
@@ -19,7 +19,7 @@ const routes = [
     ),
     children: [
       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
-      { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
+      // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
       { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
     ],
   },
