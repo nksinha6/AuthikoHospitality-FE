@@ -43,7 +43,7 @@ const Checkin = () => {
   const [bookingInfo, setBookingInfo] = useState({
     verificationDate: dayjs().format("dddd, D MMM YYYY"),
     bookingSource: "OTA (Online Travel Agent)",
-    bookingId: "BKG-9901-PRO",
+    bookingId: "",
   });
 
   // Guest List State
@@ -417,7 +417,7 @@ const Checkin = () => {
     setBookingInfo({
       verificationDate: dayjs().format("dddd, D MMM YYYY"),
       bookingSource: "OTA (Online Travel Agent)",
-      bookingId: "BKG-9901-PRO",
+      bookingId: "",
     });
 
     setIsBookingInitialized(false);
@@ -464,7 +464,7 @@ const Checkin = () => {
         setBookingInfo((prev) => ({
           ...prev,
           [name]: value,
-          bookingId: "BKG-9901-PRO",
+          bookingId: "",
         }));
       }
     } else if (
@@ -1148,7 +1148,7 @@ const Checkin = () => {
                 value={bookingInfo.bookingId}
                 onChange={handleBookingInfoChange}
                 readOnly={isWalkIn || hasVerificationStarted}
-                placeholder={isWalkIn ? "Auto-generated" : "BKG-9901-PRO"}
+                placeholder={isWalkIn ? "Auto-generated" : "Enter Booking ID"}
                 className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
                   isWalkIn
                     ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
@@ -1324,13 +1324,13 @@ const Checkin = () => {
             <Plus size={16} />
             Add Guest
           </button>
-          {isAddGuestDisabled && (
+          {/* {isAddGuestDisabled && (
             <p className="text-sm text-gray-500 mt-2">
               {isAnyGuestVerifying
                 ? "Please wait for verification to complete before adding more guests."
-                : "Verify at least one guest first to enable adding more guests."}
+                : "You can add a new guest only after verifying the previous guest."}
             </p>
-          )}
+          )} */}
         </div>
 
         {/* Footer */}
