@@ -824,6 +824,7 @@ const Checkin = () => {
         }
 
         const response = await verificationService.ensureVerification(
+          bookingInfo.bookingId,
           phoneCountryCode,
           phoneno,
         );
@@ -933,6 +934,7 @@ const Checkin = () => {
       }
 
       const response = await verificationService.ensureVerification(
+        bookingInfo.bookingId,
         phoneCountryCode,
         phoneno,
       );
@@ -1134,7 +1136,7 @@ const Checkin = () => {
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-              BOOKING ID
+              BOOKING ID*
             </label>
             <div className="relative">
               {isWalkIn && (
@@ -1145,10 +1147,11 @@ const Checkin = () => {
               <input
                 type="text"
                 name="bookingId"
+                required
                 value={bookingInfo.bookingId}
                 onChange={handleBookingInfoChange}
                 readOnly={isWalkIn || hasVerificationStarted}
-                placeholder={isWalkIn ? "Auto-generated" : "Enter Booking ID"}
+                placeholder={isWalkIn ? "Auto-generated" : "Enter Booking ID*"}
                 className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
                   isWalkIn
                     ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
