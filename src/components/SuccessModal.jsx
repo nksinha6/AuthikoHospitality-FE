@@ -17,7 +17,7 @@ const SuccessModal = ({
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-[#0F172A]/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-[#0F172A]/40 z-100 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white rounded-4xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
 
                 {/* Main Content */}

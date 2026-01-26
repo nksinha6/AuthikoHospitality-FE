@@ -161,6 +161,7 @@ export default function GuestVerification() {
     try {
       // Call ensure verification API
       const ensureResponse = await verificationService.ensureVerification(
+        bookingId,
         phoneCountryCode,
         phoneno
       );
