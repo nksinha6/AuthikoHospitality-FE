@@ -76,16 +76,24 @@ export const verificationService = {
 
   /**
    * Ensure verification for a guest by phone number
+   * @param {string} bookingId - The booking ID
    * @param {string} phoneCountryCode - The country code of the phone number
-   * @param {string} phoneno - The phone number
+   * @param {string} phoneNumber - The phone number
    * @returns {Promise<Object>} Response containing verification status
    */
-  async ensureVerification(phoneCountryCode, phoneno) {
+  async ensureVerification(bookingId, phoneCountryCode, phoneNumber) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.ENSURE_VERIFICATION, {
-        params: { phoneCountryCode, phoneno },
-        timeout: 10000,
-      });
+      const response = await apiClient.post(
+        API_ENDPOINTS.ENSURE_VERIFICATION,
+        {
+          bookingId: bookingId,
+          phoneCountryCode: phoneCountryCode,
+          phoneNumber: phoneNumber,
+        },
+        {
+          timeout: 10000,
+        },
+      );
 
       return response.data;
     } catch (error) {
