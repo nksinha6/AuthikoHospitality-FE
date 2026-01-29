@@ -91,6 +91,9 @@ const Checkin = () => {
   const [usedPhoneNumbers, setUsedPhoneNumbers] = useState(new Set());
   const [verifiedPhoneNumbers, setVerifiedPhoneNumbers] = useState(new Set());
 
+  // Track all phone numbers in use across all guests
+  const [allPhoneNumbers, setAllPhoneNumbers] = useState(new Map()); // Map: phoneNumber -> guest index
+
   // State for server date
   const [isLoadingServerDate, setIsLoadingServerDate] = useState(true);
 
@@ -137,43 +140,55 @@ const Checkin = () => {
 
   // Update verification status whenever guests change
   useEffect(() => {
-  console.log("Guests updated:", guests.map(g => ({ id: g.id, status: g.status })));
-  
-  const anyVerifying = guests.some(
-    (g) =>
-      g.status === "pending" ||
-      g.status === "verifying" ||
-      g.isWaitingForRestart,
-  );
-  const allVerified = guests.every((g) => g.status === "verified");
-  
-  console.log("Any verifying:", anyVerifying);
-  console.log("All verified:", allVerified);
+    console.log("Guests updated:", guests.map(g => ({ 
+      id: g.id, 
+      status: g.status, 
+      phone: g.phoneNumber,
+      originalPhone: g.originalPhoneNumber 
+    })));
+    
+    const anyVerifying = guests.some(
+      (g) =>
+        g.status === "pending" ||
+        g.status === "verifying" ||
+        g.isWaitingForRestart,
+    );
+    const allVerified = guests.every((g) => g.status === "verified");
+    
+    console.log("Any verifying:", anyVerifying);
+    console.log("All verified:", allVerified);
 
-  setIsAnyGuestVerifying(anyVerifying);
-  setAreAllGuestsVerified(allVerified); // Use the new setter
+    setIsAnyGuestVerifying(anyVerifying);
+    setAreAllGuestsVerified(allVerified);
 
-  if (anyVerifying && !hasVerificationStarted) {
-    setHasVerificationStarted(true);
-  }
-
-  // Update used phone numbers set
-  const newUsedPhoneNumbers = new Set();
-  guests.forEach((guest) => {
-    if (
-      guest.phoneNumber &&
-      guest.phoneNumber.length >= 10 &&
-      guest.status !== "idle"
-    ) {
-      const normalizedNumber =
-        guest.phoneNumber.startsWith("91") && guest.phoneNumber.length > 2
-          ? guest.phoneNumber.slice(2)
-          : guest.phoneNumber;
-      newUsedPhoneNumbers.add(normalizedNumber);
+    if (anyVerifying && !hasVerificationStarted) {
+      setHasVerificationStarted(true);
     }
-  });
-  setUsedPhoneNumbers(newUsedPhoneNumbers);
-}, [guests, hasVerificationStarted]);
+
+    // Update phone number tracking
+    const newAllPhoneNumbers = new Map();
+    const newUsedPhoneNumbers = new Set();
+    
+    guests.forEach((guest, index) => {
+      if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
+        const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+        
+        // Track all phone numbers
+        newAllPhoneNumbers.set(normalizedNumber, index);
+        
+        // Track used phone numbers (not idle)
+        if (guest.status !== "idle" && guest.status !== "changing") {
+          newUsedPhoneNumbers.add(normalizedNumber);
+        }
+      }
+    });
+    
+    setAllPhoneNumbers(newAllPhoneNumbers);
+    setUsedPhoneNumbers(newUsedPhoneNumbers);
+    
+    console.log("All phone numbers map:", Array.from(newAllPhoneNumbers.entries()));
+    console.log("Used phone numbers:", Array.from(newUsedPhoneNumbers));
+  }, [guests, hasVerificationStarted]);
 
   // Update isWalkIn when booking source changes
   useEffect(() => {
@@ -280,17 +295,21 @@ const Checkin = () => {
     return () => clearInterval(timer);
   }, [pollingIntervals]);
 
+  // Helper function to normalize phone number
+  const normalizePhoneNumber = (phoneNumber) => {
+    if (!phoneNumber || phoneNumber.length < 10) return "";
+    
+    return phoneNumber.startsWith("91") && phoneNumber.length > 2
+      ? phoneNumber.slice(2)
+      : phoneNumber.startsWith("+91")
+        ? phoneNumber.slice(3)
+        : phoneNumber;
+  };
+
   // Check if phone number is already verified
   const isPhoneNumberAlreadyVerified = (phoneNumber) => {
     if (!phoneNumber || phoneNumber.length < 10) return false;
-
-    const normalizedNumber =
-      phoneNumber.startsWith("91") && phoneNumber.length > 2
-        ? phoneNumber.slice(2)
-        : phoneNumber.startsWith("+91")
-          ? phoneNumber.slice(3)
-          : phoneNumber;
-
+    const normalizedNumber = normalizePhoneNumber(phoneNumber);
     return verifiedPhoneNumbers.has(normalizedNumber);
   };
 
@@ -302,26 +321,17 @@ const Checkin = () => {
       return true;
     }
 
-    const normalizedNumber =
-      phoneNumber.startsWith("91") && phoneNumber.length > 2
-        ? phoneNumber.slice(2)
-        : phoneNumber;
-
+    const normalizedNumber = normalizePhoneNumber(phoneNumber);
+    
+    // Check if this number exists in any other guest (excluding current)
     for (let i = 0; i < guests.length; i++) {
       if (i === currentIndex) continue;
 
       const otherGuest = guests[i];
       if (otherGuest.phoneNumber && otherGuest.phoneNumber.length >= 10) {
-        const otherNormalized =
-          otherGuest.phoneNumber.startsWith("91") &&
-          otherGuest.phoneNumber.length > 2
-            ? otherGuest.phoneNumber.slice(2)
-            : otherGuest.phoneNumber;
+        const otherNormalized = normalizePhoneNumber(otherGuest.phoneNumber);
 
-        if (
-          otherNormalized === normalizedNumber &&
-          otherGuest.status !== "idle"
-        ) {
+        if (otherNormalized === normalizedNumber) {
           return true;
         }
       }
@@ -336,10 +346,7 @@ const Checkin = () => {
 
     for (const guest of guests) {
       if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
-        const normalizedNumber =
-          guest.phoneNumber.startsWith("91") && guest.phoneNumber.length > 2
-            ? guest.phoneNumber.slice(2)
-            : guest.phoneNumber;
+        const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
 
         if (phoneNumbers.has(normalizedNumber)) {
           return true;
@@ -348,6 +355,31 @@ const Checkin = () => {
         // Only add to set if the number is being used (not idle)
         if (guest.status !== "idle" || guest.isChangingNumber) {
           phoneNumbers.add(normalizedNumber);
+        }
+      }
+    }
+
+    return false;
+  };
+
+  // Check if a specific phone number is duplicate
+  const isPhoneNumberDuplicate = (phoneNumber, currentIndex) => {
+    if (!phoneNumber || phoneNumber.length < 10) return false;
+
+    const normalizedNumber = normalizePhoneNumber(phoneNumber);
+    
+    // Count how many guests have this phone number
+    let count = 0;
+    for (let i = 0; i < guests.length; i++) {
+      const guest = guests[i];
+      if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
+        const guestNormalized = normalizePhoneNumber(guest.phoneNumber);
+
+        if (guestNormalized === normalizedNumber) {
+          count++;
+          if (count > 1) {
+            return true; // Duplicate found
+          }
         }
       }
     }
@@ -395,14 +427,7 @@ const Checkin = () => {
     console.log(`Stopping verification for guest at index ${index}`);
 
     if (guests[index] && guests[index].phoneNumber) {
-      const normalizedNumber =
-        guests[index].phoneNumber.startsWith("91") &&
-        guests[index].phoneNumber.length > 2
-          ? guests[index].phoneNumber.slice(2)
-          : guests[index].phoneNumber.startsWith("+91")
-            ? guests[index].phoneNumber.slice(3)
-            : guests[index].phoneNumber;
-
+      const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
       pollingInProgressRef.current.delete(normalizedNumber);
     }
 
@@ -476,6 +501,7 @@ const Checkin = () => {
     setHasVerificationStarted(false);
     setUsedPhoneNumbers(new Set());
     setVerifiedPhoneNumbers(new Set());
+    setAllPhoneNumbers(new Map());
 
     // Focus back on Booking Source
     setTimeout(() => {
@@ -535,21 +561,25 @@ const Checkin = () => {
       return;
     }
 
-    setGuests((prev) => {
-      const newGuests = [...prev];
-
-      // Check if phone number is already used by another guest or already verified
-      if (isPhoneNumberAlreadyUsed(value, index)) {
-        const isVerified = isPhoneNumberAlreadyVerified(value);
+    // Normalize the new phone number
+    const normalizedNewNumber = normalizePhoneNumber(value);
+    
+    // Check if this is a valid phone number
+    if (value && value.length >= 10) {
+      // Check if this phone number is already used by another guest
+      const isDuplicate = isPhoneNumberDuplicate(value, index);
+      
+      if (isDuplicate) {
         showToast(
           "error",
-          isVerified
-            ? "This phone number is already verified"
-            : "This phone number is already being verified for another guest",
+          "This phone number is already entered for another guest"
         );
-        return prev;
+        return; // Don't update the phone number
       }
+    }
 
+    setGuests((prev) => {
+      const newGuests = [...prev];
       newGuests[index].phoneNumber = value;
 
       if (newGuests[index].isChangingNumber) {
@@ -794,6 +824,16 @@ const Checkin = () => {
 
   const handleVerifyGuest = async (index) => {
     const guest = guests[index];
+    console.log(`Verifying guest ${index}:`, guest);
+
+    // Check if phone number is a duplicate BEFORE any other checks
+    if (isPhoneNumberDuplicate(guest.phoneNumber, index)) {
+      showToast(
+        "error",
+        "This phone number is already entered for another guest. Please use a unique phone number.",
+      );
+      return;
+    }
 
     // Enhanced duplicate validation check
     if (hasDuplicatePhoneNumbersInBooking()) {
@@ -805,12 +845,7 @@ const Checkin = () => {
     }
 
     // Normalize the phone number for checking
-    const normalizedNumber =
-      guest.phoneNumber.startsWith("91") && guest.phoneNumber.length > 2
-        ? guest.phoneNumber.slice(2)
-        : guest.phoneNumber.startsWith("+91")
-          ? guest.phoneNumber.slice(3)
-          : guest.phoneNumber;
+    const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
 
     // Check if phone number is already verified
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
@@ -825,7 +860,7 @@ const Checkin = () => {
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being verified for another guest",
+          : "This phone number is already being used by another guest",
       );
       return;
     }
@@ -839,7 +874,7 @@ const Checkin = () => {
           "error",
           isVerified
             ? "This phone number is already verified"
-            : "This phone number is already being verified for another guest",
+            : "This phone number is already being used by another guest",
         );
         return;
       }
@@ -955,7 +990,7 @@ const Checkin = () => {
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being verified for another guest",
+          : "This phone number is already being used by another guest",
       );
       return;
     }
@@ -1114,6 +1149,29 @@ const Checkin = () => {
     bookingInfo.bookingSource &&
     bookingInfo.bookingSource !== "Walk-In" &&
     !hasVerificationStarted;
+
+  // Check if Verify button should be disabled for a specific guest
+  const isVerifyButtonDisabled = (guest, index) => {
+    // Basic conditions
+    if (
+      !isPhoneInputEnabled ||
+      guest.status === "verified" ||
+      isPhoneNumberAlreadyVerified(guest.phoneNumber) ||
+      guest.status === "pending" ||
+      !guest.phoneNumber ||
+      guest.phoneNumber.length < 10 ||
+      hasDuplicatePhoneNumbersInBooking()
+    ) {
+      return true;
+    }
+
+    // Additional check: if this phone number is already used by another guest (even if idle)
+    if (isPhoneNumberDuplicate(guest.phoneNumber, index)) {
+      return true;
+    }
+
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-white p-8 font-sans text-[#1b3631]">
@@ -1387,6 +1445,12 @@ const Checkin = () => {
                             Enter Booking ID to enable verification
                           </span>
                         </div>
+                      ) : isPhoneNumberDuplicate(guest.phoneNumber, index) ? (
+                        <div className="flex flex-col">
+                          <span className="text-red-500 italic">
+                            Phone number already in use
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-gray-400 italic">
                           Verify phone to see name
@@ -1402,15 +1466,7 @@ const Checkin = () => {
                       ) : (
                         <button
                           onClick={() => handleVerifyGuest(index)}
-                          disabled={
-                            !isPhoneInputEnabled ||
-                            guest.status === "verified" ||
-                            isPhoneNumberAlreadyVerified(guest.phoneNumber) ||
-                            guest.status === "pending" ||
-                            !guest.phoneNumber ||
-                            guest.phoneNumber.length < 10 ||
-                            hasDuplicatePhoneNumbersInBooking()
-                          }
+                          disabled={isVerifyButtonDisabled(guest, index)}
                           className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                         >
                           <CheckCircle size={16} />
@@ -1428,7 +1484,7 @@ const Checkin = () => {
           <div className="mb-6">
             <button
               onClick={addGuest}
-              disabled={isAddGuestDisabled || !isPhoneInputEnabled}
+              disabled={isAddGuestDisabled}
               className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Plus size={16} />
@@ -1443,7 +1499,7 @@ const Checkin = () => {
               <p className="text-sm text-gray-500 mt-2">
                 {isAnyGuestVerifying
                   ? "Please wait for verification to complete before adding more guests."
-                  : "You can add a new guest only after verifying the previous guest."}
+                  : "Please verify all existing guests before adding a new guest."}
               </p>
             )}
           </div>
