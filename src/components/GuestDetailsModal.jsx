@@ -32,7 +32,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-[#1e40af] px-6 py-4 text-white flex items-center justify-between border-b">
+                <div className="bg-[#1b3631] px-6 py-4 text-white flex items-center justify-between border-b">
                     <div>
                         <h3 className="text-xl font-bold">All Guests</h3>
                         <p className="text-sm text-blue-100 mt-1">Details & Verification Information</p>
