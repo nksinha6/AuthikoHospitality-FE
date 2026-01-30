@@ -194,7 +194,7 @@ export default function AllBookings() {
           { key: "bookingId", label: UI_TEXT.TABLE_BOOKING_ID },
           { key: "checkedIn", label: UI_TEXT.TABLE_STATUS },
           // { key: "guests", label: UI_TEXT.TABLE_NUM_GUESTS },
-          { key: "actions", label: "More Details" },
+          // { key: "actions", label: "More Details" },
         ]}
         data={filteredBookings}
         emptyMessage="No bookings match your filters."
