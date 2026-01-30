@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
   return {
     base: mode === "development" ? "/" : "/biz/",
     plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      include: ["jspdf", "jspdf-autotable", "xlsx", "file-saver"],
+    },
+
     server: {
       proxy: {
         "/api": {

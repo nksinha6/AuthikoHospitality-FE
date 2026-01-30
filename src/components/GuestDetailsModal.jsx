@@ -1,65 +1,161 @@
 import React from "react";
 import { X } from "lucide-react";
+import { CheckCircle, Circle, Download, FileText } from "lucide-react";
 import { UI_TEXT } from "../constants/ui.js";
-import { VERIFICATION_STATUS } from "../constants/config.js";
 
 const GuestDetailsModal = ({ show, handleClose, guest }) => {
     if (!show || !guest) return null;
 
+    // Determine verification status display
+    const getVerificationStatus = (status) => {
+        switch (status) {
+            case "VERIFIED":
+                return { text: "Verified", className: "text-green-600", icon: <CheckCircle className="w-4 h-4" /> };
+            case "MATCH":
+                return { text: "Match", className: "text-green-600", icon: <CheckCircle className="w-4 h-4" /> };
+            case "NOT_APPLICABLE":
+                return { text: "Not Applicable", className: "text-gray-500", icon: <Circle className="w-4 h-4" /> };
+            case "NOT_REQUIRED":
+                return { text: "Not Required", className: "text-gray-500", icon: <Circle className="w-4 h-4" /> };
+            default:
+                return { text: status, className: "text-gray-700", icon: null };
+        }
+    };
+
     return (
         <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
             onClick={handleClose}
         >
             <div
-                className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200"
+                className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="bg-[#1b3631] p-6 text-white flex items-center justify-between">
-                    <h3 className="text-lg font-bold">{UI_TEXT.MODAL_GUEST_DETAILS_TITLE}</h3>
+                {/* Header */}
+                <div className="bg-[#1b3631] px-6 py-4 text-white flex items-center justify-between border-b">
+                    <div>
+                        <h3 className="text-xl font-bold">All Guests</h3>
+                        <p className="text-sm text-blue-100 mt-1">Details & Verification Information</p>
+                    </div>
                     <button
                         onClick={handleClose}
                         className="p-2 hover:bg-white/20 rounded-full transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
-                <div className="p-6 space-y-5">
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                        <span className="text-sm text-gray-500">{UI_TEXT.MODAL_PHONE_NUMBER}</span>
-                        <span className="font-semibold text-gray-900 text-lg tracking-wide">{guest.phoneNumber}</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                        <span className="text-sm text-gray-500">{UI_TEXT.MODAL_AADHAAR_STATUS}</span>
-                        <span className={`font-semibold capitalize px-2 py-1 rounded-md text-sm ${guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'}`}>
-                            {guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED ? UI_TEXT.GUEST_VERIFICATION_VERIFIED : guest.aadhaarStatus}
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                        <span className="text-sm text-gray-500">{UI_TEXT.MODAL_FACE_STATUS}</span>
-                        <span className={`font-semibold capitalize px-2 py-1 rounded-md text-sm ${guest.faceStatus === VERIFICATION_STATUS.VERIFIED ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'}`}>
-                            {guest.faceStatus === VERIFICATION_STATUS.VERIFIED ? UI_TEXT.GUEST_VERIFICATION_VERIFIED : guest.faceStatus}
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between pb-3">
-                        <span className="text-sm text-gray-500">Timestamp</span>
-                        <span className="font-medium text-gray-900">{guest.timestamp}</span>
-                    </div>
 
-                    {/* Minors Section in Modal */}
-                    {guest.minors && guest.minors.length > 0 && (
-                        <div className="pt-2">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{UI_TEXT.GUEST_VERIFICATION_ACCOMPANYING_MINORS}</p>
-                            <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
-                                {guest.minors.map((m, i) => (
-                                    <div key={i} className="flex justify-between items-center text-sm">
-                                        <span className="font-medium text-gray-900">{m.name}</span>
-                                        <span className="text-gray-500 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100">{m.age} {UI_TEXT.GUEST_VERIFICATION_YEARS}</span>
-                                    </div>
-                                ))}
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Check-in Information */}
+                    <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Checked in Date & Time</h4>
+                        <p className="text-lg font-medium">18 Aug 2025, 11:10 AM</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <p className="text-sm text-gray-500">Reservation Number</p>
+                                <p className="font-medium">RES4001</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Property Name</p>
+                                <p className="font-medium">Silver Sands</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Property Location</p>
+                                <p className="font-medium">Banjara Hills, Hyderabad</p>
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* Personal Information */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Personal Information</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-500">Gender</p>
+                                <p className="font-medium">Male</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Date of Birth</p>
+                                <p className="font-medium">15 Jul 1985</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Nationality</p>
+                                <p className="font-medium">Indian</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Government ID Type</p>
+                                <p className="font-medium">Passport</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Government ID Number</p>
+                                <p className="font-medium">N1234567</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Phone Number</p>
+                                <p className="font-medium">+91-980XX-XXX34</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Email</p>
+                                <p className="font-medium break-all">arjun.mehta@gmail.com</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* Aadhaar Verification */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Aadhaar Verification</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-500">Status</p>
+                                <div className="flex items-center gap-2">
+                                    <Circle className="w-4 h-4 text-gray-500" />
+                                    <span className="font-medium">Not Applicable</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Face ID</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span className="font-medium">Match</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Manual Verification</p>
+                                <div className="flex items-center gap-2">
+                                    <Circle className="w-4 h-4 text-gray-500" />
+                                    <span className="font-medium">Not Required</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Verified On</p>
+                                <p className="font-medium">18 Aug 2025, 11:25 AM</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Verified By (Hotel Staff ID)</p>
+                                <p className="font-medium">HC-User201</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Phone Number</p>
+                                <p className="font-medium">+91-980XX-XXX34</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* Dependents Information */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Dependents Information</h4>
+                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                            <p className="text-gray-500">No dependents available</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

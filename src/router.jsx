@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import CheckIns from "./pages/CheckIns.jsx";
 import AllBookings from "./pages/AllBookings.jsx";
+// import GuestDetails from "./pages/GuestDetails.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
@@ -21,6 +22,7 @@ const routes = [
       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
       // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
       { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
+      // { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
     ],
   },
   { path: ROUTES.LOGIN, element: <Login /> },

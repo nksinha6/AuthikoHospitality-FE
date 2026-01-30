@@ -5,6 +5,7 @@ import Loader from "../components/Loader.jsx";
 import dayjs from "dayjs";
 import { FiPlus, FiDownload } from "react-icons/fi";
 import { FaCircle } from "react-icons/fa";
+import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 import UniversalTable from "../components/UniversalTable.jsx";
 import {
   formatShortDate,
@@ -21,6 +22,8 @@ export default function AllBookings() {
   const [error, setError] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [dateFilter, setDateFilter] = useState(null);
+  const [selectedGuest, setSelectedGuest] = useState(null); // ADD THIS
+  const [showModal, setShowModal] = useState(false); // ADD THIS
 
   // ✅ UPDATED: fetch from real API + log response
   const fetchAllBookings = useCallback(async () => {
@@ -87,6 +90,27 @@ export default function AllBookings() {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
+  const prepareGuestDataForModal = (row) => {
+    // Extract time from date if available, or use current time
+    const time = row.time || dayjs().format("hh:mm A");
+    
+    return {
+      date: row.date ? dayjs(row.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+      time: time,
+      bookingId: row.bookingId || "N/A",
+      firstName: row.firstName || "N/A",
+      lastName: row.surname || "N/A",
+      phone: row.phone || "N/A",
+      city: row.city || "N/A",
+      state: row.state || "N/A",
+      // Add any other fields you want to show in modal
+      ota: row.ota || "N/A",
+      adults: row.adults || 0,
+      minors: row.minors || 0,
+      checkedInStatus: row.windowEnd ? "Checked In" : "Pending",
+    };
+  };
+
   if (loading) return <Loader />;
 
   if (error) {
@@ -115,10 +139,6 @@ export default function AllBookings() {
           </h2>
           <p className="text-gray-600 mt-1">{UI_TEXT.ALL_BOOKINGS_SUBTITLE}</p>
         </div>
-        <button className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand/90">
-          <FiPlus className="text-lg" />
-          {UI_TEXT.BUTTON_CREATE_WALKIN}
-        </button>
       </div>
 
       {/* FILTERS */}
@@ -167,13 +187,14 @@ export default function AllBookings() {
       <UniversalTable
         columns={[
           { key: "date", label: UI_TEXT.TABLE_DATE },
-          { key: "bookingId", label: UI_TEXT.TABLE_BOOKING_ID },
-          { key: "ota", label: UI_TEXT.TABLE_OTA },
           { key: "firstName", label: UI_TEXT.TABLE_FIRST_NAME },
           { key: "surname", label: UI_TEXT.TABLE_SURNAME },
           { key: "phone", label: UI_TEXT.TABLE_PHONE },
-          { key: "guests", label: UI_TEXT.TABLE_NUM_GUESTS },
+          { key: "ota", label: UI_TEXT.TABLE_OTA },
+          { key: "bookingId", label: UI_TEXT.TABLE_BOOKING_ID },
           { key: "checkedIn", label: UI_TEXT.TABLE_STATUS },
+          // { key: "guests", label: UI_TEXT.TABLE_NUM_GUESTS },
+          { key: "actions", label: "More Details" },
         ]}
         data={filteredBookings}
         emptyMessage="No bookings match your filters."
@@ -196,7 +217,7 @@ export default function AllBookings() {
             if (!row.windowEnd) {
               return (
                 <div className="flex items-center gap-2 text-gray-600 leading-none">
-                  <FaCircle className="text-yellow-500 text-xs mt-[1px]" />
+                  <FaCircle className="text-yellow-500 text-xs mt-px" />
                   {UI_TEXT.BUTTON_START_CHECKIN}
                 </div>
               );
@@ -205,12 +226,29 @@ export default function AllBookings() {
             // 🟢 Completed → View Verification
             return (
               <div className="flex items-center gap-2 text-gray-600 leading-none">
-                <FaCircle className="text-green-500 text-xs mt-[1px]" />
+                <FaCircle className="text-green-500 text-xs mt-px" />
                 {UI_TEXT.BUTTON_VIEW_CHECKEDIN}
               </div>
             );
           },
+          actions: (_, row) => ( // ADD THIS FORMATTER
+            <button 
+              className="text-brand text-sm font-medium hover:underline"
+              onClick={() => {
+                setSelectedGuest(prepareGuestDataForModal(row));
+                setShowModal(true);
+              }}
+            >
+              View
+            </button>
+          ),
         }}
+      />
+
+      <GuestDetailsModal 
+        show={showModal} 
+        handleClose={() => setShowModal(false)} 
+        guest={selectedGuest} 
       />
     </div>
   );
