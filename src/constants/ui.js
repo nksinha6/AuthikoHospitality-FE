@@ -10,7 +10,7 @@ export const UI_TEXT = {
   NAV_CHECK_INS: "Walk-in Check-ins", // "Check-ins"
   NAV_ALL_BOOKINGS: "All Bookings",
   NAV_TODAYS_BOOKINGS: "Today's Bookings",
-  NAV_GUEST_DETAILS: "Guest Details",
+  NAV_GUEST_DETAILS: "View all Guest",
   BUTTON_LOGOUT: "Logout",
 
   // Login
