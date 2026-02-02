@@ -308,7 +308,15 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text("DigiLocker Ref ID", margin, yPos);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.digiLockerReferenceId, margin, yPos + 5);
+      doc.text(guestData.digiLockerReferenceId || "-", margin, yPos + 5);
+
+      // Verification ID (right side)
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100, 100, 100);
+      doc.text("Verification ID", pageWidth / 2 + 10, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.text(guestData.verificationId || "-", pageWidth / 2 + 10, yPos + 5);
 
       yPos += 15;
 
