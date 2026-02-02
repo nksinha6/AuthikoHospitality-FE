@@ -420,64 +420,66 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       yPos += 15;
 
       // ==================== SECTION D: METADATA ====================
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(27, 54, 49);
-      doc.text("D. Metadata", margin, yPos);
-      yPos += 8;
+      // Temprary Comment Out Section D in PDF Download
 
-      // Property Name
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Property Name", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.propertyName, margin, yPos + 5);
+      // doc.setFontSize(14);
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(27, 54, 49);
+      // doc.text("D. Metadata", margin, yPos);
+      // yPos += 8;
 
-      // Police Station
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Police Station", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(
-        guestData.correspondingPoliceStation,
-        pageWidth / 2 + 10,
-        yPos + 5,
-      );
+      // // Property Name
+      // doc.setFontSize(10);
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Property Name", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.propertyName, margin, yPos + 5);
 
-      yPos += 15;
+      // // Police Station
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Police Station", pageWidth / 2 + 10, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(
+      //   guestData.correspondingPoliceStation,
+      //   pageWidth / 2 + 10,
+      //   yPos + 5,
+      // );
 
-      // Desk ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Desk ID", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.deskId, margin, yPos + 5);
+      // yPos += 15;
 
-      // Reception User ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Reception User ID", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.receptionUserId, pageWidth / 2 + 10, yPos + 5);
+      // // Desk ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Desk ID", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.deskId, margin, yPos + 5);
 
-      yPos += 15;
+      // // Reception User ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Reception User ID", pageWidth / 2 + 10, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.receptionUserId, pageWidth / 2 + 10, yPos + 5);
 
-      // Verification ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Verification ID", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      const verificationId =
-        guestData.verificationId.length > 30
-          ? guestData.verificationId.substring(0, 30) + "..."
-          : guestData.verificationId;
-      doc.text(verificationId, margin, yPos + 5);
+      // yPos += 15;
+
+      // // Verification ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Verification ID", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // const verificationId =
+      //   guestData.verificationId.length > 30
+      //     ? guestData.verificationId.substring(0, 30) + "..."
+      //     : guestData.verificationId;
+      // doc.text(verificationId, margin, yPos + 5);
 
       // ==================== FOOTER ====================
       yPos = pageHeight - 15;
