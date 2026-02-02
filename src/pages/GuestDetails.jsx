@@ -282,6 +282,17 @@ export default function GuestDetails() {
 
       /* ---------------- HELPER FUNCTIONS ---------------- */
 
+      const addWrappedValue = (text, x, y, maxWidth) => {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+
+        const lines = doc.splitTextToSize(text || "N/A", maxWidth);
+        doc.text(lines, x, y);
+
+        return lines.length * 5; // height used
+      };
+
       const drawTrafficLightStatus = (status, x, y) => {
         const normalized = status?.toLowerCase() || "unknown";
 
@@ -500,12 +511,21 @@ export default function GuestDetails() {
           col1X,
           col2X,
         );
-        yPosition += addFieldRow(
-          [{ label: "Address (From Aadhaar)", value: guest.address }],
-          yPosition,
+
+        addText("Address (From Aadhaar)", col1X, yPosition, {
+          fontSize: 9,
+          color: [100, 100, 100],
+        });
+
+        const addressHeight = addWrappedValue(
+          guest.address,
           col1X,
-          col2X,
+          yPosition + 5,
+          contentWidth - 10, // full width
         );
+
+        yPosition += addressHeight + 6;
+
         yPosition += addFieldRow(
           [
             { label: "City", value: guest.city },
