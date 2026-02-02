@@ -1,9 +1,8 @@
-// Application Configuration Constants
+// constants/config.js
 
-// Tenant ID and Property ID will be extracted from JWT token
-// These constants are no longer hardcoded
-export const TENANT_ID = null; // Will be obtained from token
-export const PROPERTY_ID = null; // Will be obtained from token
+// Application Configuration Constants
+export const TENANT_ID = null;
+export const PROPERTY_ID = null;
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -15,6 +14,8 @@ export const API_ENDPOINTS = {
   FACE_MATCH_STATUS: "HotelBookingRead/face-match/status",
   END_VERIFICATION: "booking/end_verification",
   ALL_BOOKINGS: "HotelBookingRead/all_booking",
+  BOOKING_GUEST_DETAILS: "HotelGuestRead/booking_guest_details",
+  GUEST_AADHAAR_IMAGE: "HotelGuestRead/aadhar/image",
 };
 
 // Storage Keys
@@ -23,7 +24,7 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: "onepass_access_token",
   REFRESH_TOKEN: "onepass_refresh_token",
   TOKEN_EXPIRES_AT: "onepass_token_expires_at",
-  USER_DATA: "onepass_user_data", // New key to store decoded token data
+  USER_DATA: "onepass_user_data",
 };
 
 // Verification Status Constants
@@ -31,6 +32,21 @@ export const VERIFICATION_STATUS = {
   PENDING: "pending",
   PROCESSING: "processing",
   VERIFIED: "verified",
+};
+
+// Verification Status Mapping (API numeric to UI label)
+export const VERIFICATION_STATUS_MAP = {
+  0: "pending",
+  1: "verified",
+  2: "failed",
+  3: "processing",
+};
+
+// Gender Mapping (API code to UI label)
+export const GENDER_MAP = {
+  M: "Male",
+  F: "Female",
+  O: "Other",
 };
 
 // Guest Verification Constants
