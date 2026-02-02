@@ -83,32 +83,35 @@ export default function GuestDetails() {
   });
 
   /* ---------------- FETCH DATA FROM API ---------------- */
-  const fetchGuestDetails = useCallback(async (showRefreshIndicator = false) => {
-    if (showRefreshIndicator) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setError(null);
+  const fetchGuestDetails = useCallback(
+    async (showRefreshIndicator = false) => {
+      if (showRefreshIndicator) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
 
-    try {
-      const response = await guestDetailsService.fetchBookingGuestDetails();
-      console.log("API Response:", response);
-      const transformedData = transformGuestsArray(response);
-      console.log("Transformed Data:", transformedData);
-      setGuests(transformedData);
-    } catch (err) {
-      console.error("Error fetching guest details:", err);
-      setError({
-        code: err.code || "UNKNOWN",
-        message: err.message || "Failed to fetch guest details",
-      });
-      setGuests([]);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+      try {
+        const response = await guestDetailsService.fetchBookingGuestDetails();
+        console.log("API Response:", response);
+        const transformedData = transformGuestsArray(response);
+        console.log("Transformed Data:", transformedData);
+        setGuests(transformedData);
+      } catch (err) {
+        console.error("Error fetching guest details:", err);
+        setError({
+          code: err.code || "UNKNOWN",
+          message: err.message || "Failed to fetch guest details",
+        });
+        setGuests([]);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
 
   /* ---------------- INITIAL DATA LOAD ---------------- */
   useEffect(() => {
@@ -126,28 +129,28 @@ export default function GuestDetails() {
         (g) =>
           g.firstName?.toLowerCase().includes(q) ||
           g.lastName?.toLowerCase().includes(q) ||
-          g.fullName?.toLowerCase().includes(q)
+          g.fullName?.toLowerCase().includes(q),
       );
     }
 
     // Booking ID filter
     if (filters.bookingId) {
       data = data.filter((g) =>
-        g.bookingId?.toLowerCase().includes(filters.bookingId.toLowerCase())
+        g.bookingId?.toLowerCase().includes(filters.bookingId.toLowerCase()),
       );
     }
 
     // City filter
     if (filters.city) {
       data = data.filter((g) =>
-        g.city?.toLowerCase().includes(filters.city.toLowerCase())
+        g.city?.toLowerCase().includes(filters.city.toLowerCase()),
       );
     }
 
     // State filter
     if (filters.state) {
       data = data.filter((g) =>
-        g.state?.toLowerCase().includes(filters.state.toLowerCase())
+        g.state?.toLowerCase().includes(filters.state.toLowerCase()),
       );
     }
 
@@ -192,7 +195,7 @@ export default function GuestDetails() {
     setSelectedRows((prev) =>
       prev.includes(bookingId)
         ? prev.filter((id) => id !== bookingId)
-        : [...prev, bookingId]
+        : [...prev, bookingId],
     );
   };
 
@@ -203,7 +206,7 @@ export default function GuestDetails() {
   const getStatusBadge = (status) => {
     // Normalize status to handle different cases
     const normalizedStatus = status?.toString().trim() || "Unknown";
-    
+
     const statusStyles = {
       Verified: "bg-green-100 text-green-700 border border-green-200",
       Pending: "bg-yellow-100 text-yellow-700 border border-yellow-200",
@@ -214,12 +217,12 @@ export default function GuestDetails() {
 
     // Get the style, fallback to Unknown if status not found
     const style = statusStyles[normalizedStatus] || statusStyles.Unknown;
-    const displayStatus = statusStyles[normalizedStatus] ? normalizedStatus : "Unknown";
+    const displayStatus = statusStyles[normalizedStatus]
+      ? normalizedStatus
+      : "Unknown";
 
     return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${style}`}
-      >
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${style}`}>
         {displayStatus}
       </span>
     );
@@ -263,7 +266,7 @@ export default function GuestDetails() {
     try {
       const serverTime = await fetchServerTime();
       const selectedGuestsData = filteredGuests.filter((g) =>
-        selectedRows.includes(g.bookingId)
+        selectedRows.includes(g.bookingId),
       );
 
       const doc = new jsPDF("p", "mm", "a4");
@@ -274,6 +277,8 @@ export default function GuestDetails() {
       const headerHeight = 45;
       const usableHeight = pageHeight - footerHeight;
       const contentWidth = pageWidth - 2 * margin;
+
+      const contentStartX = margin + 6; // 🔥 single left alignment reference
 
       /* ---------------- HELPER FUNCTIONS ---------------- */
       const addText = (text, x, y, options = {}) => {
@@ -313,43 +318,25 @@ export default function GuestDetails() {
         });
       };
 
-      const addPropertyBox = (yPos) => {
-        doc.setFillColor(240, 253, 244);
-        doc.rect(margin, yPos - 3, contentWidth, 30, "F");
-        doc.setDrawColor(34, 197, 94);
-        doc.setLineWidth(0.5);
-        doc.rect(margin, yPos - 3, contentWidth, 30, "S");
-        const col1X = margin + 3;
-        addText("Property Information", col1X, yPos + 2, {
-          fontSize: 10,
-          fontStyle: "bold",
-          color: [22, 101, 52],
-        });
-        addText(`Property: ${PROPERTY_DETAILS.propertyName}`, col1X, yPos + 10, {
-          fontSize: 9,
-        });
-        addText(`Address: ${PROPERTY_DETAILS.propertyAddress}`, col1X, yPos + 17, {
-          fontSize: 9,
-        });
-        addText(
-          `Police Station: ${PROPERTY_DETAILS.correspondingPoliceStation}`,
-          col1X,
-          yPos + 24,
-          { fontSize: 9 }
-        );
-        return yPos + 35;
-      };
-
       const addSectionHeader = (title, y) => {
         doc.setFillColor(27, 54, 49);
+
         doc.rect(margin, y, 3, 7, "F");
-        addText(title, margin + 6, y + 5, { fontSize: 11, fontStyle: "bold" });
+
+        addText(title, contentStartX, y + 5, {
+          fontSize: 11,
+          fontStyle: "bold",
+        });
+
         return y + 12;
       };
 
       const addField = (label, value, x, y) => {
         addText(label, x, y, { fontSize: 9, color: [100, 100, 100] });
-        addText(value || "N/A", x, y + 5, { fontSize: 10, fontStyle: "normal" });
+        addText(value || "N/A", x, y + 5, {
+          fontSize: 10,
+          fontStyle: "normal",
+        });
         return 14;
       };
 
@@ -361,7 +348,12 @@ export default function GuestDetails() {
         return 14;
       };
 
-      const checkAndAddPage = (currentY, requiredHeight, guest, sectionName) => {
+      const checkAndAddPage = (
+        currentY,
+        requiredHeight,
+        guest,
+        sectionName,
+      ) => {
         if (currentY + requiredHeight > usableHeight) {
           doc.addPage();
           doc.setFillColor(27, 54, 49);
@@ -375,10 +367,10 @@ export default function GuestDetails() {
             `Booking ID: ${guest.bookingId} | Continuing: ${sectionName}`,
             margin,
             22,
-            { fontSize: 10, color: [200, 220, 210] }
+            { fontSize: 10, color: [200, 220, 210] },
           );
           let newY = 38;
-          newY = addPropertyBox(newY);
+          // newY = addPropertyBox(newY);
           return newY;
         }
         return currentY;
@@ -386,7 +378,7 @@ export default function GuestDetails() {
 
       const addVerificationStatusBox = (guest, yPos) => {
         const status = guest.verificationStatus || "Unknown";
-        
+
         const statusColor = {
           Verified: [34, 197, 94],
           Pending: [234, 179, 8],
@@ -401,7 +393,7 @@ export default function GuestDetails() {
           Processing: [239, 246, 255],
           Unknown: [249, 250, 251],
         };
-        
+
         doc.setFillColor(...(bgColor[status] || bgColor.Unknown));
         doc.rect(margin, yPos, contentWidth, 15, "F");
         doc.setDrawColor(...(statusColor[status] || statusColor.Unknown));
@@ -424,13 +416,19 @@ export default function GuestDetails() {
         if (guestIndex > 0) {
           doc.addPage();
         }
-        const col1X = margin + 3;
-        const col2X = pageWidth / 2 + 5;
-        const fullName = guest.fullName || `${guest.firstName} ${guest.lastName}`;
+
+        const col1X = contentStartX;
+
+        const columnGap = 14;
+        const columnWidth = (contentWidth - columnGap) / 2;
+
+        const col2X = col1X + columnWidth + columnGap;
+
+        const fullName =
+          guest.fullName || `${guest.firstName} ${guest.lastName}`;
 
         addMainHeader(guest, guestIndex, selectedGuestsData.length);
         let yPosition = headerHeight;
-        yPosition = addPropertyBox(yPosition);
         yPosition += 5;
 
         // Section A
@@ -446,7 +444,7 @@ export default function GuestDetails() {
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [
@@ -455,27 +453,38 @@ export default function GuestDetails() {
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [
-            { label: "Masked Aadhaar Number", value: maskAadhaar(guest.aadhaarNumber) },
-            { label: "Verification Timestamp", value: guest.aadhaarVerificationTimestamp },
+            {
+              label: "Masked Aadhaar Number",
+              value: maskAadhaar(guest.aadhaarNumber),
+            },
+            {
+              label: "Verification Timestamp",
+              value: guest.aadhaarVerificationTimestamp,
+            },
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
-          [{ label: "DigiLocker Reference ID", value: guest.digiLockerReferenceId }],
+          [
+            {
+              label: "DigiLocker Reference ID",
+              value: guest.digiLockerReferenceId,
+            },
+          ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
 
-        yPosition += 8;
+        yPosition += 5;
         drawHorizontalLine(yPosition);
-        yPosition += 10;
+        yPosition += 5;
 
         // Section B
         yPosition = checkAndAddPage(yPosition, 75, guest, "Section B");
@@ -490,13 +499,13 @@ export default function GuestDetails() {
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [{ label: "Address (From Aadhaar)", value: guest.address }],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [
@@ -505,18 +514,18 @@ export default function GuestDetails() {
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [{ label: "PIN Code", value: guest.pinCode }],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
 
-        yPosition += 8;
+        yPosition += 5;
         drawHorizontalLine(yPosition);
-        yPosition += 10;
+        yPosition += 5;
 
         // Section C
         yPosition = checkAndAddPage(yPosition, 45, guest, "Section C");
@@ -531,52 +540,26 @@ export default function GuestDetails() {
           ],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
         yPosition += addFieldRow(
           [{ label: "Check-in Date & Time", value: guest.checkInDateTime }],
           yPosition,
           col1X,
-          col2X
+          col2X,
         );
 
-        yPosition += 8;
+        yPosition += 5;
         drawHorizontalLine(yPosition);
-        yPosition += 10;
+        yPosition += 5;
 
-        // Section D
-        yPosition = checkAndAddPage(yPosition, 60, guest, "Section D");
-        yPosition = addSectionHeader("D. Metadata", yPosition);
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPosition - 2, contentWidth, 42, "F");
-
-        yPosition += addFieldRow(
-          [
-            { label: "Property Name", value: PROPERTY_DETAILS.propertyName },
-            { label: "Police Station", value: PROPERTY_DETAILS.correspondingPoliceStation },
-          ],
+        // yPosition += 10;
+        yPosition = checkAndAddPage(
           yPosition,
-          col1X,
-          col2X
+          15,
+          guest,
+          "Verification Status",
         );
-        yPosition += addFieldRow(
-          [
-            { label: "Desk ID", value: guest.deskId },
-            { label: "Reception User ID", value: guest.receptionUserId },
-          ],
-          yPosition,
-          col1X,
-          col2X
-        );
-        yPosition += addFieldRow(
-          [{ label: "Last Updated Timestamp", value: guest.lastUpdatedTimestamp }],
-          yPosition,
-          col1X,
-          col2X
-        );
-
-        yPosition += 10;
-        yPosition = checkAndAddPage(yPosition, 25, guest, "Verification Status");
         yPosition = addVerificationStatusBox(guest, yPosition);
       });
 
@@ -592,19 +575,33 @@ export default function GuestDetails() {
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
         doc.setFont("helvetica", "normal");
-        doc.text("Confidential - Guest Details Report", margin, pageHeight - 14);
+        doc.text(
+          "Confidential - Guest Details Report",
+          margin,
+          pageHeight - 14,
+        );
         doc.text(
           `${PROPERTY_DETAILS.propertyName} | ${PROPERTY_DETAILS.correspondingPoliceStation}`,
           pageWidth / 2,
           pageHeight - 14,
-          { align: "center" }
+          { align: "center" },
         );
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 14, {
-          align: "right",
-        });
-        doc.text(`Report Generated: ${serverTime}`, pageWidth / 2, pageHeight - 7, {
-          align: "center",
-        });
+        doc.text(
+          `Page ${i} of ${totalPages}`,
+          pageWidth - margin,
+          pageHeight - 14,
+          {
+            align: "right",
+          },
+        );
+        doc.text(
+          `Report Generated: ${serverTime}`,
+          pageWidth / 2,
+          pageHeight - 7,
+          {
+            align: "center",
+          },
+        );
       }
 
       const fileName =
@@ -640,8 +637,12 @@ export default function GuestDetails() {
       <div className="min-h-screen bg-white">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-semibold text-[#1b3631]">Guest Details</h2>
-            <p className="text-gray-600 mt-1">View and manage guest information</p>
+            <h2 className="text-2xl font-semibold text-[#1b3631]">
+              Guest Details
+            </h2>
+            <p className="text-gray-600 mt-1">
+              View and manage guest information
+            </p>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-16">
@@ -651,7 +652,9 @@ export default function GuestDetails() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Failed to Load Guest Details
           </h3>
-          <p className="text-gray-600 mb-4 text-center max-w-md">{error.message}</p>
+          <p className="text-gray-600 mb-4 text-center max-w-md">
+            {error.message}
+          </p>
           <button
             onClick={() => fetchGuestDetails()}
             className="flex items-center gap-2 px-4 py-2 bg-[#1b3631] text-white rounded-lg hover:bg-[#2a4a43] transition-colors"
@@ -669,8 +672,12 @@ export default function GuestDetails() {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1b3631]">Guest Details</h2>
-          <p className="text-gray-600 mt-1">View and manage guest information</p>
+          <h2 className="text-2xl font-semibold text-[#1b3631]">
+            Guest Details
+          </h2>
+          <p className="text-gray-600 mt-1">
+            View and manage guest information
+          </p>
         </div>
         <button
           onClick={() => fetchGuestDetails(true)}
@@ -679,7 +686,9 @@ export default function GuestDetails() {
             isRefreshing ? "bg-gray-100 cursor-not-allowed" : "hover:bg-gray-50"
           }`}
         >
-          <FiRefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <FiRefreshCw
+            className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+          />
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
@@ -734,7 +743,10 @@ export default function GuestDetails() {
             className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1b3631] focus:border-[#1b3631]"
           />
         </div>
-        {(filters.name || filters.bookingId || filters.city || filters.state) && (
+        {(filters.name ||
+          filters.bookingId ||
+          filters.city ||
+          filters.state) && (
           <button
             onClick={clearFilters}
             className="mt-2 text-sm text-[#1b3631] hover:underline"
