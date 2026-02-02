@@ -581,12 +581,6 @@ export default function GuestDetails() {
           pageHeight - 14,
         );
         doc.text(
-          `${PROPERTY_DETAILS.propertyName} | ${PROPERTY_DETAILS.correspondingPoliceStation}`,
-          pageWidth / 2,
-          pageHeight - 14,
-          { align: "center" },
-        );
-        doc.text(
           `Page ${i} of ${totalPages}`,
           pageWidth - margin,
           pageHeight - 14,
