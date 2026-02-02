@@ -82,6 +82,48 @@ export default function GuestDetails() {
     state: "",
   });
 
+  /* ---------------- FETCH GUEST IMAGE ---------------- */
+  const fetchGuestImage = async (guest) => {
+    try {
+      // Check if image is in guest data directly
+      if (guest.image) {
+        if (guest.image.startsWith("data:")) {
+          return guest.image;
+        } else {
+          return `data:image/jpeg;base64,${guest.image}`;
+        }
+      }
+
+      // Fallback to API
+      let phoneNumber = guest.phoneNumber || guest.phone || "";
+      let countryCode = guest.phoneCountryCode || "91";
+
+      if (phoneNumber && phoneNumber.length > 10) {
+        countryCode = phoneNumber.substring(0, phoneNumber.length - 10);
+        phoneNumber = phoneNumber.slice(-10);
+      }
+
+      if (phoneNumber) {
+        const imageData = await guestDetailsService.fetchGuestImageWithRetry(
+          countryCode,
+          phoneNumber,
+        );
+
+        if (imageData) {
+          return imageData;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(
+        `Error fetching image for guest ${guest.bookingId}:`,
+        error,
+      );
+      return null;
+    }
+  };
+
   /* ---------------- FETCH DATA FROM API ---------------- */
   const fetchGuestDetails = useCallback(
     async (showRefreshIndicator = false) => {
@@ -204,7 +246,6 @@ export default function GuestDetails() {
 
   /* ---------------- VERIFICATION STATUS BADGE ---------------- */
   const getStatusBadge = (status) => {
-    // Normalize status to handle different cases
     const normalizedStatus = status?.toString().trim() || "Unknown";
 
     const statusStyles = {
@@ -215,7 +256,6 @@ export default function GuestDetails() {
       Unknown: "bg-gray-100 text-gray-700 border border-gray-200",
     };
 
-    // Get the style, fallback to Unknown if status not found
     const style = statusStyles[normalizedStatus] || statusStyles.Unknown;
     const displayStatus = statusStyles[normalizedStatus]
       ? normalizedStatus
@@ -257,7 +297,7 @@ export default function GuestDetails() {
     }
   };
 
-  /* ---------------- DOWNLOAD SELECTED AS PDF ---------------- */
+  /* ---------------- DOWNLOAD SELECTED AS PDF (ONE PAGE PER GUEST) ---------------- */
   const handleDownloadSelectedPDF = async () => {
     if (selectedRows.length === 0) return;
 
@@ -269,54 +309,35 @@ export default function GuestDetails() {
         selectedRows.includes(g.bookingId),
       );
 
+      // Fetch images for all selected guests
+      const guestImages = {};
+      console.log("Fetching images for selected guests...");
+
+      for (const guest of selectedGuestsData) {
+        try {
+          const imageData = await fetchGuestImage(guest);
+          if (imageData) {
+            guestImages[guest.bookingId] = imageData;
+            console.log(`Image fetched for guest: ${guest.bookingId}`);
+          }
+        } catch (error) {
+          console.error(
+            `Failed to fetch image for guest ${guest.bookingId}:`,
+            error,
+          );
+        }
+      }
+
+      console.log(`Total images fetched: ${Object.keys(guestImages).length}`);
+
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
-      const footerHeight = 25;
-      const headerHeight = 45;
-      const usableHeight = pageHeight - footerHeight;
       const contentWidth = pageWidth - 2 * margin;
-
-      const contentStartX = margin + 6; // 🔥 single left alignment reference
+      const contentStartX = margin + 6;
 
       /* ---------------- HELPER FUNCTIONS ---------------- */
-
-      const addWrappedValue = (text, x, y, maxWidth) => {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-
-        const lines = doc.splitTextToSize(text || "N/A", maxWidth);
-        doc.text(lines, x, y);
-
-        return lines.length * 5; // height used
-      };
-
-      const drawTrafficLightStatus = (status, x, y) => {
-        const normalized = status?.toLowerCase() || "unknown";
-
-        const statusMap = {
-          verified: { label: "Verified", color: [34, 197, 94] },
-          pending: { label: "Pending", color: [234, 179, 8] },
-          failed: { label: "Failed", color: [239, 68, 68] },
-        };
-
-        const cfg = statusMap[normalized] || {
-          label: "N/A",
-          color: [156, 163, 175],
-        };
-
-        /* 🔹 Value text (EXACT same baseline as other fields) */
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(...cfg.color);
-        doc.text(cfg.label, x + 6, y + 5);
-
-        /* 🔹 Dot vertically centered on text */
-        doc.setFillColor(...cfg.color);
-        doc.circle(x + 2, y + 3.7, 1.1, "F");
-      };
 
       const addText = (text, x, y, options = {}) => {
         const {
@@ -337,284 +358,273 @@ export default function GuestDetails() {
         doc.line(margin, y, pageWidth - margin, y);
       };
 
-      const addMainHeader = (guest, guestIndex, totalGuests) => {
-        doc.setFillColor(27, 54, 49);
-        doc.rect(0, 0, pageWidth, 40, "F");
-        addText("Guest Details Report", margin, 15, {
-          fontSize: 18,
-          fontStyle: "bold",
-          color: [255, 255, 255],
-        });
-        addText(`Booking ID: ${guest.bookingId}`, margin, 24, {
-          fontSize: 11,
-          color: [200, 220, 210],
-        });
-        addText(`Guest ${guestIndex + 1} of ${totalGuests}`, margin, 32, {
-          fontSize: 9,
-          color: [180, 200, 190],
-        });
+      const drawTrafficLightStatus = (status, x, y) => {
+        const normalized = status?.toLowerCase() || "unknown";
+
+        const statusMap = {
+          verified: { label: "Verified", color: [34, 197, 94] },
+          pending: { label: "Pending", color: [234, 179, 8] },
+          failed: { label: "Failed", color: [239, 68, 68] },
+        };
+
+        const cfg = statusMap[normalized] || {
+          label: "N/A",
+          color: [156, 163, 175],
+        };
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...cfg.color);
+        doc.text(cfg.label, x + 5, y);
+
+        doc.setFillColor(...cfg.color);
+        doc.circle(x + 1.5, y - 1.2, 1.1, "F");
+      };
+
+      const addFieldLabel = (label, x, y) => {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text(label, x, y);
+      };
+
+      const addFieldValue = (value, x, y, maxWidth = 80) => {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        const lines = doc.splitTextToSize(value || "N/A", maxWidth);
+        doc.text(lines, x, y);
+        return lines.length * 4;
       };
 
       const addSectionHeader = (title, y) => {
         doc.setFillColor(27, 54, 49);
-
-        doc.rect(margin, y, 3, 7, "F");
-
-        addText(title, contentStartX, y + 5, {
-          fontSize: 11,
+        doc.rect(margin, y, 2.5, 6, "F");
+        addText(title, contentStartX, y + 4.5, {
+          fontSize: 10,
           fontStyle: "bold",
         });
-
-        return y + 12;
+        return y + 10;
       };
 
-      const addFieldRow = (fields, y, col1X, col2X) => {
-        fields.forEach((field, index) => {
-          const x = index === 0 ? col1X : col2X;
-
-          addText(field.label, x, y, { fontSize: 9, color: [100, 100, 100] });
-
-          if (field.render) {
-            field.render(x, y);
-          } else {
-            addText(field.value || "N/A", x, y + 5, {
-              fontSize: 10,
-              fontStyle: "normal",
-            });
-          }
-        });
-
-        return 14;
-      };
-
-      const checkAndAddPage = (
-        currentY,
-        requiredHeight,
-        guest,
-        sectionName,
-      ) => {
-        if (currentY + requiredHeight > usableHeight) {
-          doc.addPage();
-          doc.setFillColor(27, 54, 49);
-          doc.rect(0, 0, pageWidth, 30, "F");
-          addText("Guest Details Report (Continued)", margin, 12, {
-            fontSize: 14,
-            fontStyle: "bold",
-            color: [255, 255, 255],
-          });
-          addText(
-            `Booking ID: ${guest.bookingId} | Continuing: ${sectionName}`,
-            margin,
-            22,
-            { fontSize: 10, color: [200, 220, 210] },
-          );
-          let newY = 38;
-          return newY;
-        }
-        return currentY;
-      };
-
-      /* ---------------- GENERATE PDF FOR EACH GUEST ---------------- */
+      /* ---------------- GENERATE ONE PAGE PER GUEST ---------------- */
       selectedGuestsData.forEach((guest, guestIndex) => {
         if (guestIndex > 0) {
           doc.addPage();
         }
 
         const col1X = contentStartX;
-
-        const columnGap = 14;
-        const columnWidth = (contentWidth - columnGap) / 2;
-
-        const col2X = col1X + columnWidth + columnGap;
+        const col2X = pageWidth / 2 + 5;
+        const colWidth = (contentWidth - 20) / 2;
 
         const fullName =
           guest.fullName || `${guest.firstName} ${guest.lastName}`;
+        const guestImage = guestImages[guest.bookingId];
+        const hasImage = !!guestImage;
+        const imageWidth = 28;
+        const imageHeight = 35;
 
-        addMainHeader(guest, guestIndex, selectedGuestsData.length);
-        let yPosition = headerHeight;
-        yPosition += 5;
+        // ==================== HEADER ====================
+        doc.setFillColor(27, 54, 49);
+        doc.rect(0, 0, pageWidth, 32, "F");
 
-        // Section A
-        yPosition = checkAndAddPage(yPosition, 70, guest, "Section A");
-        yPosition = addSectionHeader("A. Guest Identity Details", yPosition);
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPosition - 2, contentWidth, 55, "F");
-
-        yPosition += addFieldRow(
-          [
-            { label: "Full Name (as per credential)", value: fullName },
-            { label: "Date of Birth", value: guest.dateOfBirth },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-        yPosition += addFieldRow(
-          [
-            { label: "Gender", value: guest.gender },
-            { label: "Nationality", value: guest.nationality },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-        yPosition += addFieldRow(
-          [
-            {
-              label: "Masked Aadhaar Number",
-              value: maskAadhaar(guest.aadhaarNumber),
-            },
-            {
-              label: "Verification Timestamp",
-              value: guest.aadhaarVerificationTimestamp,
-            },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-
-        yPosition += addFieldRow(
-          [
-            {
-              label: "DigiLocker Reference ID",
-              value: guest.digiLockerReferenceId,
-            },
-            {
-              label: "Verification Status",
-              render: (x, y) => {
-                drawTrafficLightStatus(guest.verificationStatus, x, y);
-              },
-            },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-
-        yPosition += 5;
-        drawHorizontalLine(yPosition);
-        yPosition += 5;
-
-        // Section B
-        yPosition = checkAndAddPage(yPosition, 75, guest, "Section B");
-        yPosition = addSectionHeader("B. Contact Information", yPosition);
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPosition - 2, contentWidth, 55, "F");
-
-        yPosition += addFieldRow(
-          [
-            { label: "Mobile Number", value: maskPhone(guest.phone) },
-            { label: "Email ID", value: guest.email },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-
-        addText("Address (From Aadhaar)", col1X, yPosition, {
-          fontSize: 9,
-          color: [100, 100, 100],
+        addText("Guest Details Report", margin, 12, {
+          fontSize: 16,
+          fontStyle: "bold",
+          color: [255, 255, 255],
         });
-
-        const addressHeight = addWrappedValue(
-          guest.address,
-          col1X,
-          yPosition + 5,
-          contentWidth - 10, // full width
+        addText(`Booking ID: ${guest.bookingId}`, margin, 20, {
+          fontSize: 10,
+          color: [200, 220, 210],
+        });
+        addText(
+          `Guest ${guestIndex + 1} of ${selectedGuestsData.length}`,
+          margin,
+          27,
+          {
+            fontSize: 8,
+            color: [180, 200, 190],
+          },
         );
 
-        yPosition += addressHeight + 6;
+        let yPos = 38;
 
-        yPosition += addFieldRow(
-          [
-            { label: "City", value: guest.city },
-            { label: "State", value: guest.state },
-          ],
-          yPosition,
-          col1X,
-          col2X,
-        );
-        yPosition += addFieldRow(
-          [{ label: "PIN Code", value: guest.pinCode }],
-          yPosition,
-          col1X,
-          col2X,
-        );
+        // ==================== SECTION A: GUEST IDENTITY DETAILS ====================
+        yPos = addSectionHeader("A. Guest Identity Details", yPos);
 
-        yPosition += 5;
-        drawHorizontalLine(yPosition);
-        yPosition += 5;
-
-        // Section C
-        yPosition = checkAndAddPage(yPosition, 45, guest, "Section C");
-        yPosition = addSectionHeader("C. Booking & Stay Details", yPosition);
+        // Background for section A
         doc.setFillColor(249, 250, 251);
-        doc.rect(margin, yPosition - 2, contentWidth, 30, "F");
+        doc.rect(margin, yPos - 2, contentWidth, hasImage ? 48 : 40, "F");
 
-        yPosition += addFieldRow(
-          [
-            { label: "Booking ID", value: guest.bookingId },
-            { label: "Booking Source", value: guest.bookingSource },
-          ],
-          yPosition,
-          col1X,
+        // Add guest image if available
+        if (hasImage) {
+          try {
+            doc.addImage(
+              guestImage,
+              "JPEG",
+              col1X,
+              yPos,
+              imageWidth,
+              imageHeight,
+            );
+          } catch (e) {
+            console.error("Error adding image to PDF:", e);
+          }
+        }
+
+        // Adjust field positions based on image presence
+        const identityCol1X = hasImage ? col1X + imageWidth + 5 : col1X;
+
+        // Row 1: Full Name & Date of Birth
+        addFieldLabel("Full Name", identityCol1X, yPos + 3);
+        addFieldValue(
+          fullName,
+          identityCol1X,
+          yPos + 7,
+          colWidth - (hasImage ? imageWidth : 0),
+        );
+
+        addFieldLabel("Date of Birth", col2X, yPos + 3);
+        addFieldValue(guest.dateOfBirth || "N/A", col2X, yPos + 7);
+
+        // Row 2: Gender & Nationality
+        addFieldLabel("Gender", identityCol1X, yPos + 15);
+        addFieldValue(guest.gender || "N/A", identityCol1X, yPos + 19);
+
+        addFieldLabel("Nationality", col2X, yPos + 15);
+        addFieldValue(guest.nationality || "Indian", col2X, yPos + 19);
+
+        // Row 3: Verification Status
+        addFieldLabel("Verification Status", identityCol1X, yPos + 27);
+        drawTrafficLightStatus(
+          guest.verificationStatus,
+          identityCol1X,
+          yPos + 32,
+        );
+
+        yPos += hasImage ? 50 : 42;
+
+        // Row 4: Aadhaar & Verification Timestamp (full width)
+        addFieldLabel("Masked Aadhaar Number", col1X, yPos);
+        addFieldValue(maskAadhaar(guest.aadhaarNumber), col1X, yPos + 4);
+
+        addFieldLabel("Verification Timestamp", col2X, yPos);
+        addFieldValue(
+          guest.aadhaarVerificationTimestamp || "N/A",
           col2X,
-        );
-        yPosition += addFieldRow(
-          [{ label: "Check-in Date & Time", value: guest.checkInDateTime }],
-          yPosition,
-          col1X,
-          col2X,
+          yPos + 4,
         );
 
-        yPosition += 5;
-        // drawHorizontalLine(yPosition);
-        // yPosition += 5;
+        yPos += 12;
 
-        // yPosition += 10;
-        yPosition = checkAndAddPage(
-          yPosition,
-          15,
-          guest,
-          "Verification Status",
-        );
-      });
+        // Row 5: DigiLocker Ref ID
+        addFieldLabel("DigiLocker Reference ID", col1X, yPos);
+        addFieldValue(guest.digiLockerReferenceId || "N/A", col1X, yPos + 4);
 
-      // Add footer to all pages
-      const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
+        addFieldLabel("Verification ID", col2X, yPos);
+        addFieldValue(guest.verificationId || "N/A", col2X, yPos + 4);
+
+        yPos += 12;
+        drawHorizontalLine(yPos);
+        yPos += 6;
+
+        // ==================== SECTION B: CONTACT INFORMATION ====================
+        yPos = addSectionHeader("B. Contact Information", yPos);
+
         doc.setFillColor(249, 250, 251);
-        doc.rect(0, pageHeight - 22, pageWidth, 22, "F");
+        doc.rect(margin, yPos - 2, contentWidth, 45, "F");
+
+        // Row 1: Mobile & Email
+        addFieldLabel("Mobile Number", col1X, yPos + 3);
+        addFieldValue(maskPhone(guest.phone), col1X, yPos + 7);
+
+        addFieldLabel("Email ID", col2X, yPos + 3);
+        const emailDisplay =
+          guest.email && guest.email.length > 30
+            ? guest.email.substring(0, 30) + "..."
+            : guest.email || "N/A";
+        addFieldValue(emailDisplay, col2X, yPos + 7);
+
+        // Row 2: Address
+        addFieldLabel("Address (From Aadhaar)", col1X, yPos + 15);
+        const addressLines = doc.splitTextToSize(
+          guest.address || "N/A",
+          contentWidth - 15,
+        );
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(addressLines.slice(0, 2), col1X, yPos + 19); // Limit to 2 lines
+
+        const addressHeight = Math.min(addressLines.length, 2) * 4;
+
+        // Row 3: City, State & PIN
+        addFieldLabel("City", col1X, yPos + 20 + addressHeight);
+        addFieldValue(guest.city || "N/A", col1X, yPos + 24 + addressHeight);
+
+        addFieldLabel("State", col2X - 30, yPos + 20 + addressHeight);
+        addFieldValue(
+          guest.state || "N/A",
+          col2X - 30,
+          yPos + 24 + addressHeight,
+        );
+
+        addFieldLabel("PIN Code", col2X + 30, yPos + 20 + addressHeight);
+        addFieldValue(
+          guest.pinCode || "N/A",
+          col2X + 30,
+          yPos + 24 + addressHeight,
+        );
+
+        yPos += 47;
+        drawHorizontalLine(yPos);
+        yPos += 6;
+
+        // ==================== SECTION C: BOOKING & STAY DETAILS ====================
+        yPos = addSectionHeader("C. Booking & Stay Details", yPos);
+
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, yPos - 2, contentWidth, 25, "F");
+
+        // Row 1: Booking ID & Booking Source
+        addFieldLabel("Booking ID", col1X, yPos + 3);
+        addFieldValue(guest.bookingId || "N/A", col1X, yPos + 7);
+
+        addFieldLabel("Booking Source", col2X, yPos + 3);
+        addFieldValue(guest.bookingSource || "N/A", col2X, yPos + 7);
+
+        // Row 2: Check-in Date & Time
+        addFieldLabel("Check-in Date & Time", col1X, yPos + 15);
+        addFieldValue(guest.checkInDateTime || "N/A", col1X, yPos + 19);
+
+        // ==================== FOOTER ====================
+        doc.setFillColor(249, 250, 251);
+        doc.rect(0, pageHeight - 18, pageWidth, 18, "F");
         doc.setDrawColor(220, 220, 220);
         doc.setLineWidth(0.3);
-        doc.line(margin, pageHeight - 22, pageWidth - margin, pageHeight - 22);
-        doc.setFontSize(8);
+        doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+
+        doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
         doc.setFont("helvetica", "normal");
         doc.text(
           "Confidential - Guest Details Report",
           margin,
-          pageHeight - 14,
+          pageHeight - 10,
         );
         doc.text(
-          `Page ${i} of ${totalPages}`,
+          `Page ${guestIndex + 1} of ${selectedGuestsData.length}`,
           pageWidth - margin,
-          pageHeight - 14,
-          {
-            align: "right",
-          },
+          pageHeight - 10,
+          { align: "right" },
         );
         doc.text(
           `Report Generated: ${serverTime}`,
           pageWidth / 2,
-          pageHeight - 7,
-          {
-            align: "center",
-          },
+          pageHeight - 5,
+          { align: "center" },
         );
-      }
+      });
 
       const fileName =
         selectedGuestsData.length === 1
@@ -708,7 +718,7 @@ export default function GuestDetails() {
       {/* ERROR BANNER */}
       {error && guests.length > 0 && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
-          <FiAlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+          <FiAlertCircle className="w-5 h-5 text-yellow-600 shrink-0" />
           <p className="text-yellow-800 text-sm">{error.message}</p>
           <button
             onClick={() => setError(null)}
@@ -899,7 +909,6 @@ export default function GuestDetails() {
           checkInDate: (_, row) => formatShortDate(row.date),
           maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),
           verificationStatus: (status, row) => {
-            // Use the status from the row which should be the transformed string
             const displayStatus = row.verificationStatus || status || "Unknown";
             return getStatusBadge(displayStatus);
           },
