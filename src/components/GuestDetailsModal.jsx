@@ -155,7 +155,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       formatDateTime(guest.checkInDateTime) ||
       "N/A",
     digiLockerReferenceId:
-      guest.digiLockerReferenceId || guest.referenceId || "N/A",
+    guest.digiLockerReferenceId || guest.referenceId || "N/A",
     verificationStatus: guest.verificationStatus || "Pending",
     mobileNumber: guest.phone || guest.phoneNumber || "N/A",
     phoneCountryCode: guest.phoneCountryCode || "91",
@@ -177,6 +177,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     lastUpdatedTimestamp: formatDateTime(guest.lastUpdatedTimestamp) || "-",
     verificationId: guest.verificationId || "-",
   };
+  console.log("Guest Data:", guestData);
 
   // Clean PDF Download Function - Matching the image layout
   const handleDownloadPDF = async () => {
@@ -564,7 +565,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="flex gap-6">
                 {/* Guest Image */}
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-32 h-40 bg-gray-200 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
                     {isLoadingImage ? (
                       <div className="text-center">
@@ -650,6 +651,10 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                     {guestData.digiLockerReferenceId}
                   </p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">Digilocker Verification ID</p>
+                  <p className="font-medium text-gray-800 font-mono">{guestData.verificationId}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -731,6 +736,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                   <p className="font-medium text-gray-800">
                     {guestData.checkInDateTime}
                   </p>
+                  
                 </div>
               </div>
             </div>
