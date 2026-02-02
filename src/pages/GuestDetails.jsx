@@ -281,6 +281,32 @@ export default function GuestDetails() {
       const contentStartX = margin + 6; // 🔥 single left alignment reference
 
       /* ---------------- HELPER FUNCTIONS ---------------- */
+
+      const drawTrafficLightStatus = (status, x, y) => {
+        const normalized = status?.toLowerCase() || "unknown";
+
+        const statusMap = {
+          verified: { label: "Verified", color: [34, 197, 94] },
+          pending: { label: "Pending", color: [234, 179, 8] },
+          failed: { label: "Failed", color: [239, 68, 68] },
+        };
+
+        const cfg = statusMap[normalized] || {
+          label: "N/A",
+          color: [156, 163, 175],
+        };
+
+        /* 🔹 Value text (EXACT same baseline as other fields) */
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...cfg.color);
+        doc.text(cfg.label, x + 6, y + 5);
+
+        /* 🔹 Dot vertically centered on text */
+        doc.setFillColor(...cfg.color);
+        doc.circle(x + 2, y + 3.7, 1.1, "F");
+      };
+
       const addText = (text, x, y, options = {}) => {
         const {
           fontSize = 10,
@@ -331,20 +357,22 @@ export default function GuestDetails() {
         return y + 12;
       };
 
-      const addField = (label, value, x, y) => {
-        addText(label, x, y, { fontSize: 9, color: [100, 100, 100] });
-        addText(value || "N/A", x, y + 5, {
-          fontSize: 10,
-          fontStyle: "normal",
-        });
-        return 14;
-      };
-
       const addFieldRow = (fields, y, col1X, col2X) => {
         fields.forEach((field, index) => {
           const x = index === 0 ? col1X : col2X;
-          addField(field.label, field.value, x, y);
+
+          addText(field.label, x, y, { fontSize: 9, color: [100, 100, 100] });
+
+          if (field.render) {
+            field.render(x, y);
+          } else {
+            addText(field.value || "N/A", x, y + 5, {
+              fontSize: 10,
+              fontStyle: "normal",
+            });
+          }
         });
+
         return 14;
       };
 
@@ -370,45 +398,9 @@ export default function GuestDetails() {
             { fontSize: 10, color: [200, 220, 210] },
           );
           let newY = 38;
-          // newY = addPropertyBox(newY);
           return newY;
         }
         return currentY;
-      };
-
-      const addVerificationStatusBox = (guest, yPos) => {
-        const status = guest.verificationStatus || "Unknown";
-
-        const statusColor = {
-          Verified: [34, 197, 94],
-          Pending: [234, 179, 8],
-          Failed: [239, 68, 68],
-          Processing: [59, 130, 246],
-          Unknown: [156, 163, 175],
-        };
-        const bgColor = {
-          Verified: [240, 253, 244],
-          Pending: [254, 252, 232],
-          Failed: [254, 242, 242],
-          Processing: [239, 246, 255],
-          Unknown: [249, 250, 251],
-        };
-
-        doc.setFillColor(...(bgColor[status] || bgColor.Unknown));
-        doc.rect(margin, yPos, contentWidth, 15, "F");
-        doc.setDrawColor(...(statusColor[status] || statusColor.Unknown));
-        doc.setLineWidth(0.5);
-        doc.rect(margin, yPos, contentWidth, 15, "S");
-        addText("Verification Status:", margin + 5, yPos + 9, {
-          fontSize: 10,
-          fontStyle: "bold",
-        });
-        addText(status, margin + 50, yPos + 9, {
-          fontSize: 10,
-          fontStyle: "bold",
-          color: statusColor[status] || statusColor.Unknown,
-        });
-        return yPos + 20;
       };
 
       /* ---------------- GENERATE PDF FOR EACH GUEST ---------------- */
@@ -470,11 +462,18 @@ export default function GuestDetails() {
           col1X,
           col2X,
         );
+
         yPosition += addFieldRow(
           [
             {
               label: "DigiLocker Reference ID",
               value: guest.digiLockerReferenceId,
+            },
+            {
+              label: "Verification Status",
+              render: (x, y) => {
+                drawTrafficLightStatus(guest.verificationStatus, x, y);
+              },
             },
           ],
           yPosition,
@@ -550,8 +549,8 @@ export default function GuestDetails() {
         );
 
         yPosition += 5;
-        drawHorizontalLine(yPosition);
-        yPosition += 5;
+        // drawHorizontalLine(yPosition);
+        // yPosition += 5;
 
         // yPosition += 10;
         yPosition = checkAndAddPage(
@@ -560,7 +559,6 @@ export default function GuestDetails() {
           guest,
           "Verification Status",
         );
-        yPosition = addVerificationStatusBox(guest, yPosition);
       });
 
       // Add footer to all pages
