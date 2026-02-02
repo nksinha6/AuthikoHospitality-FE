@@ -24,7 +24,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
         // Check if image is in guest data directly
         if (guest.image) {
           // Convert base64 to data URL if needed
-          if (guest.image.startsWith('data:')) {
+          if (guest.image.startsWith("data:")) {
             setGuestImage(guest.image);
           } else {
             setGuestImage(`data:image/jpeg;base64,${guest.image}`);
@@ -40,10 +40,11 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
           }
 
           if (phoneNumber) {
-            const imageData = await guestDetailsService.fetchGuestImageWithRetry(
-              countryCode,
-              phoneNumber
-            );
+            const imageData =
+              await guestDetailsService.fetchGuestImageWithRetry(
+                countryCode,
+                phoneNumber,
+              );
 
             if (imageData) {
               setGuestImage(imageData);
@@ -108,10 +109,10 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
+      return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
       });
     } catch (e) {
       return dateString;
@@ -123,13 +124,13 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     if (!dateTimeString) return "N/A";
     try {
       const date = new Date(dateTimeString);
-      return date.toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
+      return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
       });
     } catch (e) {
       return dateTimeString;
@@ -150,7 +151,9 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     nationality: guest.nationality || "Indian",
     aadhaarNumber: guest.aadhaarNumber || guest.uid || "",
     aadhaarVerificationTimestamp:
-      formatDateTime(guest.aadhaarVerificationTimestamp) || formatDateTime(guest.checkInDateTime) || "N/A",
+      formatDateTime(guest.aadhaarVerificationTimestamp) ||
+      formatDateTime(guest.checkInDateTime) ||
+      "N/A",
     digiLockerReferenceId:
       guest.digiLockerReferenceId || guest.referenceId || "N/A",
     verificationStatus: guest.verificationStatus || "Pending",
@@ -168,8 +171,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       `${guest.date || ""} ${guest.time || ""}`.trim() ||
       "N/A",
     propertyName: guest.propertyName || "-",
-    correspondingPoliceStation:
-      guest.policeStation || "-",
+    correspondingPoliceStation: guest.policeStation || "-",
     deskId: guest.deskId || "-",
     receptionUserId: guest.receptionUserId || "-",
     lastUpdatedTimestamp: formatDateTime(guest.lastUpdatedTimestamp) || "-",
@@ -192,16 +194,16 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // ==================== HEADER ====================
       doc.setFillColor(27, 54, 49);
       doc.rect(0, 0, pageWidth, 25, "F");
-      
+
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
       doc.text("Guest Details Report", margin, 14);
-      
+
       doc.setFontSize(9);
       doc.setTextColor(200, 220, 210);
       doc.text(`Booking ID: ${guestData.bookingId}`, margin, 21);
-      
+
       yPos = 32;
 
       // ==================== SECTION A: GUEST IDENTITY DETAILS ====================
@@ -223,7 +225,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       // Guest Info Column 1 (next to image if present)
       const infoCol1X = guestImage ? margin + 35 : margin;
-      
+
       // Full Name
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -251,7 +253,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       // Guest Info Column 2 (right side)
       const infoCol2X = pageWidth / 2 + 10;
-      
+
       // Date of Birth
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
@@ -291,7 +293,11 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text("Verification Timestamp", pageWidth / 2 + 10, yPos);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.aadhaarVerificationTimestamp, pageWidth / 2 + 10, yPos + 5);
+      doc.text(
+        guestData.aadhaarVerificationTimestamp,
+        pageWidth / 2 + 10,
+        yPos + 5,
+      );
 
       yPos += 15;
 
@@ -327,7 +333,10 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text("Email ID", pageWidth / 2 + 10, yPos);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      const email = guestData.emailId.length > 25 ? guestData.emailId.substring(0, 25) + "..." : guestData.emailId;
+      const email =
+        guestData.emailId.length > 25
+          ? guestData.emailId.substring(0, 25) + "..."
+          : guestData.emailId;
       doc.text(email, pageWidth / 2 + 10, yPos + 5);
 
       yPos += 15;
@@ -348,11 +357,14 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text("Address (From Aadhaar)", margin, yPos);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      
+
       // Split address into lines if too long
-      const addressLines = doc.splitTextToSize(guestData.addressFromAadhaar, contentWidth - 10);
+      const addressLines = doc.splitTextToSize(
+        guestData.addressFromAadhaar,
+        contentWidth - 10,
+      );
       doc.text(addressLines, margin, yPos + 5);
-      yPos += 5 + (addressLines.length * 5);
+      yPos += 5 + addressLines.length * 5;
 
       // City and State
       doc.setFont("helvetica", "bold");
@@ -408,75 +420,87 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       yPos += 15;
 
       // ==================== SECTION D: METADATA ====================
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(27, 54, 49);
-      doc.text("D. Metadata", margin, yPos);
-      yPos += 8;
+      // Temprary Comment Out Section D in PDF Download
 
-      // Property Name
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Property Name", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.propertyName, margin, yPos + 5);
+      // doc.setFontSize(14);
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(27, 54, 49);
+      // doc.text("D. Metadata", margin, yPos);
+      // yPos += 8;
 
-      // Police Station
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Police Station", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.correspondingPoliceStation, pageWidth / 2 + 10, yPos + 5);
+      // // Property Name
+      // doc.setFontSize(10);
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Property Name", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.propertyName, margin, yPos + 5);
 
-      yPos += 15;
+      // // Police Station
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Police Station", pageWidth / 2 + 10, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(
+      //   guestData.correspondingPoliceStation,
+      //   pageWidth / 2 + 10,
+      //   yPos + 5,
+      // );
 
-      // Desk ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Desk ID", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.deskId, margin, yPos + 5);
+      // yPos += 15;
 
-      // Reception User ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Reception User ID", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.receptionUserId, pageWidth / 2 + 10, yPos + 5);
+      // // Desk ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Desk ID", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.deskId, margin, yPos + 5);
 
-      yPos += 15;
+      // // Reception User ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Reception User ID", pageWidth / 2 + 10, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(guestData.receptionUserId, pageWidth / 2 + 10, yPos + 5);
 
-      // Verification ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Verification ID", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      const verificationId = guestData.verificationId.length > 30 ? 
-        guestData.verificationId.substring(0, 30) + "..." : guestData.verificationId;
-      doc.text(verificationId, margin, yPos + 5);
+      // yPos += 15;
+
+      // // Verification ID
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Verification ID", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // const verificationId =
+      //   guestData.verificationId.length > 30
+      //     ? guestData.verificationId.substring(0, 30) + "..."
+      //     : guestData.verificationId;
+      // doc.text(verificationId, margin, yPos + 5);
 
       // ==================== FOOTER ====================
       yPos = pageHeight - 15;
-      
+
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.setFont("helvetica", "normal");
-      
+
       // Generated timestamp
-      doc.text(`Generated: ${new Date().toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}`, margin, yPos);
-      
+      doc.text(
+        `Generated: ${new Date().toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`,
+        margin,
+        yPos,
+      );
+
       // Page number
       doc.text("Page 1 of 1", pageWidth - margin, yPos, { align: "right" });
 
@@ -522,13 +546,12 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
           <div className="flex items-center gap-3">
             <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeStyle(
-                guestData.verificationStatus
+                guestData.verificationStatus,
               )}`}
             >
               {guestData.verificationStatus}
             </span>
           </div>
-
           {/* A. Guest Identity Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -575,27 +598,37 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                 <div className="flex-1 grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Full Name</p>
-                    <p className="font-semibold text-gray-800">{guestData.fullName}</p>
+                    <p className="font-semibold text-gray-800">
+                      {guestData.fullName}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Gender</p>
-                    <p className="font-medium text-gray-800">{guestData.gender}</p>
+                    <p className="font-medium text-gray-800">
+                      {guestData.gender}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Nationality</p>
-                    <p className="font-medium text-gray-800">{guestData.nationality}</p>
+                    <p className="font-medium text-gray-800">
+                      {guestData.nationality}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Date of Birth</p>
-                    <p className="font-medium text-gray-800">{guestData.dateOfBirth}</p>
+                    <p className="font-medium text-gray-800">
+                      {guestData.dateOfBirth}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Verification Status</p>
-                    <p className="font-medium text-gray-800">{guestData.verificationStatus}</p>
+                    <p className="font-medium text-gray-800">
+                      {guestData.verificationStatus}
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6 grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Masked Aadhaar Number</p>
@@ -604,7 +637,9 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Verification Timestamp</p>
+                  <p className="text-sm text-gray-500">
+                    Verification Timestamp
+                  </p>
                   <p className="font-medium text-gray-800">
                     {guestData.aadhaarVerificationTimestamp}
                   </p>
@@ -618,33 +653,43 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
               </div>
             </div>
           </div>
-
           <hr className="border-gray-200" />
-
           {/* B. Contact Information */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 bg-[#1b3631] rounded-full"></div>
-              <h4 className="text-lg font-semibold text-gray-800">B. Contact Information</h4>
+              <h4 className="text-lg font-semibold text-gray-800">
+                B. Contact Information
+              </h4>
             </div>
 
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Mobile Number</p>
-                  <p className="font-medium text-gray-800">{maskPhone(guestData.mobileNumber)}</p>
+                  <p className="font-medium text-gray-800">
+                    {maskPhone(guestData.mobileNumber)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Email ID</p>
-                  <p className="font-medium text-gray-800 break-all">{guestData.emailId}</p>
+                  <p className="font-medium text-gray-800 break-all">
+                    {guestData.emailId}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">PIN Code</p>
-                  <p className="font-medium text-gray-800">{guestData.pinCode}</p>
+                  <p className="font-medium text-gray-800">
+                    {guestData.pinCode}
+                  </p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm text-gray-500">Address (From Aadhaar)</p>
-                  <p className="font-medium text-gray-800">{guestData.addressFromAadhaar}</p>
+                  <p className="text-sm text-gray-500">
+                    Address (From Aadhaar)
+                  </p>
+                  <p className="font-medium text-gray-800">
+                    {guestData.addressFromAadhaar}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">City</p>
@@ -657,21 +702,23 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
               </div>
             </div>
           </div>
-
           <hr className="border-gray-200" />
-
           {/* C. Booking & Stay Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 bg-[#1b3631] rounded-full"></div>
-              <h4 className="text-lg font-semibold text-gray-800">C. Booking & Stay Details</h4>
+              <h4 className="text-lg font-semibold text-gray-800">
+                C. Booking & Stay Details
+              </h4>
             </div>
 
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Booking ID</p>
-                  <p className="font-medium text-gray-800 font-mono">{guestData.bookingId}</p>
+                  <p className="font-medium text-gray-800 font-mono">
+                    {guestData.bookingId}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Booking Source</p>
@@ -681,16 +728,17 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                 </div>
                 <div className="col-span-2">
                   <p className="text-sm text-gray-500">Check-in Date & Time</p>
-                  <p className="font-medium text-gray-800">{guestData.checkInDateTime}</p>
+                  <p className="font-medium text-gray-800">
+                    {guestData.checkInDateTime}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-
           <hr className="border-gray-200" />
-
           {/* D. Metadata */}
-          <div className="space-y-4">
+          {/* Teprary Comment Out Section D  */}
+          {/* <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 bg-[#1b3631] rounded-full"></div>
               <h4 className="text-lg font-semibold text-gray-800">D. Metadata</h4>
@@ -724,7 +772,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}
@@ -739,7 +787,9 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
             onClick={handleDownloadPDF}
             disabled={isDownloading}
             className={`px-4 py-2 text-sm font-medium text-white bg-[#1b3631] rounded-lg transition-colors flex items-center gap-2 ${
-              isDownloading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#2a4a43]"
+              isDownloading
+                ? "opacity-70 cursor-not-allowed"
+                : "hover:bg-[#2a4a43]"
             }`}
           >
             {isDownloading ? (
