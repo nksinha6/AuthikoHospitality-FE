@@ -44,6 +44,16 @@ const maskPhone = (phone) => {
   return `${first3}XXXXX${last4}`;
 };
 
+const getGuestImageKey = (guest) => {
+  return [
+    guest.bookingId,
+    guest.digiLockerReferenceId || "",
+    guest.aadhaarNumber || "",
+    guest.phoneCountryCode || "",
+    guest.phoneNumber || guest.phone || "",
+  ].join("_");
+};
+
 export default function GuestDetails() {
   const [guests, setGuests] = useState([]);
   const [filteredGuests, setFilteredGuests] = useState([]);
@@ -316,9 +326,12 @@ export default function GuestDetails() {
       for (const guest of selectedGuestsData) {
         try {
           const imageData = await fetchGuestImage(guest);
+          const imageKey = getGuestImageKey(guest);
+
+          guestImages[imageKey] = imageData || null;
+
           if (imageData) {
-            guestImages[guest.bookingId] = imageData;
-            console.log(`Image fetched for guest: ${guest.bookingId}`);
+            console.log("Image fetched for:", imageKey);
           }
         } catch (error) {
           console.error(
@@ -443,7 +456,9 @@ export default function GuestDetails() {
 
         const fullName =
           guest.fullName || `${guest.firstName} ${guest.lastName}`;
-        const guestImage = guestImages[guest.bookingId];
+        // const guestImage = guestImages[guest.bookingId];
+        const imageKey = getGuestImageKey(guest);
+        const guestImage = guestImages[imageKey];
         const hasImage = !!guestImage;
         const imageWidth = 28;
         const imageHeight = 35;
