@@ -338,6 +338,27 @@ export default function GuestDetails() {
       const contentStartX = margin + 6;
 
       /* ---------------- HELPER FUNCTIONS ---------------- */
+      const calculateAgeFromVerification = (dob, verificationTimestamp) => {
+        if (!dob || !verificationTimestamp) return "N/A";
+
+        const birthDate = dayjs(dob);
+        const verificationDate = dayjs(verificationTimestamp);
+
+        if (!birthDate.isValid() || !verificationDate.isValid()) return "N/A";
+
+        let age = verificationDate.year() - birthDate.year();
+
+        // If birthday hasn't occurred yet in verification year
+        if (
+          verificationDate.month() < birthDate.month() ||
+          (verificationDate.month() === birthDate.month() &&
+            verificationDate.date() < birthDate.date())
+        ) {
+          age--;
+        }
+
+        return age >= 0 ? `${age} Years` : "N/A";
+      };
 
       const addText = (text, x, y, options = {}) => {
         const {
@@ -358,27 +379,30 @@ export default function GuestDetails() {
         doc.line(margin, y, pageWidth - margin, y);
       };
 
-      const drawTrafficLightStatus = (status, x, y) => {
+      const drawTrafficLightStatus = (status, referenceId, x, y) => {
         const normalized = status?.toLowerCase() || "unknown";
 
         const statusMap = {
           verified: { label: "Verified", color: [34, 197, 94] },
           pending: { label: "Pending", color: [234, 179, 8] },
           failed: { label: "Failed", color: [239, 68, 68] },
+          processing: { label: "Processing", color: [59, 130, 246] },
         };
 
         const cfg = statusMap[normalized] || {
-          label: "N/A",
+          label: "Unknown",
           color: [156, 163, 175],
         };
 
+        /* ---- Traffic light dot ---- */
+        doc.setFillColor(...cfg.color);
+        doc.circle(x + 1.5, y - 1.2, 1.1, "F");
+
+        /* ---- Status text ---- */
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...cfg.color);
         doc.text(cfg.label, x + 5, y);
-
-        doc.setFillColor(...cfg.color);
-        doc.circle(x + 1.5, y - 1.2, 1.1, "F");
       };
 
       const addFieldLabel = (label, x, y) => {
@@ -484,8 +508,15 @@ export default function GuestDetails() {
           colWidth - (hasImage ? imageWidth : 0),
         );
 
-        addFieldLabel("Date of Birth", col2X, yPos + 3);
-        addFieldValue(guest.dateOfBirth || "N/A", col2X, yPos + 7);
+        addFieldLabel("Age (Years)", col2X, yPos + 3);
+        addFieldValue(
+          calculateAgeFromVerification(
+            guest.dateOfBirth,
+            guest.aadhaarVerificationTimestamp,
+          ),
+          col2X,
+          yPos + 7,
+        );
 
         // Row 2: Gender & Nationality
         addFieldLabel("Gender", identityCol1X, yPos + 15);
@@ -494,15 +525,20 @@ export default function GuestDetails() {
         addFieldLabel("Nationality", col2X, yPos + 15);
         addFieldValue(guest.nationality || "Indian", col2X, yPos + 19);
 
-        // Row 3: Verification Status
+        // Row 3: Verification Status & DigiLocker Reference ID
         addFieldLabel("Verification Status", identityCol1X, yPos + 27);
         drawTrafficLightStatus(
           guest.verificationStatus,
+          null, // ❌ remove inline ref from traffic light
           identityCol1X,
           yPos + 32,
         );
 
-        yPos += hasImage ? 50 : 42;
+        // Right side — DigiLocker Reference ID
+        addFieldLabel("DigiLocker Reference ID", col2X, yPos + 27);
+        addFieldValue(guest.digiLockerReferenceId || "N/A", col2X, yPos + 32);
+
+        yPos += hasImage ? 50 : 40;
 
         // Row 4: Aadhaar & Verification Timestamp (full width)
         addFieldLabel("Masked Aadhaar Number", col1X, yPos);
@@ -514,15 +550,6 @@ export default function GuestDetails() {
           col2X,
           yPos + 4,
         );
-
-        yPos += 12;
-
-        // Row 5: DigiLocker Ref ID
-        addFieldLabel("DigiLocker Reference ID", col1X, yPos);
-        addFieldValue(guest.digiLockerReferenceId || "N/A", col1X, yPos + 4);
-
-        addFieldLabel("Verification ID", col2X, yPos);
-        addFieldValue(guest.verificationId || "N/A", col2X, yPos + 4);
 
         yPos += 12;
         drawHorizontalLine(yPos);
@@ -545,38 +572,17 @@ export default function GuestDetails() {
             : guest.email || "N/A";
         addFieldValue(emailDisplay, col2X, yPos + 7);
 
-        // Row 2: Address
-        addFieldLabel("Address (From Aadhaar)", col1X, yPos + 15);
-        const addressLines = doc.splitTextToSize(
-          guest.address || "N/A",
-          contentWidth - 15,
-        );
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        doc.text(addressLines.slice(0, 2), col1X, yPos + 19); // Limit to 2 lines
+        // Row 2: City, State & PIN
+        addFieldLabel("City", col1X, yPos + 15);
+        addFieldValue(guest.city || "N/A", col1X, yPos + 19);
 
-        const addressHeight = Math.min(addressLines.length, 2) * 4;
+        addFieldLabel("State", col2X - 30, yPos + 15);
+        addFieldValue(guest.state || "N/A", col2X - 30, yPos + 19);
 
-        // Row 3: City, State & PIN
-        addFieldLabel("City", col1X, yPos + 20 + addressHeight);
-        addFieldValue(guest.city || "N/A", col1X, yPos + 24 + addressHeight);
+        addFieldLabel("PIN Code", col2X + 30, yPos + 15);
+        addFieldValue(guest.pinCode || "N/A", col2X + 30, yPos + 19);
 
-        addFieldLabel("State", col2X - 30, yPos + 20 + addressHeight);
-        addFieldValue(
-          guest.state || "N/A",
-          col2X - 30,
-          yPos + 24 + addressHeight,
-        );
-
-        addFieldLabel("PIN Code", col2X + 30, yPos + 20 + addressHeight);
-        addFieldValue(
-          guest.pinCode || "N/A",
-          col2X + 30,
-          yPos + 24 + addressHeight,
-        );
-
-        yPos += 47;
+        yPos += 28;
         drawHorizontalLine(yPos);
         yPos += 6;
 

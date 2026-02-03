@@ -137,6 +137,30 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     }
   };
 
+  // Calculate age in years at the time of verification
+  const calculateAgeAtVerification = (dob, verificationTimestamp) => {
+    if (!dob || !verificationTimestamp) return "N/A";
+
+    try {
+      const birthDate = new Date(dob);
+      const verificationDate = new Date(verificationTimestamp);
+
+      let age = verificationDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = verificationDate.getMonth() - birthDate.getMonth();
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && verificationDate.getDate() < birthDate.getDate())
+      ) {
+        age--;
+      }
+
+      return age >= 0 ? `${age} Years` : "N/A";
+    } catch {
+      return "N/A";
+    }
+  };
+
   // Guest data with proper fallbacks
   const guestData = {
     fullName:
@@ -146,7 +170,10 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
         : "N/A"),
     firstName: guest.firstName || "N/A",
     lastName: guest.lastName || "N/A",
-    dateOfBirth: formatDate(guest.dateOfBirth) || "N/A",
+    age: calculateAgeAtVerification(
+      guest.dateOfBirth,
+      guest.aadhaarVerificationTimestamp || guest.checkInDateTime,
+    ),
     gender: guest.gender || "N/A",
     nationality: guest.nationality || "Indian",
     aadhaarNumber: guest.aadhaarNumber || guest.uid || "",
@@ -155,7 +182,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       formatDateTime(guest.checkInDateTime) ||
       "N/A",
     digiLockerReferenceId:
-    guest.digiLockerReferenceId || guest.referenceId || "N/A",
+      guest.digiLockerReferenceId || guest.referenceId || "N/A",
     verificationStatus: guest.verificationStatus || "Pending",
     mobileNumber: guest.phone || guest.phoneNumber || "N/A",
     phoneCountryCode: guest.phoneCountryCode || "91",
@@ -179,6 +206,36 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
   };
   console.log("Guest Data:", guestData);
 
+  // Traffic light dot color
+  const getStatusDotColor = (status) => {
+    switch (status) {
+      case "Verified":
+        return "bg-green-500";
+      case "Pending":
+      case "Processing":
+        return "bg-yellow-400";
+      case "Failed":
+        return "bg-red-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  // Status text color
+  const getStatusTextColor = (status) => {
+    switch (status) {
+      case "Verified":
+        return "text-green-700";
+      case "Pending":
+      case "Processing":
+        return "text-yellow-700";
+      case "Failed":
+        return "text-red-700";
+      default:
+        return "text-gray-700";
+    }
+  };
+
   // Clean PDF Download Function - Matching the image layout
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
@@ -191,6 +248,21 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       const contentWidth = pageWidth - 2 * margin;
 
       let yPos = margin;
+
+      // PDF traffic-light color
+      const getPdfStatusColor = (status) => {
+        switch (status) {
+          case "Verified":
+            return [46, 204, 113]; // green
+          case "Pending":
+          case "Processing":
+            return [241, 196, 15]; // yellow
+          case "Failed":
+            return [231, 76, 60]; // red
+          default:
+            return [160, 160, 160]; // gray
+        }
+      };
 
       // ==================== HEADER ====================
       doc.setFillColor(27, 54, 49);
@@ -258,26 +330,55 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // Date of Birth
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Date of Birth", infoCol2X, yPos);
+      doc.text("Age (Years)", infoCol2X, yPos);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.dateOfBirth, infoCol2X, yPos + 5);
+      doc.text(guestData.age, infoCol2X, yPos + 5);
 
       // Verification Status
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
       doc.text("Verification Status", infoCol2X, yPos + 12);
+
+      // ---- Status dot + text alignment ----
+      const statusTextY = yPos + 18; // text baseline
+      const dotRadius = 1.4;
+      const dotX = infoCol2X + dotRadius;
+      const dotY = statusTextY - 1; // baseline correction
+
+      const [r, g, b] = getPdfStatusColor(guestData.verificationStatus);
+
+      // Dot
+      doc.setFillColor(r, g, b);
+      doc.circle(dotX, dotY, dotRadius, "F");
+
+      // Text (tight gap)
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(r, g, b);
+      doc.text(
+        guestData.verificationStatus,
+        dotX + dotRadius + 3, // perfect horizontal gap
+        statusTextY,
+      );
+
+      // DigiLocker Ref ID (Right column, aligned with Nationality)
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100, 100, 100);
+      doc.text("DigiLocker Ref ID", infoCol2X, yPos + 24);
+
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.verificationStatus, infoCol2X, yPos + 17);
+
+      // Truncate long ID safely
+      const digiRef =
+        guestData.digiLockerReferenceId.length > 28
+          ? guestData.digiLockerReferenceId.substring(0, 28) + "..."
+          : guestData.digiLockerReferenceId;
+
+      doc.text(digiRef, infoCol2X, yPos + 29);
 
       yPos += 45;
-
-      // Horizontal line
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 8;
 
       // Aadhaar and Verification details
       // Masked Aadhaar Number
@@ -300,25 +401,13 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
         yPos + 5,
       );
 
-      yPos += 15;
+      yPos += 10;
 
-      // DigiLocker Ref ID
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("DigiLocker Ref ID", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.digiLockerReferenceId || "-", margin, yPos + 5);
-
-      // Verification ID (right side)
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Verification ID", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.verificationId || "-", pageWidth / 2 + 10, yPos + 5);
-
-      yPos += 15;
+      // Horizontal line
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 8;
 
       // ==================== SECTION B: CONTACT INFORMATION ====================
       doc.setFontSize(14);
@@ -350,47 +439,31 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       yPos += 15;
 
-      // PIN Code
+      // PIN Code | City | State — same row
+      const col1X = margin;
+      const col2X = margin + contentWidth / 3;
+      const col3X = margin + (2 * contentWidth) / 3;
+
+      // Labels
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("PIN Code", margin, yPos);
+      doc.text("PIN Code", col1X, yPos);
+      doc.text("City", col2X, yPos);
+      doc.text("State", col3X, yPos);
+
+      // Values
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.pinCode, margin, yPos + 5);
+      doc.text(guestData.pinCode, col1X, yPos + 5);
+      doc.text(guestData.city, col2X, yPos + 5);
+      doc.text(guestData.state, col3X, yPos + 5);
 
       yPos += 15;
 
-      // Address (From Aadhaar)
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Address (From Aadhaar)", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-
-      // Split address into lines if too long
-      const addressLines = doc.splitTextToSize(
-        guestData.addressFromAadhaar,
-        contentWidth - 10,
-      );
-      doc.text(addressLines, margin, yPos + 5);
-      yPos += 5 + addressLines.length * 5;
-
-      // City and State
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("City", margin, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.city, margin, yPos + 5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(100, 100, 100);
-      doc.text("State", pageWidth / 2 + 10, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(guestData.state, pageWidth / 2 + 10, yPos + 5);
-
-      yPos += 15;
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 8;
 
       // ==================== SECTION C: BOOKING & STAY DETAILS ====================
       doc.setFontSize(14);
@@ -624,15 +697,35 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Date of Birth</p>
-                    <p className="font-medium text-gray-800">
-                      {guestData.dateOfBirth}
-                    </p>
+                    <p className="text-sm text-gray-500">Age (Years) </p>
+                    <p className="font-medium text-gray-800">{guestData.age}</p>
                   </div>
+
                   <div>
                     <p className="text-sm text-gray-500">Verification Status</p>
-                    <p className="font-medium text-gray-800">
-                      {guestData.verificationStatus}
+
+                    <div className="flex items-center gap-2 mt-1">
+                      {/* Traffic Light Dot */}
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${getStatusDotColor(
+                          guestData.verificationStatus,
+                        )}`}
+                      />
+
+                      {/* Status Text */}
+                      <p
+                        className={`font-medium ${getStatusTextColor(
+                          guestData.verificationStatus,
+                        )}`}
+                      >
+                        {guestData.verificationStatus}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">DigiLocker Ref ID</p>
+                    <p className="font-medium text-gray-800 font-mono">
+                      {guestData.digiLockerReferenceId}
                     </p>
                   </div>
                 </div>
@@ -652,16 +745,6 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                   <p className="font-medium text-gray-800">
                     {guestData.aadhaarVerificationTimestamp}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">DigiLocker Ref ID</p>
-                  <p className="font-medium text-gray-800 font-mono">
-                    {guestData.digiLockerReferenceId}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Digilocker Verification ID</p>
-                  <p className="font-medium text-gray-800 font-mono">{guestData.verificationId}</p>
                 </div>
               </div>
             </div>
@@ -694,14 +777,6 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                   <p className="text-sm text-gray-500">PIN Code</p>
                   <p className="font-medium text-gray-800">
                     {guestData.pinCode}
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">
-                    Address (From Aadhaar)
-                  </p>
-                  <p className="font-medium text-gray-800">
-                    {guestData.addressFromAadhaar}
                   </p>
                 </div>
                 <div>
@@ -744,7 +819,6 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
                   <p className="font-medium text-gray-800">
                     {guestData.checkInDateTime}
                   </p>
-                  
                 </div>
               </div>
             </div>
