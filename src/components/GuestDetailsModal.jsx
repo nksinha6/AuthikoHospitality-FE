@@ -247,7 +247,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       const margin = 15;
       const contentWidth = pageWidth - 2 * margin;
 
-      let yPos = margin;
+      let textY = margin;
 
       // PDF traffic-light color
       const getPdfStatusColor = (status) => {
@@ -284,13 +284,15 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
-      doc.text("A. Guest Identity Details", margin, yPos);
-      yPos += 8;
+      doc.text("A. Guest Identity Details", margin, textY);
+      textY += 8;
 
       // Guest Image
+      const textTopOffset = 4; // baseline correction
+
       if (guestImage) {
         try {
-          doc.addImage(guestImage, "JPEG", margin, yPos, 30, 38);
+          doc.addImage(guestImage, "JPEG", margin, textY, 30, 38);
         } catch (e) {
           console.error("Error adding image:", e);
         }
@@ -298,31 +300,32 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       // Guest Info Column 1 (next to image if present)
       const infoCol1X = guestImage ? margin + 35 : margin;
+      const textY = textY + textTopOffset;
 
       // Full Name
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Full Name", infoCol1X, yPos);
+      doc.text("Full Name", infoCol1X, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.fullName, infoCol1X, yPos + 5);
+      doc.text(guestData.fullName, infoCol1X, textY + 5);
 
       // Gender
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Gender", infoCol1X, yPos + 12);
+      doc.text("Gender", infoCol1X, textY + 12);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.gender, infoCol1X, yPos + 17);
+      doc.text(guestData.gender, infoCol1X, textY + 17);
 
       // Nationality
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Nationality", infoCol1X, yPos + 24);
+      doc.text("Nationality", infoCol1X, textY + 24);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.nationality, infoCol1X, yPos + 29);
+      doc.text(guestData.nationality, infoCol1X, textY + 29);
 
       // Guest Info Column 2 (right side)
       const infoCol2X = pageWidth / 2 + 10;
@@ -330,19 +333,19 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // Date of Birth
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Age (Years)", infoCol2X, yPos);
+      doc.text("Age (Years)", infoCol2X, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.age, infoCol2X, yPos + 5);
+      doc.text(guestData.age, infoCol2X, textY + 5);
 
       // Verification Status
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
-      doc.text("Verification Status", infoCol2X, yPos + 12);
+      doc.text("Verification Status", infoCol2X, textY + 12);
 
       // ---- Status dot + text alignment ----
-      const statusTextY = yPos + 18; // text baseline
+      const statusTextY = textY + 18; // text baseline
       const dotRadius = 1.4;
       const dotX = infoCol2X + dotRadius;
       const dotY = statusTextY - 1; // baseline correction
@@ -365,7 +368,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // DigiLocker Ref ID (Right column, aligned with Nationality)
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("DigiLocker Ref ID", infoCol2X, yPos + 24);
+      doc.text("DigiLocker Ref ID", infoCol2X, textY + 24);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
@@ -376,68 +379,68 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
           ? guestData.digiLockerReferenceId.substring(0, 28) + "..."
           : guestData.digiLockerReferenceId;
 
-      doc.text(digiRef, infoCol2X, yPos + 29);
+      doc.text(digiRef, infoCol2X, textY + 29);
 
-      yPos += 45;
+      textY += 45;
 
       // Aadhaar and Verification details
       // Masked Aadhaar Number
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Masked Aadhaar Number", margin, yPos);
+      doc.text("Masked Aadhaar Number", margin, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(maskAadhaar(guestData.aadhaarNumber), margin, yPos + 5);
+      doc.text(maskAadhaar(guestData.aadhaarNumber), margin, textY + 5);
 
       // Verification Timestamp
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Verification Timestamp", pageWidth / 2 + 10, yPos);
+      doc.text("Verification Timestamp", pageWidth / 2 + 10, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
       doc.text(
         guestData.aadhaarVerificationTimestamp,
         pageWidth / 2 + 10,
-        yPos + 5,
+        textY + 5,
       );
 
-      yPos += 10;
+      textY += 10;
 
       // Horizontal line
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 8;
+      doc.line(margin, textY, pageWidth - margin, textY);
+      textY += 8;
 
       // ==================== SECTION B: CONTACT INFORMATION ====================
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
-      doc.text("B. Contact Information", margin, yPos);
-      yPos += 8;
+      doc.text("B. Contact Information", margin, textY);
+      textY += 8;
 
       // Mobile Number
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Mobile Number", margin, yPos);
+      doc.text("Mobile Number", margin, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(maskPhone(guestData.mobileNumber), margin, yPos + 5);
+      doc.text(maskPhone(guestData.mobileNumber), margin, textY + 5);
 
       // Email ID
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Email ID", pageWidth / 2 + 10, yPos);
+      doc.text("Email ID", pageWidth / 2 + 10, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
       const email =
         guestData.emailId.length > 25
           ? guestData.emailId.substring(0, 25) + "..."
           : guestData.emailId;
-      doc.text(email, pageWidth / 2 + 10, yPos + 5);
+      doc.text(email, pageWidth / 2 + 10, textY + 5);
 
-      yPos += 15;
+      textY += 15;
 
       // PIN Code | City | State — same row
       const col1X = margin;
@@ -447,59 +450,59 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // Labels
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("PIN Code", col1X, yPos);
-      doc.text("City", col2X, yPos);
-      doc.text("State", col3X, yPos);
+      doc.text("PIN Code", col1X, textY);
+      doc.text("City", col2X, textY);
+      doc.text("State", col3X, textY);
 
       // Values
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.pinCode, col1X, yPos + 5);
-      doc.text(guestData.city, col2X, yPos + 5);
-      doc.text(guestData.state, col3X, yPos + 5);
+      doc.text(guestData.pinCode, col1X, textY + 5);
+      doc.text(guestData.city, col2X, textY + 5);
+      doc.text(guestData.state, col3X, textY + 5);
 
-      yPos += 15;
+      textY += 15;
 
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 8;
+      doc.line(margin, textY, pageWidth - margin, textY);
+      textY += 8;
 
       // ==================== SECTION C: BOOKING & STAY DETAILS ====================
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
-      doc.text("C. Booking & Stay Details", margin, yPos);
-      yPos += 8;
+      doc.text("C. Booking & Stay Details", margin, textY);
+      textY += 8;
 
       // Booking ID
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Booking ID", margin, yPos);
+      doc.text("Booking ID", margin, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.bookingId, margin, yPos + 5);
+      doc.text(guestData.bookingId, margin, textY + 5);
 
       // Booking Source
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Booking Source", pageWidth / 2 + 10, yPos);
+      doc.text("Booking Source", pageWidth / 2 + 10, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.bookingSource, pageWidth / 2 + 10, yPos + 5);
+      doc.text(guestData.bookingSource, pageWidth / 2 + 10, textY + 5);
 
-      yPos += 15;
+      textY += 15;
 
       // Check-in Date & Time
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Check-in Date & Time", margin, yPos);
+      doc.text("Check-in Date & Time", margin, textY);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(guestData.checkInDateTime, margin, yPos + 5);
+      doc.text(guestData.checkInDateTime, margin, textY + 5);
 
-      yPos += 15;
+      textY += 15;
 
       // ==================== SECTION D: METADATA ====================
       // Temprary Comment Out Section D in PDF Download
@@ -507,64 +510,64 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // doc.setFontSize(14);
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(27, 54, 49);
-      // doc.text("D. Metadata", margin, yPos);
-      // yPos += 8;
+      // doc.text("D. Metadata", margin, textY);
+      // textY += 8;
 
       // // Property Name
       // doc.setFontSize(10);
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(100, 100, 100);
-      // doc.text("Property Name", margin, yPos);
+      // doc.text("Property Name", margin, textY);
       // doc.setFont("helvetica", "normal");
       // doc.setTextColor(0, 0, 0);
-      // doc.text(guestData.propertyName, margin, yPos + 5);
+      // doc.text(guestData.propertyName, margin, textY + 5);
 
       // // Police Station
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(100, 100, 100);
-      // doc.text("Police Station", pageWidth / 2 + 10, yPos);
+      // doc.text("Police Station", pageWidth / 2 + 10, textY);
       // doc.setFont("helvetica", "normal");
       // doc.setTextColor(0, 0, 0);
       // doc.text(
       //   guestData.correspondingPoliceStation,
       //   pageWidth / 2 + 10,
-      //   yPos + 5,
+      //   textY + 5,
       // );
 
-      // yPos += 15;
+      // textY += 15;
 
       // // Desk ID
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(100, 100, 100);
-      // doc.text("Desk ID", margin, yPos);
+      // doc.text("Desk ID", margin, textY);
       // doc.setFont("helvetica", "normal");
       // doc.setTextColor(0, 0, 0);
-      // doc.text(guestData.deskId, margin, yPos + 5);
+      // doc.text(guestData.deskId, margin, textY + 5);
 
       // // Reception User ID
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(100, 100, 100);
-      // doc.text("Reception User ID", pageWidth / 2 + 10, yPos);
+      // doc.text("Reception User ID", pageWidth / 2 + 10, textY);
       // doc.setFont("helvetica", "normal");
       // doc.setTextColor(0, 0, 0);
-      // doc.text(guestData.receptionUserId, pageWidth / 2 + 10, yPos + 5);
+      // doc.text(guestData.receptionUserId, pageWidth / 2 + 10, textY + 5);
 
-      // yPos += 15;
+      // textY += 15;
 
       // // Verification ID
       // doc.setFont("helvetica", "bold");
       // doc.setTextColor(100, 100, 100);
-      // doc.text("Verification ID", margin, yPos);
+      // doc.text("Verification ID", margin, textY);
       // doc.setFont("helvetica", "normal");
       // doc.setTextColor(0, 0, 0);
       // const verificationId =
       //   guestData.verificationId.length > 30
       //     ? guestData.verificationId.substring(0, 30) + "..."
       //     : guestData.verificationId;
-      // doc.text(verificationId, margin, yPos + 5);
+      // doc.text(verificationId, margin, textY + 5);
 
       // ==================== FOOTER ====================
-      yPos = pageHeight - 15;
+      textY = pageHeight - 15;
 
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
@@ -580,11 +583,11 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
           minute: "2-digit",
         })}`,
         margin,
-        yPos,
+        textY,
       );
 
       // Page number
-      doc.text("Page 1 of 1", pageWidth - margin, yPos, { align: "right" });
+      doc.text("Page 1 of 1", pageWidth - margin, textY, { align: "right" });
 
       // ==================== SAVE PDF ====================
       const fileName = `Guest_Details_${guestData.bookingId}.pdf`;
