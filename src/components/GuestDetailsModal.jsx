@@ -247,7 +247,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       const margin = 15;
       const contentWidth = pageWidth - 2 * margin;
 
-      let textY = margin;
+      let yPos = margin;
 
       // PDF traffic-light color
       const getPdfStatusColor = (status) => {
