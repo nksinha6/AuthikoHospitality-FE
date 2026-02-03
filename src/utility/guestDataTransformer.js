@@ -218,37 +218,6 @@ export const getGenderLabel = (genderCode) => {
 };
 
 /**
- * Determine booking source from booking ID
- * @param {string} bookingId - Booking ID
- * @returns {string} Booking source
- */
-export const getBookingSource = (bookingId) => {
-  if (!bookingId) return "N/A";
-
-  const id = bookingId.toUpperCase();
-
-  if (id.startsWith("WALK-IN") || id.includes("WALKIN")) {
-    return "Walk-in";
-  }
-  if (id.startsWith("WEB") || id.includes("WEBSITE")) {
-    return "Website";
-  }
-  if (id.startsWith("APP") || id.includes("MOBILE")) {
-    return "Mobile App";
-  }
-  if (
-    id.startsWith("OTA") ||
-    id.includes("BOOKING") ||
-    id.includes("EXPEDIA") ||
-    id.includes("MMT")
-  ) {
-    return "OTA";
-  }
-
-  return "Online";
-};
-
-/**
  * Transform API response to UI-friendly format
  * @param {Object} apiGuest - Guest object from API
  * @returns {Object} Transformed guest object for UI
@@ -306,7 +275,7 @@ export const transformGuestData = (apiGuest) => {
     date: createdAt.date,
     time: createdAt.time,
     checkInDateTime: createdAt.formatted,
-    bookingSource: getBookingSource(apiGuest.bookingId),
+    bookingSource: apiGuest.ota || "WALK-IN",
 
     // Verification Details
     verificationStatus: verificationStatus,
@@ -358,7 +327,6 @@ export default {
   formatCreatedAt,
   getVerificationStatusLabel,
   getGenderLabel,
-  getBookingSource,
   transformGuestData,
   transformGuestsArray,
   VERIFICATION_STATUS_MAP,
