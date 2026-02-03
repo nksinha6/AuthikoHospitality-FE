@@ -330,7 +330,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text("Verification Status", infoCol2X, textY + 12);
 
       // ---- Status dot + text alignment ----
-      const statusTextY = textY + 18; // text baseline
+      const statusTextY = textY + 17; // text baseline
       const dotRadius = 1.4;
       const dotX = infoCol2X + dotRadius;
       const dotY = statusTextY - 1; // baseline correction
