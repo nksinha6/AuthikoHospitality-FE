@@ -285,7 +285,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
       doc.text("A. Guest Identity Details", margin, textY);
-      textY += 8;
+      yPos += 8;
 
       // Guest Image
       const textTopOffset = 4; // baseline correction
@@ -381,7 +381,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       doc.text(digiRef, infoCol2X, textY + 29);
 
-      textY += 45;
+      yPos += 45;
 
       // Aadhaar and Verification details
       // Masked Aadhaar Number
@@ -404,20 +404,20 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
         textY + 5,
       );
 
-      textY += 10;
+      yPos += 10;
 
       // Horizontal line
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
       doc.line(margin, textY, pageWidth - margin, textY);
-      textY += 8;
+      yPos += 8;
 
       // ==================== SECTION B: CONTACT INFORMATION ====================
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
       doc.text("B. Contact Information", margin, textY);
-      textY += 8;
+      yPos += 8;
 
       // Mobile Number
       doc.setFontSize(10);
@@ -440,7 +440,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
           : guestData.emailId;
       doc.text(email, pageWidth / 2 + 10, textY + 5);
 
-      textY += 15;
+      yPos += 15;
 
       // PIN Code | City | State — same row
       const col1X = margin;
@@ -461,19 +461,19 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.text(guestData.city, col2X, textY + 5);
       doc.text(guestData.state, col3X, textY + 5);
 
-      textY += 15;
+      yPos += 15;
 
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
       doc.line(margin, textY, pageWidth - margin, textY);
-      textY += 8;
+      yPos += 8;
 
       // ==================== SECTION C: BOOKING & STAY DETAILS ====================
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(27, 54, 49);
       doc.text("C. Booking & Stay Details", margin, textY);
-      textY += 8;
+      yPos += 8;
 
       // Booking ID
       doc.setFontSize(10);
@@ -492,7 +492,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.setTextColor(0, 0, 0);
       doc.text(guestData.bookingSource, pageWidth / 2 + 10, textY + 5);
 
-      textY += 15;
+      yPos += 15;
 
       // Check-in Date & Time
       doc.setFont("helvetica", "bold");
@@ -502,7 +502,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       doc.setTextColor(0, 0, 0);
       doc.text(guestData.checkInDateTime, margin, textY + 5);
 
-      textY += 15;
+      yPos += 15;
 
       // ==================== SECTION D: METADATA ====================
       // Temprary Comment Out Section D in PDF Download
@@ -567,7 +567,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
       // doc.text(verificationId, margin, textY + 5);
 
       // ==================== FOOTER ====================
-      textY = pageHeight - 15;
+      yPos = pageHeight - 15;
 
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
