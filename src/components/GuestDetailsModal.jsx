@@ -104,21 +104,6 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     return styles[status] || "bg-gray-100 text-gray-700";
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch (e) {
-      return dateString;
-    }
-  };
-
   // Format datetime for display
   const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return "N/A";
