@@ -306,7 +306,7 @@ export const transformGuestData = (apiGuest) => {
     date: createdAt.date,
     time: createdAt.time,
     checkInDateTime: createdAt.formatted,
-    bookingSource: getBookingSource(apiGuest.bookingId),
+    bookingSource: apiGuest.ota || "WALK-IN",
 
     // Verification Details
     verificationStatus: verificationStatus,
