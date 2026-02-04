@@ -1,7 +1,3 @@
-// ========== AUTH UTILS - NOT USED ==========
-// This utility is no longer used as auth-related logic is in AuthContext.
-// Keeping as placeholder to prevent import errors if re-enabled.
-
 import { STORAGE_KEYS } from "../constants/config.js";
 
 export const getIdsFromStorage = () => {

@@ -1,7 +1,3 @@
-// ========== TOAST UTILS - NOT USED ==========
-// This utility is no longer used as toast notifications are handled by react-hot-toast.
-// Keeping as placeholder to prevent import errors if re-enabled.
-
 export const showToast = (type, message, duration = 4000) => {
   console.warn("Toast utility is deprecated. Use react-hot-toast instead.");
 };
