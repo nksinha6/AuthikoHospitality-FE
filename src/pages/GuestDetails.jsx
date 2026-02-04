@@ -250,16 +250,29 @@ export default function GuestDetails() {
     // Date filter - support multiple conditions
     if (dateFilter && dateFilter.condition) {
       const cond = dateFilter.condition;
-      if (cond === DATE_CONDITIONS.BETWEEN && dateFilter.startDate && dateFilter.endDate) {
+      if (
+        cond === DATE_CONDITIONS.BETWEEN &&
+        dateFilter.startDate &&
+        dateFilter.endDate
+      ) {
         const start = dayjs(dateFilter.startDate).startOf("day");
         const end = dayjs(dateFilter.endDate).endOf("day");
         data = data.filter((g) => {
           const d = dayjs(g.date);
-          return (d.isSame(start, "day") || d.isAfter(start, "day")) && (d.isSame(end, "day") || d.isBefore(end, "day"));
+          return (
+            (d.isSame(start, "day") || d.isAfter(start, "day")) &&
+            (d.isSame(end, "day") || d.isBefore(end, "day"))
+          );
         });
-      } else if (cond === DATE_CONDITIONS.LAST && dateFilter.value && dateFilter.timeUnit) {
+      } else if (
+        cond === DATE_CONDITIONS.LAST &&
+        dateFilter.value &&
+        dateFilter.timeUnit
+      ) {
         const amount = Number(dateFilter.value) || 0;
-        const cutoff = dayjs().subtract(amount, dateFilter.timeUnit).startOf("day");
+        const cutoff = dayjs()
+          .subtract(amount, dateFilter.timeUnit)
+          .startOf("day");
         data = data.filter((g) => {
           const d = dayjs(g.date);
           return d.isSame(cutoff, "day") || d.isAfter(cutoff, "day");
