@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
+import { DATE_CONDITIONS } from "../constants/ui.js";
 import { FiDownload, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
 import { jsPDF } from "jspdf";
 import UniversalTable from "../components/UniversalTable.jsx";
@@ -246,10 +247,46 @@ export default function GuestDetails() {
       console.log("Filter Debug - After state filter:", { count: data.length });
     }
 
-    // Date filter
-    if (dateFilter?.selectedDate) {
-      const selected = dayjs(dateFilter.selectedDate).startOf("day");
-      data = data.filter((g) => dayjs(g.date).isSame(selected, "day"));
+    // Date filter - support multiple conditions
+    if (dateFilter && dateFilter.condition) {
+      const cond = dateFilter.condition;
+      if (cond === DATE_CONDITIONS.BETWEEN && dateFilter.startDate && dateFilter.endDate) {
+        const start = dayjs(dateFilter.startDate).startOf("day");
+        const end = dayjs(dateFilter.endDate).endOf("day");
+        data = data.filter((g) => {
+          const d = dayjs(g.date);
+          return (d.isSame(start, "day") || d.isAfter(start, "day")) && (d.isSame(end, "day") || d.isBefore(end, "day"));
+        });
+      } else if (cond === DATE_CONDITIONS.LAST && dateFilter.value && dateFilter.timeUnit) {
+        const amount = Number(dateFilter.value) || 0;
+        const cutoff = dayjs().subtract(amount, dateFilter.timeUnit).startOf("day");
+        data = data.filter((g) => {
+          const d = dayjs(g.date);
+          return d.isSame(cutoff, "day") || d.isAfter(cutoff, "day");
+        });
+      } else if (cond === DATE_CONDITIONS.AFTER) {
+        const selected = dayjs(dateFilter.selectedDate).startOf("day");
+        data = data.filter((g) => dayjs(g.date).isAfter(selected, "day"));
+      } else if (cond === DATE_CONDITIONS.ON_OR_AFTER) {
+        const selected = dayjs(dateFilter.selectedDate).startOf("day");
+        data = data.filter((g) => {
+          const d = dayjs(g.date);
+          return d.isSame(selected, "day") || d.isAfter(selected, "day");
+        });
+      } else if (cond === DATE_CONDITIONS.BEFORE) {
+        const selected = dayjs(dateFilter.selectedDate).startOf("day");
+        data = data.filter((g) => dayjs(g.date).isBefore(selected, "day"));
+      } else if (cond === DATE_CONDITIONS.BEFORE_OR_ON) {
+        const selected = dayjs(dateFilter.selectedDate).startOf("day");
+        data = data.filter((g) => {
+          const d = dayjs(g.date);
+          return d.isSame(selected, "day") || d.isBefore(selected, "day");
+        });
+      } else {
+        // Default: equality (is equal to)
+        const selected = dayjs(dateFilter.selectedDate).startOf("day");
+        data = data.filter((g) => dayjs(g.date).isSame(selected, "day"));
+      }
     }
 
     console.log("Filter Debug - Final filtered data:", {
