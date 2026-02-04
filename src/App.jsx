@@ -1,4 +1,4 @@
-import AppLayout from "./pages/AppLayout.jsx"; //AppLayout import
+import AppLayout from "./pages/AppLayout.jsx";
 import { Toaster } from "react-hot-toast";
 
 export default function App() {

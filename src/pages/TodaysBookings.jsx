@@ -1,3 +1,7 @@
+// ========== COMMENTED OUT - ONLY LOGIN PAGE IS ACTIVE ==========
+// This page has been commented out. Only the Login page is currently active.
+// To re-enable this page, uncomment the entire file content below.
+/*
 import { useMemo, useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { UI_TEXT } from "../constants/ui.js";
@@ -236,4 +240,10 @@ export default function TodaysBookings() {
       />
     </div>
   );
+}
+*/
+
+// Placeholder export to prevent import errors
+export default function TodaysBookings() {
+  return <div>TodaysBookings Page - Commented Out</div>;
 }

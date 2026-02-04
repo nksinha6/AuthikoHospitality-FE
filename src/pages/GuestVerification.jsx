@@ -1,3 +1,7 @@
+// ========== COMMENTED OUT - ONLY LOGIN PAGE IS ACTIVE ==========
+// This page has been commented out. Only the Login page is currently active.
+// To re-enable this page, uncomment the entire file content below.
+/*
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
@@ -1203,4 +1207,10 @@ export default function GuestVerification() {
       />
     </div >
   );
+}
+*/
+
+// Placeholder export to prevent import errors
+export default function GuestVerification() {
+  return <div>GuestVerification Page - Commented Out</div>;
 }

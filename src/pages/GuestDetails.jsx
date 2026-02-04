@@ -149,6 +149,12 @@ export default function GuestDetails() {
         console.log("API Response:", response);
         const transformedData = transformGuestsArray(response);
         console.log("Transformed Data:", transformedData);
+        console.log(
+          "Setting guests with count:",
+          transformedData.length,
+          "First guest:",
+          transformedData[0],
+        );
         setGuests(transformedData);
       } catch (err) {
         console.error("Error fetching guest details:", err);
@@ -174,36 +180,70 @@ export default function GuestDetails() {
   const applyAllFilters = useCallback(() => {
     let data = [...guests];
 
+    // Debug: log initial data and first guest structure
+    if (data.length > 0) {
+      console.log("Filter Debug - First guest object:", {
+        firstName: data[0].firstName,
+        lastName: data[0].lastName,
+        fullName: data[0].fullName,
+        city: data[0].city,
+        state: data[0].state,
+        bookingId: data[0].bookingId,
+      });
+    }
+
     // Name filter
     if (filters.name) {
       const q = filters.name.toLowerCase();
+      console.log("Filter Debug - Applying name filter:", {
+        query: q,
+        count: data.length,
+      });
       data = data.filter(
         (g) =>
           g.firstName?.toLowerCase().includes(q) ||
           g.lastName?.toLowerCase().includes(q) ||
           g.fullName?.toLowerCase().includes(q),
       );
+      console.log("Filter Debug - After name filter:", { count: data.length });
     }
 
     // Booking ID filter
     if (filters.bookingId) {
+      console.log("Filter Debug - Applying bookingId filter:", {
+        query: filters.bookingId,
+        count: data.length,
+      });
       data = data.filter((g) =>
         g.bookingId?.toLowerCase().includes(filters.bookingId.toLowerCase()),
       );
+      console.log("Filter Debug - After bookingId filter:", {
+        count: data.length,
+      });
     }
 
     // City filter
     if (filters.city) {
+      console.log("Filter Debug - Applying city filter:", {
+        query: filters.city,
+        count: data.length,
+      });
       data = data.filter((g) =>
         g.city?.toLowerCase().includes(filters.city.toLowerCase()),
       );
+      console.log("Filter Debug - After city filter:", { count: data.length });
     }
 
     // State filter
     if (filters.state) {
+      console.log("Filter Debug - Applying state filter:", {
+        query: filters.state,
+        count: data.length,
+      });
       data = data.filter((g) =>
         g.state?.toLowerCase().includes(filters.state.toLowerCase()),
       );
+      console.log("Filter Debug - After state filter:", { count: data.length });
     }
 
     // Date filter
@@ -212,12 +252,20 @@ export default function GuestDetails() {
       data = data.filter((g) => dayjs(g.date).isSame(selected, "day"));
     }
 
+    console.log("Filter Debug - Final filtered data:", {
+      count: data.length,
+      results: data.map((g) => g.fullName),
+    });
     setFilteredGuests(data);
   }, [guests, filters, dateFilter]);
 
   useEffect(() => {
     applyAllFilters();
   }, [applyAllFilters]);
+
+  // Helper to compute the same unique row key as UniversalTable
+  const getRowKeyFromData = (row, index) =>
+    row.id ?? (row.bookingId ? `${row.bookingId}_${index}` : index);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -237,17 +285,17 @@ export default function GuestDetails() {
   /* ---------------- ROW SELECTION HANDLERS ---------------- */
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedRows(filteredGuests.map((g) => g.bookingId));
+      setSelectedRows(filteredGuests.map((g, i) => getRowKeyFromData(g, i)));
     } else {
       setSelectedRows([]);
     }
   };
 
-  const handleSelectRow = (bookingId) => {
+  const handleSelectRow = (rowKey) => {
     setSelectedRows((prev) =>
-      prev.includes(bookingId)
-        ? prev.filter((id) => id !== bookingId)
-        : [...prev, bookingId],
+      prev.includes(rowKey)
+        ? prev.filter((id) => id !== rowKey)
+        : [...prev, rowKey],
     );
   };
 
@@ -315,8 +363,8 @@ export default function GuestDetails() {
 
     try {
       const serverTime = await fetchServerTime();
-      const selectedGuestsData = filteredGuests.filter((g) =>
-        selectedRows.includes(g.bookingId),
+      const selectedGuestsData = filteredGuests.filter((g, i) =>
+        selectedRows.includes(getRowKeyFromData(g, i)),
       );
 
       // Fetch images for all selected guests
@@ -922,8 +970,8 @@ export default function GuestDetails() {
           selector: (_, row) => (
             <input
               type="checkbox"
-              checked={selectedRows.includes(row.bookingId)}
-              onChange={() => handleSelectRow(row.bookingId)}
+              checked={selectedRows.includes(row.__rowKey)}
+              onChange={() => handleSelectRow(row.__rowKey)}
               className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer"
             />
           ),

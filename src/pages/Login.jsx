@@ -28,7 +28,7 @@ export default function Login() {
   const [logoError, setLogoError] = useState(false);
 
   // const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
-  const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
+  const from = location.state?.from?.pathname || ROUTES.GUEST_DETAILS;
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function Login() {
       if (rememberMe) {
         localStorage.setItem(
           STORAGE_KEYS.SAVED_EMAIL,
-          values[FORM_FIELDS.USER_ID]
+          values[FORM_FIELDS.USER_ID],
         );
         localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "true");
       } else {

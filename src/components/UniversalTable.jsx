@@ -42,19 +42,21 @@ const UniversalTable = memo(
               </tr>
             ) : (
               data.map((row, i) => {
-                const rowKey = row.id ?? row.bookingId ?? i;
+                const rowKey =
+                  row.id ?? (row.bookingId ? `${row.bookingId}_${i}` : i);
+                const rowWithKey = { ...row, __rowKey: rowKey };
                 return (
                   <tr
                     key={rowKey}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
                     {columns.map((col) => {
-                      const rawValue = row[col.key];
+                      const rawValue = rowWithKey[col.key];
                       const formatter = format[col.key];
                       let cellValue;
                       try {
                         cellValue = formatter
-                          ? formatter(rawValue, row)
+                          ? formatter(rawValue, rowWithKey)
                           : rawValue;
                       } catch (error) {
                         console.error(
@@ -76,7 +78,7 @@ const UniversalTable = memo(
 
                     {actions && (
                       <td className="px-2 py-3 text-sm text-gray-900">
-                        {actions(row)}
+                        {actions(rowWithKey)}
                       </td>
                     )}
                   </tr>

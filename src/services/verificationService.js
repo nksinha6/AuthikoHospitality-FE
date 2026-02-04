@@ -1,227 +1,29 @@
-import apiClient from "./apiClient.js";
-import { API_ENDPOINTS } from "../constants/config.js";
+// ========== VERIFICATION SERVICE - NOT USED ==========
+// This service is no longer used as verification-related pages are commented out.
+// Keeping as placeholder to prevent import errors if re-enabled.
 
-/**
- * Service for verification-related API calls
- */
 export const verificationService = {
-  /**
-   * Begin OTA verification process
-   * @param {Object} payload - Verification payload
-   * @returns {Promise<Object>} Response containing verification details
-   */
   async beginVerification(payload) {
-    try {
-      const response = await apiClient.post(
-        API_ENDPOINTS.BEGIN_VERIFICATION,
-        payload,
-        {
-          timeout: 10000,
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      const status = error.response?.status;
-
-      if (status === 409) {
-        throw { code: "ALREADY_VERIFIED", message: "Already verified" };
-      }
-
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Verification failed. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 
-  /**
-   * End verification process for a booking
-   * @param {string} bookingId - The booking ID to end verification for
-   * @returns {Promise<Object>} Response containing end verification details
-   */
   async endVerification(bookingId) {
-    try {
-      const response = await apiClient.post(
-        API_ENDPOINTS.END_VERIFICATION,
-        null,
-        {
-          params: { bookingId },
-          timeout: 10000,
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      const status = error.response?.status;
-
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Failed to complete check-in. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 
-  /**
-   * Ensure verification for a guest by phone number
-   * @param {string} bookingId - The booking ID
-   * @param {string} phoneCountryCode - The country code of the phone number
-   * @param {string} phoneNumber - The phone number
-   * @returns {Promise<Object>} Response containing verification status
-   */
   async ensureVerification(bookingId, phoneCountryCode, phoneNumber) {
-    try {
-      const response = await apiClient.post(
-        API_ENDPOINTS.ENSURE_VERIFICATION,
-        {
-          bookingId: bookingId,
-          phoneCountryCode: phoneCountryCode,
-          phoneNumber: phoneNumber,
-        },
-        {
-          timeout: 10000,
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      const status = error.response?.status;
-
-      if (status === 404) {
-        throw { code: "USER_NOT_FOUND", message: "User not found" };
-      }
-
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Verification check failed. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 
-  /**
-   * Get guest details by phone number
-   * @param {string} phoneCountryCode - The country code of the phone number
-   * @param {string} phoneno - The phone number
-   * @returns {Promise<Object>} Response containing guest details
-   */
   async getGuestById(phoneCountryCode, phoneno) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.GET_GUEST_BY_ID, {
-        params: { phoneCountryCode, phoneno },
-        timeout: 10000,
-      });
-
-      return response.data;
-    } catch (error) {
-      const status = error.response?.status;
-
-      if (status === 404) {
-        throw { code: "USER_NOT_FOUND", message: "User not found" };
-      }
-
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Failed to get guest details. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 
-  /**
-   * Initiate face match process for a guest
-   * @param {string} bookingId - The booking ID
-   * @param {string} phoneCountryCode - The country code of the phone number
-   * @param {string} phoneNumber - The phone number
-   * @returns {Promise<Object>} Response indicating initiation status
-   */
   async initiateFaceMatch(bookingId, phoneCountryCode, phoneNumber) {
-    try {
-      const response = await apiClient.post(
-        API_ENDPOINTS.INITIATE_FACE_MATCH,
-        {
-          bookingId,
-          phoneCountryCode,
-          phoneNumber,
-        },
-        {
-          timeout: 10000,
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Failed to initiate face match. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 
-  /**
-   * Get face match status for a guest
-   * @param {string} bookingId - The booking ID
-   * @param {string} phoneCountryCode - The country code of the phone number
-   * @param {string} phoneNumber - The phone number
-   * @returns {Promise<Object>} Response containing face match status
-   */
   async getFaceMatchStatus(bookingId, phoneCountryCode, phoneNumber) {
-    try {
-      const response = await apiClient.post(
-        API_ENDPOINTS.FACE_MATCH_STATUS,
-        {
-          bookingId,
-          phoneCountryCode,
-          phoneNumber,
-        },
-        {
-          timeout: 10000,
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Request timed out" };
-      }
-
-      if (error.response?.status === 404) {
-        return null;
-      }
-
-      throw {
-        code: "UNKNOWN",
-        message:
-          error.response?.data?.message ||
-          "Failed to get face match status. Please try again.",
-      };
-    }
+    throw new Error("Verification service is disabled");
   },
 };

@@ -1,3 +1,7 @@
+// ========== COMMENTED OUT - ONLY LOGIN PAGE IS ACTIVE ==========
+// This page has been commented out. Only the Login page is currently active.
+// To re-enable this page, uncomment the entire file content below.
+/*
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
@@ -1559,3 +1563,9 @@ const Checkin = () => {
 };
 
 export default Checkin;
+*/
+
+// Placeholder export to prevent import errors
+export default function CheckIns() {
+  return <div>CheckIns Page - Commented Out</div>;
+}

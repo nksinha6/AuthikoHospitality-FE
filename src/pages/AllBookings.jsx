@@ -1,3 +1,7 @@
+// ========== COMMENTED OUT - ONLY LOGIN PAGE IS ACTIVE ==========
+// This page has been commented out. Only the Login page is currently active.
+// To re-enable this page, uncomment the entire file content below.
+/*
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { UI_TEXT } from "../constants/ui.js";
 import DateFilter from "../components/DateHourFilter.jsx";
@@ -252,4 +256,10 @@ export default function AllBookings() {
       />
     </div>
   );
+}
+*/
+
+// Placeholder export to prevent import errors
+export default function AllBookings() {
+  return <div>AllBookings Page - Commented Out</div>;
 }
