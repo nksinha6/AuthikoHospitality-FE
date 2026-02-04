@@ -1,7 +1,3 @@
-// ========== DATE FILTER UTILS - NOT USED ==========
-// This utility is no longer used as advanced filtering pages are commented out.
-// Keeping as placeholder to prevent import errors if re-enabled.
-
 import dayjs from "dayjs";
 import { DATE_CONDITIONS } from "../constants/ui";
 

@@ -1,7 +1,3 @@
-// ========== CHECK-IN UTILS - NOT USED ==========
-// This utility is no longer used as check-in pages are commented out.
-// Keeping as placeholder to prevent import errors if re-enabled.
-
 import dayjs from "dayjs";
 
 export const generateWalkInBookingId = (tenantId, propertyId) => {

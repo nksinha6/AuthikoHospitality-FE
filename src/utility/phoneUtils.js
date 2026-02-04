@@ -1,7 +1,3 @@
-// ========== PHONE UTILS - NOT USED ==========
-// This utility is no longer used as phone-related verification is commented out.
-// Keeping as placeholder to prevent import errors if re-enabled.
-
 export const countryCodes = [
   {
     code: "+91",
@@ -27,4 +23,4 @@ export const formatPhoneNumber = (value, countryCode) => {
     }
   }
   return digits;
-};
+}
