@@ -1,6 +1,7 @@
 // pages/GuestDetails.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
+import apiClient from "../services/apiClient";
 import dayjs from "dayjs";
 import { FiDownload, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
 import { jsPDF } from "jspdf";
@@ -11,6 +12,27 @@ import { formatShortDate } from "../utility/bookingUtils.js";
 import { exportToPDF, exportToExcel } from "../utility/exportUtils";
 import { guestDetailsService } from "../services/guestDetailsService";
 import { transformGuestsArray } from "../utility/guestDataTransformer";
+import { STORAGE_KEYS, API_ENDPOINTS } from "../constants/config.js";
+
+/* -- Get Property ID From Token -- */
+
+const getPropertyIdFromSession = () => {
+  try {
+    const userData = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
+    if (!userData) return null;
+
+    const parsed = JSON.parse(userData);
+
+    // propertyIds is array → take first
+    const propertyId = parsed?.propertyIds?.[0];
+
+    console.log("Resolved propertyId from session:", propertyId);
+    return propertyId || null;
+  } catch (err) {
+    console.error("Failed to read USER_DATA from sessionStorage", err);
+    return null;
+  }
+};
 
 /* ---------------- PROPERTY DETAILS ---------------- */
 const PROPERTY_DETAILS = {
@@ -62,6 +84,7 @@ export default function GuestDetails() {
   const [showModal, setShowModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [propertyDetails, setPropertyDetails] = useState(null);
 
   // Loading and Error States
   const [isLoading, setIsLoading] = useState(true);
@@ -165,10 +188,33 @@ export default function GuestDetails() {
     [],
   );
 
+  const fetchPropertyDetails = useCallback(async () => {
+    const propertyId = getPropertyIdFromSession();
+
+    if (!propertyId) {
+      console.warn("Property ID not found in session storage");
+      return;
+    }
+
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROPERTY_BY_ID, {
+        params: { propertyId },
+      });
+
+      console.log("🏨 Property Details API Response:", response.data?.name);
+
+      // store for PDF / header / filename
+      setPropertyDetails(response.data);
+    } catch (error) {
+      console.error("❌ Error fetching property details:", error);
+    }
+  }, []);
+
   /* ---------------- INITIAL DATA LOAD ---------------- */
   useEffect(() => {
     fetchGuestDetails();
-  }, [fetchGuestDetails]);
+    fetchPropertyDetails();
+  }, [fetchGuestDetails, fetchPropertyDetails]);
 
   /* ---------------- APPLY FILTERS ---------------- */
   const applyAllFilters = useCallback(() => {
@@ -647,10 +693,21 @@ export default function GuestDetails() {
         );
       });
 
-      const fileName =
-        selectedGuestsData.length === 1
-          ? `Guest_Details_${selectedGuestsData[0].bookingId}_${dayjs().format("YYYY-MM-DD")}.pdf`
-          : `Guest_Details_${selectedGuestsData.length}_Guests_${dayjs().format("YYYY-MM-DD_HH-mm")}.pdf`;
+      // const dateTime = dayjs().format("YYYY-MM-DD_HH-mm");
+      const dateTime = dayjs().format("YYYY-MM-DD_HH:mm").replace(":", "："); // ← Unicode colon
+
+      const safePropertyName =
+        propertyDetails?.name
+          ?.replace(/[^a-zA-Z0-9]/g, "_")
+          ?.replace(/_+/g, "_")
+          ?.replace(/^_|_$/g, "") || "Property";
+
+      const isAllGuestsSelected =
+        selectedGuestsData.length === filteredGuests.length;
+
+      const fileName = isAllGuestsSelected
+        ? `${safePropertyName}_${dateTime}.pdf`
+        : `${safePropertyName}_${dateTime}.pdf`;
 
       doc.save(fileName);
       setSelectedRows([]);
