@@ -10,9 +10,16 @@ import {
   Calendar,
   Search,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Circle,
   RotateCcw,
   Edit,
+  User,
+  ArrowRight,
+  QrCode,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 import {
   GUEST_VERIFICATION,
@@ -101,12 +108,6 @@ const Checkin = () => {
   useEffect(() => {
     const fetchServerDate = async () => {
       try {
-        // Replace with actual API call to get server date
-        // For now, we'll simulate with dayjs but you should replace with:
-        // const serverDate = await verificationService.getServerDate();
-        // const formattedDate = dayjs(serverDate).format("dddd, D MMM YYYY");
-
-        // For demonstration, using current date but in real app use API
         const formattedDate = dayjs().format("dddd, D MMM YYYY");
 
         setBookingInfo((prev) => ({
@@ -138,15 +139,25 @@ const Checkin = () => {
     }
   }, []);
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Mobile Step State
+  const [mobileStep, setMobileStep] = useState(1); // 1: Booking Details, 2: Guest Entry, 3: Review & Post
+
+  // Mobile Verification Sub-view state
+  const [activeVerificationGuestIndex, setActiveVerificationGuestIndex] = useState(null);
+  const [mobileVerificationView, setMobileVerificationView] = useState("list"); // list, scanner, manual_code, success
+  const [manualCode, setManualCode] = useState("");
+
   // Update verification status whenever guests change
   useEffect(() => {
-    console.log("Guests updated:", guests.map(g => ({ 
-      id: g.id, 
-      status: g.status, 
-      phone: g.phoneNumber,
-      originalPhone: g.originalPhoneNumber 
-    })));
-    
     const anyVerifying = guests.some(
       (g) =>
         g.status === "pending" ||
@@ -154,9 +165,6 @@ const Checkin = () => {
         g.isWaitingForRestart,
     );
     const allVerified = guests.every((g) => g.status === "verified");
-    
-    console.log("Any verifying:", anyVerifying);
-    console.log("All verified:", allVerified);
 
     setIsAnyGuestVerifying(anyVerifying);
     setAreAllGuestsVerified(allVerified);
@@ -168,26 +176,23 @@ const Checkin = () => {
     // Update phone number tracking
     const newAllPhoneNumbers = new Map();
     const newUsedPhoneNumbers = new Set();
-    
+
     guests.forEach((guest, index) => {
       if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
         const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
-        
+
         // Track all phone numbers
         newAllPhoneNumbers.set(normalizedNumber, index);
-        
+
         // Track used phone numbers (not idle)
         if (guest.status !== "idle" && guest.status !== "changing") {
           newUsedPhoneNumbers.add(normalizedNumber);
         }
       }
     });
-    
+
     setAllPhoneNumbers(newAllPhoneNumbers);
     setUsedPhoneNumbers(newUsedPhoneNumbers);
-    
-    console.log("All phone numbers map:", Array.from(newAllPhoneNumbers.entries()));
-    console.log("Used phone numbers:", Array.from(newUsedPhoneNumbers));
   }, [guests, hasVerificationStarted]);
 
   // Update isWalkIn when booking source changes
@@ -298,7 +303,7 @@ const Checkin = () => {
   // Helper function to normalize phone number
   const normalizePhoneNumber = (phoneNumber) => {
     if (!phoneNumber || phoneNumber.length < 10) return "";
-    
+
     return phoneNumber.startsWith("91") && phoneNumber.length > 2
       ? phoneNumber.slice(2)
       : phoneNumber.startsWith("+91")
@@ -322,7 +327,7 @@ const Checkin = () => {
     }
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
-    
+
     // Check if this number exists in any other guest (excluding current)
     for (let i = 0; i < guests.length; i++) {
       if (i === currentIndex) continue;
@@ -367,7 +372,7 @@ const Checkin = () => {
     if (!phoneNumber || phoneNumber.length < 10) return false;
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
-    
+
     // Count how many guests have this phone number
     let count = 0;
     for (let i = 0; i < guests.length; i++) {
@@ -409,12 +414,10 @@ const Checkin = () => {
 
     Object.values(pollingIntervals).forEach((intervalId) => {
       clearInterval(intervalId);
-      console.log("Cleared polling interval:", intervalId);
     });
 
     Object.values(checkStatusTimers).forEach((timerId) => {
       clearTimeout(timerId);
-      console.log("Cleared check status timer:", timerId);
     });
 
     setPollingIntervals({});
@@ -424,8 +427,6 @@ const Checkin = () => {
 
   // Function to stop verification for a specific guest
   const stopGuestVerification = (index) => {
-    console.log(`Stopping verification for guest at index ${index}`);
-
     if (guests[index] && guests[index].phoneNumber) {
       const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
       pollingInProgressRef.current.delete(normalizedNumber);
@@ -462,8 +463,6 @@ const Checkin = () => {
 
   // Function to reset the entire app state and set phone input to India
   const resetAppState = () => {
-    console.log("Resetting app state...");
-
     clearAllVerificationProcesses();
 
     setGuests([
@@ -502,6 +501,8 @@ const Checkin = () => {
     setUsedPhoneNumbers(new Set());
     setVerifiedPhoneNumbers(new Set());
     setAllPhoneNumbers(new Map());
+    setMobileStep(1);
+    setMobileVerificationView("list");
 
     // Focus back on Booking Source
     setTimeout(() => {
@@ -509,8 +510,6 @@ const Checkin = () => {
         bookingSourceRef.current.focus();
       }
     }, 100);
-
-    console.log("App state reset complete");
   };
 
   // Function to handle success modal close and reset
@@ -563,12 +562,12 @@ const Checkin = () => {
 
     // Normalize the new phone number
     const normalizedNewNumber = normalizePhoneNumber(value);
-    
+
     // Check if this is a valid phone number
     if (value && value.length >= 10) {
       // Check if this phone number is already used by another guest
       const isDuplicate = isPhoneNumberDuplicate(value, index);
-      
+
       if (isDuplicate) {
         showToast(
           "error",
@@ -1112,8 +1111,6 @@ const Checkin = () => {
   };
 
   const confirmCancel = () => {
-    console.log("Confirming cancellation...");
-
     cancellationInProgressRef.current = true;
 
     clearAllVerificationProcesses();
@@ -1124,7 +1121,6 @@ const Checkin = () => {
 
     setTimeout(() => {
       cancellationInProgressRef.current = false;
-      console.log("Cancellation flag reset");
     }, 1000);
 
     setShowCancelModal(false);
@@ -1173,6 +1169,745 @@ const Checkin = () => {
     return false;
   };
 
+  if (isMobile) {
+    // Helper to render the Top Progress Bar (Circles style)
+    const renderMobileStepper = () => (
+      <div className="px-10 pt-8 pb-6 bg-white">
+        <div className="flex items-center justify-between relative mb-4 px-2">
+          {/* Line connecting circles */}
+          <div className="absolute top-1/2 left-4 right-4 h-[1.5px] bg-gray-100 -translate-y-1/2 z-0"></div>
+          <div
+            className="absolute top-1/2 left-4 h-[1.5px] bg-[#10b981] -translate-y-1/2 z-10 transition-all duration-500"
+            style={{ width: mobileStep === 1 ? '0%' : mobileStep === 2 ? 'calc(50% - 16px)' : 'calc(100% - 32px)' }}
+          ></div>
+
+          {[1, 2, 3].map((step) => (
+            <div key={step} className="relative z-20 flex flex-col items-center">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
+                  ? "bg-[#10b981] text-white"
+                  : mobileStep === step
+                    ? "bg-[#1b3631] text-white"
+                    : "bg-white border-[1.5px] border-gray-100 text-gray-300"
+                  }`}
+              >
+                {mobileStep > step ? <CheckCircle size={18} /> : step}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between px-0">
+          <span className={`text-[8px] font-black uppercase tracking-widest ${mobileStep >= 1 ? "text-[#10b981]" : "text-gray-300"}`}>Booking Info</span>
+          <span className={`text-[8px] font-black uppercase tracking-widest ${mobileStep >= 2 ? (mobileStep === 2 ? "text-[#1b3631]" : "text-[#10b981]") : "text-gray-300"}`}>Verification</span>
+          <span className={`text-[8px] font-black uppercase tracking-widest ${mobileStep === 3 ? "text-[#1b3631]" : "text-gray-300"}`}>Review & Post</span>
+        </div>
+      </div>
+    );
+
+    // Scanner View Sub-screen
+    const renderScannerView = () => {
+      const guest = guests[activeVerificationGuestIndex];
+      return (
+        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-500">
+          <div className="p-8 flex items-center justify-center relative">
+            <button
+              onClick={() => setMobileVerificationView("list")}
+              className="absolute left-8 p-3 text-gray-400 hover:bg-gray-100 rounded-full"
+            >
+              <ChevronDown size={28} className="rotate-90" />
+            </button>
+            <h2 className="text-xl font-bold text-[#111827]">Scan QR Code</h2>
+          </div>
+
+          <div className="px-10 text-center mb-10">
+            <span className="text-[#10b981] text-[10px] font-black uppercase tracking-[0.2em]">Step 2.5 of 4</span>
+            <h3 className="text-xl font-extrabold text-[#111827] mt-2 px-6">Scan the QR code on the guest's phone to complete Step 2</h3>
+          </div>
+
+          <div className="flex-1 relative mx-6 rounded-[2rem] overflow-hidden bg-black/5 flex items-center justify-center">
+            {/* Mock Camera View */}
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center blur-[2px] opacity-60"></div>
+
+            {/* Scan Area Overlay */}
+            <div className="relative w-64 h-64 border-2 border-[#10b981] rounded-3xl">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-xl -translate-x-1 -translate-y-1"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-xl translate-x-1 -translate-y-1"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-xl -translate-x-1 translate-y-1"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-xl translate-x-1 translate-y-1"></div>
+
+              {/* Moving Scan Line */}
+              <div className="w-full h-1 bg-[#10b981] absolute top-0 left-0 animate-[scan_2s_infinite_linear] opacity-80 shadow-[0_0_15px_#10b981]"></div>
+            </div>
+
+            {/* Guest Card Overlay */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[85%] bg-white/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-xl border border-white/50">
+              <div className="w-12 h-12 bg-[#1b3631] rounded-full flex items-center justify-center text-white">
+                <User size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Currently Scanning</p>
+                <p className="font-bold text-[#1b3631]">{guest?.fullName || guest?.name || `Guest ${guest?.id}`}</p>
+              </div>
+              <div className="ml-auto flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-10">
+            <div className="flex justify-around mb-8">
+              <button className="flex flex-col items-center gap-2 group">
+                <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#1b3631] group-hover:text-white transition-all">
+                  <RotateCcw size={20} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Flash</span>
+              </button>
+              <button className="flex flex-col items-center gap-2 group">
+                <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#1b3631] group-hover:text-white transition-all">
+                  <Plus size={20} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gallery</span>
+              </button>
+              <button className="flex flex-col items-center gap-2 group">
+                <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#1b3631] group-hover:text-white transition-all">
+                  <Search size={20} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reset</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setMobileVerificationView("manual_code")}
+              className="w-full py-5 border border-gray-200 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-all"
+            >
+              <Edit size={18} />
+              Enter code manually
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // Manual Code View
+    const renderManualCodeView = () => {
+      const guest = guests[activeVerificationGuestIndex];
+      const keypad = [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "back"];
+
+      const handleKeypad = (val) => {
+        if (val === "back") setManualCode(prev => prev.slice(0, -1));
+        else if (val !== "" && manualCode.length < 6) setManualCode(prev => prev + val);
+      };
+
+      return (
+        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-10 duration-500">
+          <div className="p-8 flex items-center justify-center relative">
+            <button
+              onClick={() => setMobileVerificationView("scanner")}
+              className="absolute left-8 p-3 text-[#1b3631] hover:bg-gray-100 rounded-full"
+            >
+              <ChevronDown size={28} className="rotate-90" />
+            </button>
+            <h2 className="text-xl font-bold text-[#111827]">Manual Verification</h2>
+          </div>
+
+          <div className="mx-8 mb-10 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#10b981] transition-all duration-300" style={{ width: `${(manualCode.length / 6) * 100}%` }}></div>
+          </div>
+
+          <div className="px-10 mb-10">
+            <div className="bg-[#f8fafc] border border-[#f1f5f9] rounded-3xl p-6 flex items-center gap-5">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
+                <User size={28} />
+              </div>
+              <div className="flex-1">
+                <p className="font-extrabold text-[#111827] text-lg leading-tight">{guest?.fullName || guest?.name || `Guest ${guest?.id}`}</p>
+                <p className="text-xs font-medium text-gray-500 mt-1">{guest?.phoneNumber}</p>
+              </div>
+              <div className="px-3 py-1 bg-[#ccfbf1] text-[#0f766e] text-[9px] font-black rounded-lg uppercase tracking-widest">Guest</div>
+            </div>
+          </div>
+
+          <div className="px-10 text-center mb-10">
+            <h3 className="text-2xl font-black text-[#111827] mb-2">Enter verification code</h3>
+            <p className="text-gray-400 text-sm font-medium">Enter the 6-digit code provided by the guest</p>
+          </div>
+
+          <div className="px-8 flex justify-between mb-10">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i ? "border-[#10b981] ring-4 ring-[#10b981]/10" : manualCode[i] ? "border-[#10b981]/30 bg-[#f0fdf4]" : "border-gray-100"
+                  }`}
+              >
+                {manualCode[i] || ""}
+                {manualCode.length === i && <div className="w-0.5 h-8 bg-[#10b981] animate-pulse"></div>}
+              </div>
+            ))}
+          </div>
+
+          <div className="px-10 mb-8">
+            <button
+              onClick={() => {
+                if (manualCode.length === 6) {
+                  setMobileVerificationView("success");
+                  // Simultaneously mark verified in background
+                  setGuests(prev => {
+                    const next = [...prev];
+                    next[activeVerificationGuestIndex].status = "verified";
+                    next[activeVerificationGuestIndex].name = "Jane Doe"; // Simulated name
+                    next[activeVerificationGuestIndex].fullName = "Jane Doe";
+                    return next;
+                  });
+                } else {
+                  showToast("error", "Please enter all 6 digits");
+                }
+              }}
+              className="w-full py-5 bg-[#10b981] text-white rounded-2xl font-bold text-lg shadow-xl shadow-[#10b981]/20 active:scale-95 transition-all"
+            >
+              Verify Guest
+            </button>
+
+            <button
+              onClick={() => setMobileVerificationView("scanner")}
+              className="w-full mt-6 flex items-center justify-center gap-2 text-gray-400 font-bold text-sm tracking-wider uppercase"
+            >
+              <Search size={16} />
+              Back to Scanner
+            </button>
+          </div>
+
+          {/* Custom Numeric Keypad */}
+          <div className="mt-auto grid grid-cols-3 border-t border-gray-100">
+            {keypad.map((key, i) => (
+              <button
+                key={i}
+                onClick={() => handleKeypad(key)}
+                className="py-6 text-2xl font-bold text-[#111827] active:bg-gray-50 flex items-center justify-center border-b border-r border-gray-50 last:border-r-0"
+              >
+                {key === "back" ? <X size={24} className="stroke-[3px]" /> : key}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Success View
+    const renderSuccessView = () => {
+      const guest = guests[activeVerificationGuestIndex];
+
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-10 animate-in zoom-in-95 duration-500">
+          <div className="w-32 h-32 bg-[#f0fdf4] rounded-full flex items-center justify-center mb-8 relative">
+            <div className="absolute inset-0 bg-[#10b981]/10 rounded-full animate-ping"></div>
+            <CheckCircle size={64} className="text-[#10b981] relative z-20" />
+          </div>
+
+          <h2 className="text-[2rem] font-black text-[#111827] leading-tight text-center mb-4">Verification Success!</h2>
+          <p className="text-gray-500 text-center text-sm font-medium mb-12 px-10">The guest has been successfully verified and is ready for check-in.</p>
+
+          <div className="w-full bg-white border border-[#f1f5f9] rounded-[2.5rem] p-10 shadow-sm relative mb-12">
+            <div className="flex flex-col items-center">
+              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 relative mb-6">
+                <User size={40} />
+                <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#10b981] rounded-full flex items-center justify-center border-4 border-white">
+                  <CheckCircle size={16} className="text-white" />
+                </div>
+              </div>
+
+              <h3 className="text-3xl font-black text-[#111827] mb-2">{guest?.fullName || guest?.name || "Jane Doe"}</h3>
+              <div className="px-4 py-1.5 bg-gray-50 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10">Manual Verification</div>
+
+              <div className="w-full space-y-5">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Booking Reference</span>
+                  <span className="font-bold text-[#1e293b]">#BK-984201</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Booking Source</span>
+                  <span className="font-bold text-[#1e293b]">Direct Booking</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Verified Timestamp</span>
+                  <span className="font-bold text-[#1e293b]">Oct 24, 10:42 AM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setMobileVerificationView("list");
+              setManualCode("");
+            }}
+            className="w-full py-6 bg-[#10b981] text-white rounded-3xl font-bold text-lg shadow-xl shadow-[#10b981]/20"
+          >
+            Return to Main Screen
+          </button>
+          <p className="mt-6 text-gray-400 font-medium text-xs">Auto-returning to guest list in 3s</p>
+        </div>
+      )
+    };
+
+    // Review & Post Step (Step 3) - Similar to image design
+    const renderReviewAndPostStep = () => {
+      return (
+        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-500 min-h-0">
+          {/* Header */}
+
+
+          {/* Booking Summary Card */}
+          <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-6 flex items-center gap-4 shadow-sm">
+            <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 7H17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 12H17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 17H13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="flex-1 flex gap-6">
+              <div>
+                <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Booking</p>
+                <span className="font-extrabold text-[#111827] text-sm">{bookingInfo.bookingId || "BK-882910"}</span>
+              </div>
+              <div>
+                <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Check-in</p>
+                <span className="font-bold text-gray-400 text-xs">{dayjs().format('DD MMM YYYY')}</span>
+              </div>
+            </div>
+            <div className="bg-[#f8fafc] border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2">
+              <User size={12} className="text-gray-300" />
+              <span className="font-black text-[#111827] text-xs leading-none">{guests.length}</span>
+            </div>
+          </div>
+
+          {/* Guest Verification Status */}
+          <div className="mb-6">
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Detailed Guest List</h3>
+            <p className="text-[10px] text-gray-400 mt-1">{guests.filter(g => g.status === "verified").length} of {guests.length} guests verified</p>
+          </div>
+
+          {/* Guest Cards List */}
+          <div className="flex-1 overflow-y-auto space-y-4 -mx-4 px-4 pb-10 custom-scrollbar">
+            {guests.map((guest, index) => (
+              <div
+                key={guest.id}
+                className="relative rounded-2xl p-5 shadow-sm bg-white border border-gray-100"
+              >
+                {/* Guest Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#f0fdf4] flex items-center justify-center text-[#10b981]">
+                      <User size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[#111827]">{guest.fullName || guest.name || `Guest ${guest.id}`}</h4>
+                      <p className="text-[10px] text-gray-500">Guest {guest.id} • {guest.isPrimary ? "Primary Guest" : "Secondary Guest"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-2 py-1 rounded-lg">
+                    <CheckCircle size={12} className="text-[#10b981]" />
+                    <span className="text-[9px] font-black text-[#10b981] uppercase tracking-wider">Verified</span>
+                  </div>
+                </div>
+
+                {/* Guest Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone Number</p>
+                    <p className="font-medium text-[#111827]">+91 ••••• •{guest.phoneNumber ? guest.phoneNumber.slice(-3) : "•••"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Verification Method</p>
+                    <p className="font-medium text-[#111827]">QR Code Scan</p>
+                  </div>
+                </div>
+
+                {/* Verification Timestamp */}
+                <div className="mt-4 pt-4 border-t border-gray-50">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Verified At</p>
+                  <p className="font-medium text-[#111827] text-sm">{dayjs().format('DD MMM YYYY, hh:mm A')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Verification Summary */}
+          <div className="mt-6 p-5 bg-[#f8fafc] border border-gray-100 rounded-2xl">
+            <div className="flex justify-between items-center mb-3">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Verification Summary</p>
+              <div className="w-6 h-6 bg-[#10b981] rounded-full flex items-center justify-center">
+                <Check size={14} className="text-white" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[9px] font-bold text-gray-500">Total Guests</p>
+                <p className="text-lg font-black text-[#111827]">{guests.length}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-gray-500">Verified</p>
+                <p className="text-lg font-black text-[#10b981]">{guests.filter(g => g.status === "verified").length}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-gray-500">Booking Source</p>
+                <p className="text-sm font-bold text-[#111827]">{bookingInfo.bookingSource || "Not specified"}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-gray-500">Booking ID</p>
+                <p className="text-sm font-bold text-[#111827] truncate">{bookingInfo.bookingId || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Confirmation Message */}
+          <div className="mt-6 p-5 bg-[#fef3c7]/30 border border-[#fde68a] rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={20} className="text-[#d97706] mt-0.5" />
+              <div>
+                <p className="text-[10px] font-black text-[#92400e] uppercase tracking-widest mb-1">Ready to Post</p>
+                <p className="text-xs text-[#92400e] font-medium">
+                  All guests are verified. Click "Confirm & Post" to complete the check-in process.
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="min-h-screen bg-[#f3f4f6] flex flex-col items-center p-4 pt-10 font-sans selection:bg-[#1b3631]/10">
+        <style>{`
+          @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+          }
+        `}</style>
+        <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col min-h-[85vh] relative text-[#111827]">
+          {/* Main List Views */}
+          {mobileVerificationView === "list" ? (
+            <>
+              {/* Mobile Header (Unified Style) */}
+              {renderMobileStepper()}
+
+              <div className="flex-1 flex flex-col py-8 px-10">
+                {/* Step Navigation */}
+                {mobileStep !== 1 && (
+                  <div className="mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => setMobileStep(mobileStep - 1)} className="p-2 -ml-2 text-[#1b3631] hover:bg-gray-100 rounded-full">
+                        <ChevronLeft size={24} />
+                      </button>
+                      <h2 className="text-xl font-black text-[#1b3631]">
+                        {mobileStep === 2 ? "Verification" : "Review & Post"}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-3 py-1.5 rounded-full border border-[#bcf0da]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></div>
+                      <span className="text-[9px] font-black text-[#10b981] uppercase tracking-wider">
+                        {mobileStep === 2 ? "Live" : "All Verified"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {mobileStep === 1 && (
+                  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+                    <div>
+                      <h1 className="text-[2.5rem] font-black text-[#111827] leading-[1.1] mb-4 tracking-tighter">Guest Verification</h1>
+                      <p className="text-[#64748b] text-sm leading-relaxed font-medium">Step 1: Provide booking details to retrieve guest identity for arrival check-in.</p>
+                    </div>
+
+                    <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-[2rem] p-8 shadow-sm">
+                      <h3 className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] mb-10">Booking Information</h3>
+
+                      <div className="space-y-10">
+                        <div className="relative">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">Verification Date</label>
+                          <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl flex items-center gap-5 p-6 shadow-inner">
+                            <Calendar size={22} className="text-gray-400" />
+                            <span className="flex-1 font-bold text-[#1e293b]">{isLoadingServerDate ? "Loading..." : bookingInfo.verificationDate}</span>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-3 font-medium italic pl-1">Date fetched from server</p>
+                        </div>
+
+                        <div className="relative">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">Booking Source *</label>
+                          <div className="relative">
+                            <Search size={22} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <select
+                              name="bookingSource"
+                              value={bookingInfo.bookingSource}
+                              onChange={handleBookingInfoChange}
+                              className="w-full bg-white border border-gray-100 rounded-2xl p-6 pl-16 text-[#1e293b] font-bold text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                            >
+                              <option value="">Select Booking Source</option>
+                              {otaOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                            <ChevronDown size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">Booking ID *</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              name="bookingId"
+                              value={bookingInfo.bookingId}
+                              onChange={handleBookingInfoChange}
+                              placeholder="Enter Booking ID*"
+                              className="w-full bg-white border border-gray-100 rounded-2xl p-6 text-[#1e293b] font-bold text-sm focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                            />
+                            <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-gray-100 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-gray-400">i</div>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-3 font-medium pl-1">Select a booking source first to validate ID format</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mobileStep === 2 && (
+                  <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-6 duration-500 min-h-0">
+                    {/* Booking Context Card */}
+                    <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-10 flex items-center gap-4 shadow-sm">
+                      <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M7 7H17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M7 12H17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M7 17H13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 flex gap-6">
+                        <div>
+                          <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Booking</p>
+                          <span className="font-extrabold text-[#111827] text-sm">{bookingInfo.bookingId || "BK-882910"}</span>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Check-in</p>
+                          <span className="font-bold text-gray-400 text-xs">{dayjs().format('DD MMM YYYY')}</span>
+                        </div>
+                      </div>
+                      <div className="bg-[#f8fafc] border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2">
+                        <User size={12} className="text-gray-300" />
+                        <span className="font-black text-[#111827] text-xs leading-none">{guests.length}</span>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Detailed Guest List</h3>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-6 -mx-4 px-4 pb-10 custom-scrollbar">
+                      {guests.map((guest, index) => (
+                        <div
+                          key={guest.id}
+                          className={`relative rounded-[2rem] p-7 shadow-sm transition-all duration-300 border border-gray-100 overflow-hidden ${guest.status === "verified" ? "bg-[#f0fdf4] border-[#10b981]/10" : "bg-white"
+                            }`}
+                        >
+                          {/* Distinctive left border */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${guest.status === "verified" ? "bg-[#10b981]" :
+                            guest.status === "pending" || guest.status === "idle" ? "bg-[#fcc141]" : "bg-[#1b3631]"
+                            }`}></div>
+
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-colors ${guest.status === "verified" ? "bg-[#10b981] text-white" : "bg-gray-50 text-gray-400"
+                              }`}>
+                              {guest.status === "verified" ? <CheckCircle size={20} /> : guest.id < 10 ? `0${guest.id}` : guest.id}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-extrabold text-[#111827] text-lg leading-tight">
+                                {guest.status === "verified" ? (guest.fullName || guest.name) : `Guest ${guest.id}`}
+                              </h4>
+                              <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${guest.status === "verified" ? "text-[#10b981]" :
+                                guest.status === "pending" || guest.status === "idle" ? "text-[#fcc141]" : "text-[#1b3631]"
+                                }`}>
+                                {guest.status === "verified" ? "Fully Verified" :
+                                  guest.status === "pending" || guest.status === "idle" ? "Pending Validation" : "Ready for Scan"}
+                              </p>
+                            </div>
+
+                            {guest.status === "verified" ? (
+                              <div className="flex flex-col items-end">
+                                <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1">Status</span>
+                                <div className="flex items-center gap-1.5 text-[#10b981] font-black text-[10px] uppercase tracking-wider">
+                                  <CheckCircle size={14} className="fill-[#10b981] text-white" />
+                                  Complete
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  if (guest.status === "idle" || guest.status === "pending") {
+                                    if (guest.phoneNumber && guest.phoneNumber.length >= 10) handleVerifyGuest(index);
+                                    else showToast("error", "Enter phone number");
+                                  } else {
+                                    setActiveVerificationGuestIndex(index);
+                                    setMobileVerificationView("scanner");
+                                    setManualCode("");
+                                  }
+                                }}
+                                className="px-5 py-3 bg-[#1b3631] text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-[#1b3631]/20"
+                              >
+                                {guest.status === "idle" || guest.status === "pending" ? "Verify" : (
+                                  <>
+                                    <QrCode size={13} />
+                                    Scan QR
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Progress Bar (Splitted) */}
+                          <div className="h-[5px] w-full bg-gray-50 rounded-full mb-6 overflow-hidden flex gap-0.5">
+                            <div
+                              className={`h-full transition-all duration-700 flex-1 ${guest.status === "verified" || guest.status === "ready" ? "bg-[#10b981]" :
+                                guest.status === "pending" || guest.status === "idle" ? "bg-[#fcc141]" : "bg-gray-100"
+                                }`}
+                            ></div>
+                            <div className={`h-full flex-1 transition-all duration-700 ${guest.status === "verified" ? "bg-[#10b981]" : "bg-[#f1f5f9]"}`}></div>
+                          </div>
+
+                          {guest.status === "verified" ? null : guest.status === "ready" ? (
+                            <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl p-4 flex items-center justify-between">
+                              <div>
+                                <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">Phone Validated</p>
+                                <p className="font-bold text-[#111827] text-sm">+91 ••••• ••{guest.phoneNumber.slice(-3)}</p>
+                              </div>
+                              <div className="w-8 h-8 rounded-full border border-[#10b981] flex items-center justify-center text-[#10b981]">
+                                <CheckCircle size={16} />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl flex items-center overflow-hidden">
+                              <div className="pl-4 pr-3 py-4 flex items-center gap-2 border-r border-gray-100">
+                                <img src="https://flagcdn.com/in.svg" className="w-5 h-3 rounded-xs object-cover" alt="IN" />
+                                <span className="font-bold text-[#1b3631] text-sm">+91</span>
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder="Enter phone number"
+                                value={guest.phoneNumber}
+                                onChange={(e) => handlePhoneChange(index, e.target.value)}
+                                className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={addGuest}
+                      disabled={isAddGuestDisabled}
+                      className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center gap-3 text-gray-300 hover:border-[#1b3631]/20 hover:text-gray-400 transition-all active:scale-95"
+                    >
+                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                        <Plus size={24} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Add Additional Guest</span>
+                    </button>
+                  </div>
+                )}
+
+                {mobileStep === 3 && renderReviewAndPostStep()}
+              </div>
+
+              {/* Mobile Footer (Match refined style) */}
+              <div className="mt-auto p-8 pt-0 bg-white">
+                <div className="flex gap-4 mb-6">
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 py-5 bg-[#f0f4f8] text-[#1b3631] rounded-[1.25rem] font-bold flex items-center justify-center gap-3 active:scale-95 transition-all"
+                  >
+                    <X size={18} />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (mobileStep === 1) {
+                        if (bookingInfo.bookingSource && bookingInfo.bookingId) setMobileStep(2);
+                        else showToast("error", "Fill details first");
+                      } else if (mobileStep === 2) {
+                        if (areAllGuestsVerified) setMobileStep(3);
+                        else showToast("error", "Verify all guests first");
+                      } else {
+                        handleConfirmCheckIn();
+                      }
+                    }}
+                    disabled={(mobileStep === 2 && !areAllGuestsVerified) || (mobileStep === 3 && isConfirmingCheckin)}
+                    className={`flex-[1.8] py-5 rounded-[1.25rem] font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl ${(mobileStep === 2 && !areAllGuestsVerified) || (mobileStep === 3 && isConfirmingCheckin)
+                      ? "bg-[#1b3631] opacity-50 text-white cursor-not-allowed"
+                      : "bg-[#1b3631] text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
+                      }`}
+                  >
+                    {isConfirmingCheckin ? (
+                      <>
+                        <Clock size={18} className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Confirm & Post
+                        <ChevronRight size={18} />
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-center gap-3">
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-3.5 h-[5px] bg-[#10b981] rounded-full"></div>
+                    <div className="w-[5px] h-[5px] bg-gray-100 rounded-full"></div>
+                  </div>
+                  <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">
+                    Verified: {guests.filter(g => g.status === "verified").length} of {guests.length} Guests
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : mobileVerificationView === "scanner" ? (
+            renderScannerView()
+          ) : mobileVerificationView === "manual_code" ? (
+            renderManualCodeView()
+          ) : (
+            renderSuccessView()
+          )}
+        </div>
+
+        {/* Safe Area Padding */}
+        <div className="h-6 w-full"></div>
+
+        <SuccessModal
+          show={showSuccessModal}
+          onClose={handleSuccessModalClose}
+          bookingId={bookingInfo.bookingId}
+          totalGuests={guests.length}
+          bookingSource={bookingInfo.bookingSource}
+        />
+
+        <ConfirmationModal
+          isOpen={showCancelModal}
+          onClose={cancelCancel}
+          onConfirm={confirmCancel}
+          title="Cancel & Reset Verification"
+          message="Are you sure you want to cancel all verifications? This will reset all phone numbers to India (+91) and clear all timers."
+          confirmText="Yes, Cancel & Reset"
+          cancelText="No, Continue Verification"
+          isDanger={true}
+        />
+      </div>
+    );
+  }
+
+  // Desktop view remains the same...
   return (
     <div className="min-h-screen bg-white p-8 font-sans text-[#1b3631]">
       <div className="max-w-7xl mx-auto">
@@ -1284,15 +2019,13 @@ const Checkin = () => {
                   placeholder={
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
                 {!isBookingIdEnabled && !isWalkIn && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -1359,16 +2092,14 @@ const Checkin = () => {
                             guest.status === "verified"
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
