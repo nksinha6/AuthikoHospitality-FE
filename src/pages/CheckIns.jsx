@@ -20,6 +20,7 @@ import {
   QrCode,
   Check,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import {
   GUEST_VERIFICATION,
@@ -1833,7 +1834,7 @@ const Checkin = () => {
                           <ChevronLeft size={24} />
                         </button>
 
-                        <h2 className="text-xl font-black text-[#1b3631]">
+                        <h2 className="text-xl font-bold text-[#1b3631]">
                           {mobileStep === 2 ? "Verification" : "Review & Post"}
                         </h2>
                       </div>
@@ -1988,7 +1989,7 @@ const Checkin = () => {
                           <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
                             Booking ID
                           </p>
-                          <p className="font-extrabold text-[#111827] text-sm break-all">
+                          <p className="font-bold text-[#111827] text-sm break-all">
                             {bookingInfo.bookingId || "WALK-IN-XXXX"}
                           </p>
                         </div>
@@ -2076,9 +2077,10 @@ const Checkin = () => {
                               <button
                                 onClick={() => handleDeleteGuest(index)}
                                 disabled={guest.status === "pending"}
-                                className="p-2 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-30"
+                                className="p-2 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-30 transition-colors"
+                                title="Delete guest"
                               >
-                                🗑️
+                                <Trash2 size={18} className="stroke-[2.5]" />
                               </button>
                             </div>
 
@@ -2233,7 +2235,7 @@ const Checkin = () => {
                     <div className="flex gap-4 mb-6">
                       <button
                         onClick={handleCancel}
-                        className="flex-1 py-5 bg-[#f0f4f8] text-[#1b3631]
+                        className="flex-1 py-3 bg-[#f0f4f8] text-[#1b3631]
                      rounded-[1.25rem] font-bold
                      flex items-center justify-center gap-3
                      active:scale-95 transition-all"
@@ -2261,8 +2263,8 @@ const Checkin = () => {
             ${
               (mobileStep === 2 && !areAllGuestsVerified) ||
               (mobileStep === 3 && isConfirmingCheckin)
-                ? "bg-[#1b3631] opacity-50 text-white cursor-not-allowed"
-                : "bg-[#1b3631] text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
+                ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
+                : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
             }`}
                       >
                         {isConfirmingCheckin ? (
