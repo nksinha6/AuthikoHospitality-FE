@@ -1272,10 +1272,10 @@ const Checkin = () => {
             >
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
-                  ? "bg-[#10b981] text-white"
-                  : mobileStep === step
-                    ? "bg-[#1b3631] text-white"
-                    : "bg-white border-[1.5px] border-gray-100 text-gray-300"
+                    ? "bg-[#10b981] text-white"
+                    : mobileStep === step
+                      ? "bg-[#1b3631] text-white"
+                      : "bg-white border-[1.5px] border-gray-100 text-gray-300"
                   }`}
               >
                 {mobileStep > step ? <CheckCircle size={18} /> : step}
@@ -1466,10 +1466,10 @@ const Checkin = () => {
               <div
                 key={i}
                 className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i
-                  ? "border-[#10b981] ring-4 ring-[#10b981]/10"
-                  : manualCode[i]
-                    ? "border-[#10b981]/30 bg-[#f0fdf4]"
-                    : "border-gray-100"
+                    ? "border-[#10b981] ring-4 ring-[#10b981]/10"
+                    : manualCode[i]
+                      ? "border-[#10b981]/30 bg-[#f0fdf4]"
+                      : "border-gray-100"
                   }`}
               >
                 {manualCode[i] || ""}
@@ -2057,8 +2057,8 @@ const Checkin = () => {
                             {/* Left accent */}
                             <div
                               className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${physicalVerified || readyForScan
-                                ? "bg-[#22c55e]"
-                                : "bg-[#fbbf24]"
+                                  ? "bg-[#22c55e]"
+                                  : "bg-[#fbbf24]"
                                 }`}
                             />
 
@@ -2079,10 +2079,10 @@ const Checkin = () => {
 
                                 <p
                                   className={`text-[10px] font-black uppercase tracking-widest mt-1 ${physicalVerified
-                                    ? "text-[#22c55e]"
-                                    : readyForScan
                                       ? "text-[#22c55e]"
-                                      : "text-[#f59e0b]"
+                                      : readyForScan
+                                        ? "text-[#22c55e]"
+                                        : "text-[#f59e0b]"
                                     }`}
                                 >
                                   {physicalVerified
@@ -2120,8 +2120,8 @@ const Checkin = () => {
                                 {/* Physical */}
                                 <div
                                   className={`flex-1 rounded-full ${physicalVerified
-                                    ? "bg-[#22c55e]"
-                                    : "bg-gray-200"
+                                      ? "bg-[#22c55e]"
+                                      : "bg-gray-200"
                                     }`}
                                 />
                               </div>
@@ -2148,7 +2148,10 @@ const Checkin = () => {
                                     placeholder="Enter phone"
                                     value={guest.phoneNumber}
                                     onChange={(e) =>
-                                      handlePhoneChange(originalIndex, e.target.value)
+                                      handlePhoneChange(
+                                        originalIndex,
+                                        e.target.value,
+                                      )
                                     }
                                     className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
                                   />
@@ -2156,7 +2159,9 @@ const Checkin = () => {
 
                                 {/* Verify */}
                                 <button
-                                  onClick={() => handleVerifyGuest(originalIndex)}
+                                  onClick={() =>
+                                    handleVerifyGuest(originalIndex)
+                                  }
                                   disabled={isVerifyButtonDisabled(
                                     guest,
                                     originalIndex,
@@ -2188,7 +2193,9 @@ const Checkin = () => {
                                 {/* Scan QR */}
                                 <button
                                   onClick={() => {
-                                    setActiveVerificationGuestIndex(originalIndex);
+                                    setActiveVerificationGuestIndex(
+                                      originalIndex,
+                                    );
                                     setMobileVerificationView("scanner");
                                   }}
                                   className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold flex items-center justify-center gap-2"
@@ -2489,10 +2496,10 @@ const Checkin = () => {
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
                   className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
-                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                    : !isBookingIdEnabled
-                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                      : "border-[#E2E8F0] text-gray-700"
+                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                      : !isBookingIdEnabled
+                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                        : "border-[#E2E8F0] text-gray-700"
                     } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
                     }`}
                 />
@@ -2553,7 +2560,9 @@ const Checkin = () => {
                         <PhoneInput
                           country={"in"}
                           value={guest.phoneNumber}
-                          onChange={(val) => handlePhoneChange(originalIndex, val)}
+                          onChange={(val) =>
+                            handlePhoneChange(originalIndex, val)
+                          }
                           disabled={
                             !isPhoneInputEnabled ||
                             guest.status === "pending" ||
@@ -2562,10 +2571,10 @@ const Checkin = () => {
                           }
                           containerClass="!w-full"
                           inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
-                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                            : guest.isChangingNumber
-                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                              : "!bg-white !text-gray-700"
+                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                              : guest.isChangingNumber
+                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                                : "!bg-white !text-gray-700"
                             } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
                           buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
                             } hover:!bg-gray-50`}
@@ -2586,7 +2595,9 @@ const Checkin = () => {
 
                         {guest.isChangingNumber && (
                           <button
-                            onClick={() => handleCancelChangeNumber(originalIndex)}
+                            onClick={() =>
+                              handleCancelChangeNumber(originalIndex)
+                            }
                             className="px-3 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-800"
                           >
                             Cancel
@@ -2645,7 +2656,10 @@ const Checkin = () => {
                             Enter Booking ID to enable verification
                           </span>
                         </div>
-                      ) : isPhoneNumberDuplicate(guest.phoneNumber, originalIndex) ? (
+                      ) : isPhoneNumberDuplicate(
+                        guest.phoneNumber,
+                        originalIndex,
+                      ) ? (
                         <div className="flex flex-col">
                           <span className="text-red-500 italic">
                             Phone number already in use
@@ -2666,7 +2680,10 @@ const Checkin = () => {
                       ) : (
                         <button
                           onClick={() => handleVerifyGuest(originalIndex)}
-                          disabled={isVerifyButtonDisabled(guest, originalIndex)}
+                          disabled={isVerifyButtonDisabled(
+                            guest,
+                            originalIndex,
+                          )}
                           className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                         >
                           <CheckCircle size={16} />
