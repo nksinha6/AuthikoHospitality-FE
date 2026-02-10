@@ -1755,7 +1755,7 @@ const Checkin = () => {
           }
         `}</style>
         <div
-          className="w-full max-w-md bg-white rounded-[2.5rem] mx-auto
+          className="w-full max-w-md bg-white rounded-[0.75rem] mx-auto
   overflow-hidden
   flex flex-col min-h-[85vh] relative"
         >
@@ -1822,9 +1822,6 @@ const Checkin = () => {
                                 : bookingInfo.verificationDate}
                             </span>
                           </div>
-                          <p className="text-[10px] text-gray-400 mt-3 font-medium italic pl-1">
-                            Date fetched from server
-                          </p>
                         </div>
 
                         <div className="relative !mb-5">
