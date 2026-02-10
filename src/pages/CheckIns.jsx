@@ -205,27 +205,6 @@ const Checkin = () => {
     setUsedPhoneNumbers(newUsedPhoneNumbers);
   }, [guests, hasVerificationStarted]);
 
-  // Helper to determine sort priority
-  // 0: Not Verified/Pending (Top)
-  // 1: ID Verified/Ready for Scan (Middle)
-  // 2: Fully Verified (Bottom)
-  const getVerificationPriority = (guest) => {
-    if (guest.status === "verified") return 2; // Fully Verified
-    if (guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED) return 1; // ID Verified
-    return 0; // Not Verified/Pending
-  };
-
-  // Memoized sorted guests preserving original index for handlers
-  const sortedGuestsWithIndex = React.useMemo(() => {
-    return guests
-      .map((guest, index) => ({ guest, originalIndex: index }))
-      .sort((a, b) => {
-        const priorityA = getVerificationPriority(a.guest);
-        const priorityB = getVerificationPriority(b.guest);
-        return priorityA - priorityB;
-      });
-  }, [guests]);
-
   // Update isWalkIn when booking source changes
   useEffect(() => {
     const walkIn = bookingInfo.bookingSource === "Walk-In";
@@ -722,7 +701,7 @@ const Checkin = () => {
       setTimeout(() => {
         const scrollContainer = document.querySelector(".custom-scrollbar");
         if (scrollContainer) {
-          scrollContainer.scrollTop = 0;
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       }, 100);
 
@@ -1883,8 +1862,7 @@ const Checkin = () => {
                       {renderMobileStepper()}
 
                       <p className="text-[#64748b] text-sm leading-relaxed font-medium">
-                        Step 1: Provide booking details to retrieve guest
-                        identity for arrival check-in.
+                        Step 1: Provide booking details
                       </p>
                     </div>
 
@@ -2044,7 +2022,7 @@ const Checkin = () => {
                       className="flex-1 max-h-[40vh]
  overflow-y-auto space-y-6 -mx-4 mb-15 px-4 pb-5 custom-scrollbar"
                     >
-                      {sortedGuestsWithIndex.map(({ guest, originalIndex }) => {
+                      {guests.map((guest, index) => {
                         const idVerified = isIdVerified(guest);
                         const physicalVerified = isPhysicalVerified(guest);
                         const readyForScan = isReadyForScan(guest);
@@ -2095,8 +2073,8 @@ const Checkin = () => {
 
                               {/* Delete */}
                               <button
-                                onClick={() => handleDeleteGuest(originalIndex)}
-                                disabled={guest.status === "pending"}
+                                onClick={() => handleDeleteGuest(index)}
+                                disabled={false}
                                 className="p-2 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-30 transition-colors"
                                 title="Delete guest"
                               >
@@ -2148,10 +2126,7 @@ const Checkin = () => {
                                     placeholder="Enter phone"
                                     value={guest.phoneNumber}
                                     onChange={(e) =>
-                                      handlePhoneChange(
-                                        originalIndex,
-                                        e.target.value,
-                                      )
+                                      handlePhoneChange(index, e.target.value)
                                     }
                                     className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
                                   />
@@ -2159,12 +2134,10 @@ const Checkin = () => {
 
                                 {/* Verify */}
                                 <button
-                                  onClick={() =>
-                                    handleVerifyGuest(originalIndex)
-                                  }
+                                  onClick={() => handleVerifyGuest(index)}
                                   disabled={isVerifyButtonDisabled(
                                     guest,
-                                    originalIndex,
+                                    index,
                                   )}
                                   className="w-full py-3 rounded-xl bg-[#1b3631] text-white font-bold disabled:opacity-50"
                                 >
@@ -2193,9 +2166,7 @@ const Checkin = () => {
                                 {/* Scan QR */}
                                 <button
                                   onClick={() => {
-                                    setActiveVerificationGuestIndex(
-                                      originalIndex,
-                                    );
+                                    setActiveVerificationGuestIndex(index);
                                     setMobileVerificationView("scanner");
                                   }}
                                   className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold flex items-center justify-center gap-2"
@@ -2208,8 +2179,8 @@ const Checkin = () => {
                                   onClick={() => {
                                     setGuests((prev) => {
                                       const next = [...prev];
-                                      next[originalIndex] = {
-                                        ...next[originalIndex],
+                                      next[index] = {
+                                        ...next[index],
                                         status: "verified", // ✅ Physical verification done
                                       };
                                       return next;
@@ -2545,7 +2516,7 @@ const Checkin = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F1F5F9]">
-                {sortedGuestsWithIndex.map(({ guest, originalIndex }) => (
+                {guests.map((guest, index) => (
                   <tr
                     key={guest.id}
                     className="group hover:bg-[#F8FAFC]/50 transition-colors"
@@ -2560,9 +2531,7 @@ const Checkin = () => {
                         <PhoneInput
                           country={"in"}
                           value={guest.phoneNumber}
-                          onChange={(val) =>
-                            handlePhoneChange(originalIndex, val)
-                          }
+                          onChange={(val) => handlePhoneChange(index, val)}
                           disabled={
                             !isPhoneInputEnabled ||
                             guest.status === "pending" ||
@@ -2584,7 +2553,7 @@ const Checkin = () => {
                         {guest.status === "pending" &&
                           !guest.isChangingNumber && (
                             <button
-                              onClick={() => handleChangeNumber(originalIndex)}
+                              onClick={() => handleChangeNumber(index)}
                               disabled={!isPhoneInputEnabled}
                               className="px-3 py-2 rounded-lg text-xs font-semibold text-[#1b3631] bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-all flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -2595,9 +2564,7 @@ const Checkin = () => {
 
                         {guest.isChangingNumber && (
                           <button
-                            onClick={() =>
-                              handleCancelChangeNumber(originalIndex)
-                            }
+                            onClick={() => handleCancelChangeNumber(index)}
                             className="px-3 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-800"
                           >
                             Cancel
@@ -2656,10 +2623,7 @@ const Checkin = () => {
                             Enter Booking ID to enable verification
                           </span>
                         </div>
-                      ) : isPhoneNumberDuplicate(
-                        guest.phoneNumber,
-                        originalIndex,
-                      ) ? (
+                      ) : isPhoneNumberDuplicate(guest.phoneNumber, index) ? (
                         <div className="flex flex-col">
                           <span className="text-red-500 italic">
                             Phone number already in use
@@ -2679,11 +2643,8 @@ const Checkin = () => {
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleVerifyGuest(originalIndex)}
-                          disabled={isVerifyButtonDisabled(
-                            guest,
-                            originalIndex,
-                          )}
+                          onClick={() => handleVerifyGuest(index)}
+                          disabled={isVerifyButtonDisabled(guest, index)}
                           className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                         >
                           <CheckCircle size={16} />
