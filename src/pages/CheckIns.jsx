@@ -1811,7 +1811,7 @@ const Checkin = () => {
         <div
           className="w-full max-w-md bg-white rounded-[0.75rem] mx-auto
   overflow-hidden
-  flex flex-col min-h-[85vh] relative"
+  flex flex-col min-h-[95vh] relative"
         >
           {/* Main List Views */}
           {mobileVerificationView === "list" ? (
@@ -2022,7 +2022,7 @@ const Checkin = () => {
                       </h3>
                     </div>
                     <div
-                      className="flex-1 max-h-[40vh]
+                      className="flex-1 max-h-[100vh]
  overflow-y-auto space-y-6 -mx-4 px-4 pb-5 custom-scrollbar"
                     >
                       {guests.map((guest, index) => {
@@ -2192,7 +2192,7 @@ const Checkin = () => {
 
               {/* Mobile Footer (Match refined style) */}
 
-              <div className="mt-auto p-8 pt-0 bg-white">
+              <div className="mt-auto px-5 pt-0 bg-white">
                 {mobileStep === 1 ? (
                   <>
                     {/* Primary CTA */}
