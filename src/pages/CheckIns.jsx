@@ -2215,7 +2215,7 @@ const Checkin = () => {
 
               {/* Mobile Footer (Match refined style) */}
 
-              <div className="mt-auto px-5 pt-0 bg-white">
+              <div className="mt-auto px-5 mb-3 pt-0 bg-white">
                 {mobileStep === 1 ? (
                   <>
                     {/* Primary CTA */}
