@@ -31,6 +31,7 @@ import { OTA_OPTIONS, ROUTES, UI_TEXT } from "../constants/ui";
 import { useAuth } from "../context/AuthContext.jsx";
 import dayjs from "dayjs";
 import { showToast } from "../utility/toast.js";
+import { Html5Qrcode } from "html5-qrcode";
 import SuccessModal from "../components/SuccessModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 
@@ -165,6 +166,96 @@ const Checkin = () => {
     useState(null);
   const [mobileVerificationView, setMobileVerificationView] = useState("list"); // list, scanner, manual_code, success
   const [manualCode, setManualCode] = useState("");
+  // Track verification method for each guest
+  const [guestVerificationMethod, setGuestVerificationMethod] = useState({});
+  const scannerRef = useRef(null);
+
+  // Handle QR Scan Success
+  const handleQrScanSuccess = (decodedText) => {
+    console.log("QR scanned successfully:", decodedText);
+    if (activeVerificationGuestIndex !== null) {
+      setGuests((prev) => {
+        const next = [...prev];
+        next[activeVerificationGuestIndex].status = "verified";
+        // Optionally parse decodedText for guest info if QR contains it
+        // next[activeVerificationGuestIndex].fullName = ...;
+        // next[activeVerificationGuestIndex].name = ...;
+        return next;
+      });
+      setGuestVerificationMethod((prev) => ({
+        ...prev,
+        [activeVerificationGuestIndex]: "qr"
+      }));
+      setMobileVerificationView("success");
+      showToast("success", "QR scanned successfully!");
+    }
+  };
+
+  // QR Scanner Lifecycle
+  useEffect(() => {
+    let html5QrCode;
+
+    const startScanner = async () => {
+      if (
+        mobileVerificationView === "scanner" &&
+        activeVerificationGuestIndex !== null
+      ) {
+        // Give the DOM a moment to render the reader div
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const readerElement = document.getElementById("reader");
+        if (!readerElement) {
+          console.error("Scanner element #reader not found");
+          return;
+        }
+
+        html5QrCode = new Html5Qrcode("reader");
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        try {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+              handleQrScanSuccess(decodedText);
+            },
+          );
+          console.log("Scanner started");
+        } catch (err) {
+          console.error("Error starting scanner:", err);
+          // showToast("error", "Unable to access camera");
+        }
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode
+          .stop()
+          .then(() => {
+            console.log("Scanner stopped");
+          })
+          .catch((err) => console.error("Error stopping scanner:", err));
+      }
+    };
+  }, [mobileVerificationView, activeVerificationGuestIndex]);
+
+  // Success view auto-return timer
+  useEffect(() => {
+    if (mobileVerificationView === "success") {
+      const timer = setTimeout(() => {
+        setMobileVerificationView("list");
+        setManualCode("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileVerificationView]);
 
   // Update verification status whenever guests change
   useEffect(() => {
@@ -896,8 +987,10 @@ const Checkin = () => {
       return;
     }
 
-    // Normalize the phone number for checking
+    // Normalize the phone number for checking (for duplicate/verified checks only)
     const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+    // Use the raw phone number (with country code) for API
+    const fullPhoneNumber = guest.phoneNumber;
 
     // Check if phone number is already verified
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
@@ -955,7 +1048,7 @@ const Checkin = () => {
       setIsVerifying(true);
 
       const phoneCountryCode = "91";
-      const phoneno = normalizedNumber;
+      const phoneno = fullPhoneNumber;
 
       try {
         console.log(
@@ -1001,6 +1094,7 @@ const Checkin = () => {
               // guest details
               name: response.fullName || response.name || "Verified Guest",
               fullName: response.fullName || response.name || "Verified Guest",
+              isPrimary: index === 0,
 
               // cleanup
               isTimerActive: false,
@@ -1076,7 +1170,7 @@ const Checkin = () => {
     setIsVerifying(true);
 
     const phoneCountryCode = "91";
-    const phoneno = normalizedNumber;
+    const phoneno = fullPhoneNumber;
 
     try {
       if (!isBookingInitialized) {
@@ -1258,13 +1352,12 @@ const Checkin = () => {
               className="relative z-20 flex flex-col items-center"
             >
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  mobileStep > step
-                    ? "bg-[#10b981] text-white"
-                    : mobileStep === step
-                      ? "bg-[#1b3631] text-white"
-                      : "bg-white border-[1.5px] border-gray-100 text-gray-300"
-                }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
+                  ? "bg-[#10b981] text-white"
+                  : mobileStep === step
+                    ? "bg-[#1b3631] text-white"
+                    : "bg-white border-[1.5px] border-gray-100 text-gray-300"
+                  }`}
               >
                 {mobileStep > step ? <CheckCircle size={18} /> : step}
               </div>
@@ -1315,12 +1408,12 @@ const Checkin = () => {
             </h3>
           </div>
 
-          <div className="flex-1 relative mx-6 rounded-[2rem] overflow-hidden bg-black/5 flex items-center justify-center">
-            {/* Mock Camera View */}
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center blur-[2px] opacity-60"></div>
+          <div className="flex-1 relative mx-6 rounded-4xl overflow-hidden bg-black flex items-center justify-center">
+            {/* Real Camera View */}
+            <div id="reader" className="w-full h-full object-cover"></div>
 
             {/* Scan Area Overlay */}
-            <div className="relative w-64 h-64 border-2 border-[#10b981] rounded-3xl">
+            <div className="absolute z-10 w-64 h-64 border-2 border-[#10b981] rounded-3xl pointer-events-none">
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-xl -translate-x-1 -translate-y-1"></div>
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-xl translate-x-1 -translate-y-1"></div>
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-xl -translate-x-1 translate-y-1"></div>
@@ -1328,24 +1421,6 @@ const Checkin = () => {
 
               {/* Moving Scan Line */}
               <div className="w-full h-1 bg-[#10b981] absolute top-0 left-0 animate-[scan_2s_infinite_linear] opacity-80 shadow-[0_0_15px_#10b981]"></div>
-            </div>
-
-            {/* Guest Card Overlay */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[85%] bg-white/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-xl border border-white/50">
-              <div className="w-12 h-12 bg-[#1b3631] rounded-full flex items-center justify-center text-white">
-                <User size={20} />
-              </div>
-              <div className="text-left">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                  Currently Scanning
-                </p>
-                <p className="font-bold text-[#1b3631]">
-                  {guest?.fullName || guest?.name || `Guest ${guest?.id}`}
-                </p>
-              </div>
-              <div className="ml-auto flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></div>
-              </div>
             </div>
           </div>
 
@@ -1440,26 +1515,16 @@ const Checkin = () => {
             </div>
           </div>
 
-          <div className="px-10 text-center mb-10">
-            <h3 className="text-2xl font-black text-[#111827] mb-2">
-              Enter verification code
-            </h3>
-            <p className="text-gray-400 text-sm font-medium">
-              Enter the 6-digit code provided by the guest
-            </p>
-          </div>
-
           <div className="px-8 flex justify-between mb-10">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${
-                  manualCode.length === i
-                    ? "border-[#10b981] ring-4 ring-[#10b981]/10"
-                    : manualCode[i]
-                      ? "border-[#10b981]/30 bg-[#f0fdf4]"
-                      : "border-gray-100"
-                }`}
+                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i
+                  ? "border-[#10b981] ring-4 ring-[#10b981]/10"
+                  : manualCode[i]
+                    ? "border-[#10b981]/30 bg-[#f0fdf4]"
+                    : "border-gray-100"
+                  }`}
               >
                 {manualCode[i] || ""}
                 {manualCode.length === i && (
@@ -1473,15 +1538,17 @@ const Checkin = () => {
             <button
               onClick={() => {
                 if (manualCode.length === 6) {
-                  setMobileVerificationView("success");
-                  // Simultaneously mark verified in background
                   setGuests((prev) => {
                     const next = [...prev];
                     next[activeVerificationGuestIndex].status = "verified";
-                    next[activeVerificationGuestIndex].name = "Jane Doe"; // Simulated name
-                    next[activeVerificationGuestIndex].fullName = "Jane Doe";
+                    // Optionally update guest info here if needed
                     return next;
                   });
+                  setGuestVerificationMethod((prev) => ({
+                    ...prev,
+                    [activeVerificationGuestIndex]: "manual"
+                  }));
+                  setMobileVerificationView("success");
                 } else {
                   showToast("error", "Please enter all 6 digits");
                 }
@@ -1523,6 +1590,7 @@ const Checkin = () => {
     // Success View
     const renderSuccessView = () => {
       const guest = guests[activeVerificationGuestIndex];
+      const method = guestVerificationMethod[activeVerificationGuestIndex] || "qr";
 
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-10 animate-in zoom-in-95 duration-500">
@@ -1548,10 +1616,10 @@ const Checkin = () => {
               </div>
 
               <h3 className="text-3xl font-black text-[#111827] mb-2">
-                {guest?.fullName || guest?.name || "Jane Doe"}
+                {guest?.fullName || guest?.name || "Verified Guest"}
               </h3>
               <div className="px-4 py-1.5 bg-gray-50 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10">
-                Manual Verification
+                {method === "manual" ? "Manual Verification" : "QR Verification"}
               </div>
 
               <div className="w-full space-y-5">
@@ -1559,14 +1627,14 @@ const Checkin = () => {
                   <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                     Booking Reference
                   </span>
-                  <span className="font-bold text-[#1e293b]">#BK-984201</span>
+                  <span className="font-bold text-[#1e293b]">#{bookingInfo.bookingId}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                     Booking Source
                   </span>
                   <span className="font-bold text-[#1e293b]">
-                    Direct Booking
+                    {bookingInfo.bookingSource || "Direct Booking"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
@@ -1574,7 +1642,15 @@ const Checkin = () => {
                     Verified Timestamp
                   </span>
                   <span className="font-bold text-[#1e293b]">
-                    Oct 24, 10:42 AM
+                    {dayjs().format("MMM D, hh:mm A")}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                    Phone Number
+                  </span>
+                  <span className="font-bold text-[#1e293b]">
+                    {guest?.phoneNumber || "-"}
                   </span>
                 </div>
               </div>
@@ -1605,7 +1681,7 @@ const Checkin = () => {
 
           {/* Booking Summary Card */}
           <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-6 flex items-center gap-4 shadow-sm w-full overflow-hidden">
-            <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center shrink-0">
               <svg
                 width="20"
                 height="20"
@@ -1661,7 +1737,7 @@ const Checkin = () => {
                 </span>
               </div>
             </div>
-            <div className="bg-[#f8fafc] border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2 flex-shrink-0">
+            <div className="bg-[#f8fafc] border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0">
               <User size={12} className="text-gray-300" />
               <span className="font-black text-[#111827] text-xs leading-none">
                 {guests.length}
@@ -1690,7 +1766,7 @@ const Checkin = () => {
                 {/* Guest Header */}
                 <div className="flex items-center justify-between mb-4 gap-2 min-w-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-[#f0fdf4] flex items-center justify-center text-[#10b981] flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#f0fdf4] flex items-center justify-center text-[#10b981] shrink-0">
                       <User size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1703,7 +1779,7 @@ const Checkin = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-2 py-1 rounded-lg flex-shrink-0">
+                  <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-2 py-1.5 rounded-lg shrink-0">
                     <CheckCircle size={12} className="text-[#10b981]" />
                     <span className="text-[9px] font-black text-[#10b981] uppercase tracking-wider">
                       Verified
@@ -1790,7 +1866,7 @@ const Checkin = () => {
             <div className="flex items-start gap-3 min-w-0">
               <AlertCircle
                 size={20}
-                className="text-[#d97706] mt-0.5 flex-shrink-0"
+                className="text-[#d97706] mt-0.5 shrink-0"
               />
               <div className="min-w-0">
                 <p className="text-[10px] font-black text-[#92400e] uppercase tracking-widest mb-1">
@@ -1808,7 +1884,7 @@ const Checkin = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-white flex flex-col h-[100dvh] w-full font-sans selection:bg-[#1b3631]/10 overflow-hidden">
+      <div className="fixed inset-0 bg-white flex flex-col h-dvh w-full font-sans selection:bg-[#1b3631]/10 overflow-hidden">
         <style>{`
           @keyframes scan {
             0% { top: 0; }
@@ -1876,13 +1952,13 @@ const Checkin = () => {
                       </div>
                     </div>
 
-                    <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-[0.75rem] p-5 shadow-sm">
+                    <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-xl p-5 shadow-sm">
                       <h3 className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] mb-5">
                         Booking Information
                       </h3>
 
                       <div className="space-y-10">
-                        <div className="relative !mb-5">
+                        <div className="relative mb-5!">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">
                             Booking Source *
                           </label>
@@ -1911,7 +1987,7 @@ const Checkin = () => {
                           </div>
                         </div>
 
-                        <div className="relative !mb-5">
+                        <div className="relative mb-5!">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">
                             Booking ID *
                           </label>
@@ -1940,9 +2016,9 @@ const Checkin = () => {
                 {mobileStep === 2 && (
                   <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-6 duration-500 min-h-0">
                     {/* Booking Context Card */}
-                    <div className="bg-white border border-gray-100 rounded-[0.75rem] px-3 py-2 mb-5 shadow-sm flex items-center gap-4">
+                    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 mb-5 shadow-sm flex items-center gap-4">
                       {/* Left Icon */}
-                      <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center shrink-0">
                         <svg
                           width="20"
                           height="20"
@@ -2026,15 +2102,14 @@ const Checkin = () => {
                         return (
                           <div
                             key={guest.id}
-                            className="relative bg-white rounded-[1.5rem] p-5 shadow-sm border border-gray-100"
+                            className="relative bg-white rounded-3xl p-5 shadow-sm border border-gray-100"
                           >
                             {/* Left accent */}
                             <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
-                                physicalVerified || readyForScan
-                                  ? "bg-[#22c55e]"
-                                  : "bg-[#fbbf24]"
-                              }`}
+                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${physicalVerified || readyForScan
+                                ? "bg-[#22c55e]"
+                                : "bg-[#fbbf24]"
+                                }`}
                             />
 
                             {/* Header */}
@@ -2053,13 +2128,12 @@ const Checkin = () => {
                                 </div>
 
                                 <p
-                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
-                                    physicalVerified
+                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${physicalVerified
+                                    ? "text-[#22c55e]"
+                                    : readyForScan
                                       ? "text-[#22c55e]"
-                                      : readyForScan
-                                        ? "text-[#22c55e]"
-                                        : "text-[#f59e0b]"
-                                  }`}
+                                      : "text-[#f59e0b]"
+                                    }`}
                                 >
                                   {physicalVerified
                                     ? "Fully Verified"
@@ -2087,20 +2161,18 @@ const Checkin = () => {
                                 <span>Physical Verified</span>
                               </div>
 
-                              <div className="h-[4px] w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
+                              <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
                                 {/* ID */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
-                                  }`}
+                                  className={`flex-1 rounded-full ${idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
+                                    }`}
                                 />
                                 {/* Physical */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    physicalVerified
-                                      ? "bg-[#22c55e]"
-                                      : "bg-gray-200"
-                                  }`}
+                                  className={`flex-1 rounded-full ${physicalVerified
+                                    ? "bg-[#22c55e]"
+                                    : "bg-gray-200"
+                                    }`}
                                 />
                               </div>
                             </div>
@@ -2181,29 +2253,6 @@ const Checkin = () => {
                                   <QrCode size={18} className="stroke-[2.5]" />
                                   Scan QR Code
                                 </button>
-                                {/* 🔴 MOCK Physical Verification (DEV ONLY) */}
-                                <button
-                                  onClick={() => {
-                                    setGuests((prev) => {
-                                      const next = [...prev];
-                                      next[index] = {
-                                        ...next[index],
-                                        status: "verified", // ✅ Physical verification done
-                                      };
-                                      return next;
-                                    });
-
-                                    showToast(
-                                      "success",
-                                      "Physical verification mocked!",
-                                    );
-                                  }}
-                                  className="w-full mt-3 py-4 rounded-xl bg-[#10b981] text-white font-bold text-sm"
-                                >
-                                  Mock Physical Verify
-                                </button>
-
-                                {/* 🔴 MOCK Physical Verification (DEV ONLY) */}
                               </>
                             )}
                           </div>
@@ -2236,7 +2285,7 @@ const Checkin = () => {
                           );
                         }
                       }}
-                      className="w-full py-3 bg-[#1b3631] text-white rounded-[0.75rem]
+                      className="w-full py-3 bg-[#1b3631] text-white rounded-xl
                    font-bold text-lg flex items-center justify-center gap-3
                    shadow-xl shadow-[#1b3631]/30
                    active:scale-95 transition-all"
@@ -2262,7 +2311,7 @@ const Checkin = () => {
                       <button
                         onClick={handleCancel}
                         className="flex-1 py-3 bg-[#f0f4f8] text-[#1b3631]
-                     rounded-[0.75rem] font-bold
+                     rounded-xl font-bold
                      flex items-center justify-center gap-3
                      active:scale-95 transition-all"
                       >
@@ -2283,15 +2332,14 @@ const Checkin = () => {
                           (mobileStep === 2 && !areAllGuestsVerified) ||
                           (mobileStep === 3 && isConfirmingCheckin)
                         }
-                        className={`flex-[1.8] py-3 rounded-[0.75rem]
+                        className={`flex-[1.8] py-3 rounded-xl
             font-black text-lg flex items-center justify-center gap-3
             transition-all active:scale-95 shadow-xl
-            ${
-              (mobileStep === 2 && !areAllGuestsVerified) ||
-              (mobileStep === 3 && isConfirmingCheckin)
-                ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
-                : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
-            }`}
+            ${(mobileStep === 2 && !areAllGuestsVerified) ||
+                            (mobileStep === 3 && isConfirmingCheckin)
+                            ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
+                            : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
+                          }`}
                       >
                         {isConfirmingCheckin ? (
                           <>
@@ -2474,15 +2522,13 @@ const Checkin = () => {
                   placeholder={
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
                 {!isBookingIdEnabled && !isWalkIn && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -2550,16 +2596,14 @@ const Checkin = () => {
                             guest.status === "verified"
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
