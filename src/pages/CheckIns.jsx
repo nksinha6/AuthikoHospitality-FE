@@ -37,6 +37,14 @@ const Checkin = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
 
+  const isIdVerified = (guest) =>
+    guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED;
+
+  const isPhysicalVerified = (guest) => guest.status === "verified";
+
+  const isReadyForScan = (guest) =>
+    isIdVerified(guest) && !isPhysicalVerified(guest);
+
   // Ref for Booking Source dropdown focus
   const bookingSourceRef = useRef(null);
 
@@ -661,27 +669,62 @@ const Checkin = () => {
   };
 
   const addGuest = () => {
-    if (isAddGuestDisabled) return;
+    if (isAddGuestDisabled) {
+      console.log("Add guest is disabled");
+      return;
+    }
 
-    setGuests((prev) => [
-      ...prev,
-      {
-        id: String(prev.length + 1).padStart(2, "0"),
-        phoneNumber: "",
-        name: "",
-        fullName: "",
-        status: "idle",
-        isPrimary: false,
-        aadhaarStatus: VERIFICATION_STATUS.PENDING,
-        faceStatus: VERIFICATION_STATUS.PENDING,
-        verificationTimer: null,
-        isTimerActive: false,
-        timerSeconds: 0,
-        isWaitingForRestart: false,
-        isChangingNumber: false,
-        originalPhoneNumber: "",
-      },
-    ]);
+    setGuests((prev) => {
+      const newGuests = [
+        ...prev,
+        {
+          id: String(prev.length + 1).padStart(2, "0"),
+          phoneNumber: "",
+          name: "",
+          fullName: "",
+          status: "idle",
+          isPrimary: false,
+          aadhaarStatus: VERIFICATION_STATUS.PENDING,
+          faceStatus: VERIFICATION_STATUS.PENDING,
+          verificationTimer: null,
+          isTimerActive: false,
+          timerSeconds: 0,
+          isWaitingForRestart: false,
+          isChangingNumber: false,
+          originalPhoneNumber: "",
+        },
+      ];
+      console.log("New guest added. Total guests:", newGuests.length);
+
+      // Scroll to the bottom after adding guest
+      setTimeout(() => {
+        const scrollContainer = document.querySelector(".custom-scrollbar");
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      }, 100);
+
+      return newGuests;
+    });
+  };
+
+  const handleDeleteGuest = (index) => {
+    setGuests((prev) => {
+      if (prev.length === 1) {
+        showToast("error", "At least one guest is required");
+        return prev;
+      }
+
+      stopGuestVerification(index);
+
+      const updated = prev.filter((_, i) => i !== index);
+
+      return updated.map((g, i) => ({
+        ...g,
+        id: String(i + 1).padStart(2, "0"),
+        isPrimary: i === 0,
+      }));
+    });
   };
 
   const startIdVerificationPolling = (index, phoneCountryCode, phoneno) => {
@@ -936,17 +979,28 @@ const Checkin = () => {
         ) {
           setGuests((prev) => {
             const newState = [...prev];
-            newState[index].status = "verified";
-            newState[index].name =
-              response.fullName || response.name || "Verified Guest";
-            newState[index].fullName =
-              response.fullName || response.name || "Verified Guest";
-            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            newState[index].isTimerActive = false;
-            newState[index].timerSeconds = 0;
-            newState[index].isWaitingForRestart = false;
-            newState[index].isChangingNumber = false;
-            newState[index].originalPhoneNumber = "";
+
+            newState[index] = {
+              ...newState[index],
+
+              // ✅ ID verification complete
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+
+              // ✅ READY for physical verification (QR scan)
+              status: "ready",
+
+              // guest details
+              name: response.fullName || response.name || "Verified Guest",
+              fullName: response.fullName || response.name || "Verified Guest",
+
+              // cleanup
+              isTimerActive: false,
+              timerSeconds: 0,
+              isWaitingForRestart: false,
+              isChangingNumber: false,
+              originalPhoneNumber: "",
+            };
+
             return newState;
           });
 
@@ -1042,7 +1096,7 @@ const Checkin = () => {
       ) {
         setGuests((prev) => {
           const newState = [...prev];
-          newState[index].status = "verified";
+          newState[index].status = "ready";
           newState[index].name =
             response.fullName || response.name || "Verified Guest";
           newState[index].fullName =
@@ -1059,7 +1113,7 @@ const Checkin = () => {
         newVerifiedSet.add(phoneno);
         setVerifiedPhoneNumbers(newVerifiedSet);
 
-        showToast("success", "Guest verified successfully!");
+        showToast("success", "ID verified successfully! Ready for QR scan.");
       } else {
         startIdVerificationPolling(index, phoneCountryCode, phoneno);
       }
@@ -1139,8 +1193,7 @@ const Checkin = () => {
   };
 
   // Check if Add Guest button should be disabled
-  const isAddGuestDisabled =
-    !areAllGuestsVerified || isAnyGuestVerifying || !isPhoneInputEnabled;
+  const isAddGuestDisabled = !isPhoneInputEnabled || isVerifying;
 
   // Check if Booking ID should be enabled
   const isBookingIdEnabled =
@@ -1969,188 +2022,163 @@ const Checkin = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-6 -mx-4 px-4 pb-10 custom-scrollbar">
-                      {guests.map((guest, index) => (
-                        <div
-                          key={guest.id}
-                          className={`relative rounded-[2rem] p-7 shadow-sm transition-all duration-300 border border-gray-100 overflow-hidden ${
-                            guest.status === "verified"
-                              ? "bg-[#f0fdf4] border-[#10b981]/10"
-                              : "bg-white"
-                          }`}
-                        >
-                          {/* Distinctive left border */}
+                      {guests.map((guest, index) => {
+                        const idVerified = isIdVerified(guest);
+                        const physicalVerified = isPhysicalVerified(guest);
+                        const readyForScan = isReadyForScan(guest);
+
+                        return (
                           <div
-                            className={`absolute left-0 top-0 bottom-0 w-1 ${
-                              guest.status === "verified"
-                                ? "bg-[#10b981]"
-                                : guest.status === "pending" ||
-                                    guest.status === "idle"
-                                  ? "bg-[#fcc141]"
-                                  : "bg-[#1b3631]"
-                            }`}
-                          ></div>
-
-                          <div className="flex items-center gap-4 mb-6">
+                            key={guest.id}
+                            className="relative bg-white rounded-[1.5rem] p-5 shadow-sm border border-gray-100"
+                          >
+                            {/* Left accent */}
                             <div
-                              className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-colors ${
-                                guest.status === "verified"
-                                  ? "bg-[#10b981] text-white"
-                                  : "bg-gray-50 text-gray-400"
+                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
+                                physicalVerified || readyForScan
+                                  ? "bg-[#22c55e]"
+                                  : "bg-[#fbbf24]"
                               }`}
-                            >
-                              {guest.status === "verified" ? (
-                                <CheckCircle size={20} />
-                              ) : guest.id < 10 ? (
-                                `0${guest.id}`
-                              ) : (
-                                guest.id
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-extrabold text-[#111827] text-lg leading-tight">
-                                {guest.status === "verified"
-                                  ? guest.fullName || guest.name
-                                  : `Guest ${guest.id}`}
-                              </h4>
-                              <p
-                                className={`text-[9px] font-black uppercase tracking-widest mt-1 ${
-                                  guest.status === "verified"
-                                    ? "text-[#10b981]"
-                                    : guest.status === "pending" ||
-                                        guest.status === "idle"
-                                      ? "text-[#fcc141]"
-                                      : "text-[#1b3631]"
-                                }`}
+                            />
+
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-700 text-sm font-black flex items-center justify-center">
+                                    {guest.id}
+                                  </div>
+                                  <h4 className="font-bold text-[#111827]">
+                                    Guest {guest.id}
+                                  </h4>
+                                </div>
+
+                                <p
+                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
+                                    physicalVerified
+                                      ? "text-[#22c55e]"
+                                      : readyForScan
+                                        ? "text-[#22c55e]"
+                                        : "text-[#f59e0b]"
+                                  }`}
+                                >
+                                  {physicalVerified
+                                    ? "Fully Verified"
+                                    : readyForScan
+                                      ? "Ready for Scan"
+                                      : "Pending Validation"}
+                                </p>
+                              </div>
+
+                              {/* Delete */}
+                              <button
+                                onClick={() => handleDeleteGuest(index)}
+                                disabled={guest.status === "pending"}
+                                className="p-2 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-30"
                               >
-                                {guest.status === "verified"
-                                  ? "Fully Verified"
-                                  : guest.status === "pending" ||
-                                      guest.status === "idle"
-                                    ? "Pending Validation"
-                                    : "Ready for Scan"}
-                              </p>
+                                🗑️
+                              </button>
                             </div>
 
-                            {guest.status === "verified" ? (
-                              <div className="flex flex-col items-end">
-                                <span className="text-[7px] font-black text-gray-300 uppercase tracking-widest mb-1">
-                                  Status
-                                </span>
-                                <div className="flex items-center gap-1.5 text-[#10b981] font-black text-[10px] uppercase tracking-wider">
-                                  <CheckCircle
-                                    size={14}
-                                    className="fill-[#10b981] text-white"
-                                  />
-                                  Complete
-                                </div>
+                            {/* Progress bar – 2 stages */}
+                            <div className="mb-5">
+                              <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                <span>ID Verified</span>
+                                <span>Physical Verified</span>
                               </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  if (
-                                    guest.status === "idle" ||
-                                    guest.status === "pending"
-                                  ) {
-                                    if (
-                                      guest.phoneNumber &&
-                                      guest.phoneNumber.length >= 10
-                                    )
-                                      handleVerifyGuest(index);
-                                    else
-                                      showToast("error", "Enter phone number");
-                                  } else {
+
+                              <div className="h-[4px] w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
+                                {/* ID */}
+                                <div
+                                  className={`flex-1 rounded-full ${
+                                    idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
+                                  }`}
+                                />
+                                {/* Physical */}
+                                <div
+                                  className={`flex-1 rounded-full ${
+                                    physicalVerified
+                                      ? "bg-[#22c55e]"
+                                      : "bg-gray-200"
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            {/* BODY */}
+                            {!idVerified && (
+                              <>
+                                {/* Phone input */}
+                                <div className="bg-[#f8fafc] border border-gray-100 rounded-xl flex items-center overflow-hidden mb-4">
+                                  <div className="flex items-center gap-2 px-4 border-r border-gray-100">
+                                    <img
+                                      src="https://flagcdn.com/in.svg"
+                                      className="w-5 h-3"
+                                      alt="IN"
+                                    />
+                                    <span className="font-bold text-[#1b3631] text-sm">
+                                      +91
+                                    </span>
+                                  </div>
+
+                                  <input
+                                    type="tel"
+                                    placeholder="Enter phone"
+                                    value={guest.phoneNumber}
+                                    onChange={(e) =>
+                                      handlePhoneChange(index, e.target.value)
+                                    }
+                                    className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Verify */}
+                                <button
+                                  onClick={() => handleVerifyGuest(index)}
+                                  disabled={isVerifyButtonDisabled(
+                                    guest,
+                                    index,
+                                  )}
+                                  className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold disabled:opacity-50"
+                                >
+                                  Verify
+                                </button>
+                              </>
+                            )}
+
+                            {idVerified && !physicalVerified && (
+                              <>
+                                {/* Phone validated */}
+                                <div className="bg-[#f8fafc] border border-dashed border-[#22c55e] rounded-xl p-4 flex items-center justify-between mb-4">
+                                  <div>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                                      Phone Validated
+                                    </p>
+                                    <p className="font-bold text-[#111827]">
+                                      +91 •••• ••{guest.phoneNumber.slice(-3)}
+                                    </p>
+                                  </div>
+                                  <div className="w-6 h-6 rounded-full border border-[#22c55e] flex items-center justify-center text-[#22c55e]">
+                                    ✓
+                                  </div>
+                                </div>
+
+                                {/* Scan QR */}
+                                <button
+                                  onClick={() => {
                                     setActiveVerificationGuestIndex(index);
                                     setMobileVerificationView("scanner");
-                                    setManualCode("");
-                                  }
-                                }}
-                                className="px-5 py-3 bg-[#1b3631] text-white rounded-xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-[#1b3631]/20"
-                              >
-                                {guest.status === "idle" ||
-                                guest.status === "pending" ? (
-                                  "Verify"
-                                ) : (
-                                  <>
-                                    <QrCode size={13} />
-                                    Scan QR
-                                  </>
-                                )}
-                              </button>
+                                  }}
+                                  className="w-full py-4 rounded-xl bg-[#2dd4bf] text-white font-bold flex items-center justify-center gap-2"
+                                >
+                                  📷 Scan QR Code
+                                </button>
+                              </>
                             )}
                           </div>
-
-                          {/* Progress Bar (Splitted) */}
-                          <div className="h-[5px] w-full bg-gray-50 rounded-full mb-6 overflow-hidden flex gap-0.5">
-                            <div
-                              className={`h-full transition-all duration-700 flex-1 ${
-                                guest.status === "verified" ||
-                                guest.status === "ready"
-                                  ? "bg-[#10b981]"
-                                  : guest.status === "pending" ||
-                                      guest.status === "idle"
-                                    ? "bg-[#fcc141]"
-                                    : "bg-gray-100"
-                              }`}
-                            ></div>
-                            <div
-                              className={`h-full flex-1 transition-all duration-700 ${guest.status === "verified" ? "bg-[#10b981]" : "bg-[#f1f5f9]"}`}
-                            ></div>
-                          </div>
-
-                          {guest.status === "verified" ? null : guest.status ===
-                            "ready" ? (
-                            <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl p-4 flex items-center justify-between">
-                              <div>
-                                <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
-                                  Phone Validated
-                                </p>
-                                <p className="font-bold text-[#111827] text-sm">
-                                  +91 ••••• ••{guest.phoneNumber.slice(-3)}
-                                </p>
-                              </div>
-                              <div className="w-8 h-8 rounded-full border border-[#10b981] flex items-center justify-center text-[#10b981]">
-                                <CheckCircle size={16} />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl flex items-center overflow-hidden">
-                              <div className="pl-4 pr-3 py-4 flex items-center gap-2 border-r border-gray-100">
-                                <img
-                                  src="https://flagcdn.com/in.svg"
-                                  className="w-5 h-3 rounded-xs object-cover"
-                                  alt="IN"
-                                />
-                                <span className="font-bold text-[#1b3631] text-sm">
-                                  +91
-                                </span>
-                              </div>
-                              <input
-                                type="tel"
-                                placeholder="Enter phone number"
-                                value={guest.phoneNumber}
-                                onChange={(e) =>
-                                  handlePhoneChange(index, e.target.value)
-                                }
-                                className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-
-                    <button
-                      onClick={addGuest}
-                      disabled={isAddGuestDisabled}
-                      className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center gap-3 text-gray-300 hover:border-[#1b3631]/20 hover:text-gray-400 transition-all active:scale-95"
-                    >
-                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
-                        <Plus size={24} />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                        Add Additional Guest
-                      </span>
-                    </button>
                   </div>
                 )}
 
@@ -2257,6 +2285,19 @@ const Checkin = () => {
             renderManualCodeView()
           ) : (
             renderSuccessView()
+          )}
+
+          {/* Floating Action Button for Add Guest */}
+          {isMobile && mobileStep === 2 && (
+            <button
+              onClick={addGuest}
+              disabled={isAddGuestDisabled}
+              className="absolute bottom-10 right-5 w-16 h-16 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed font-bold text-lg"
+              title="Add Guest"
+            >
+              <Plus size={20} className="mr-0.5" />
+              {guests.length}
+            </button>
           )}
         </div>
 
