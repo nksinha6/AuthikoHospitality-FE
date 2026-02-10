@@ -321,6 +321,14 @@ const Checkin = () => {
         : phoneNumber;
   };
 
+  // Helper to format phone number for display (XXXXX-XXXXX)
+  const formatPhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return "";
+    const clean = phoneNumber.replace(/\D/g, "");
+    if (clean.length <= 5) return clean;
+    return `${clean.slice(0, 5)}-${clean.slice(5, 10)}`;
+  };
+
   // Check if phone number is already verified
   const isPhoneNumberAlreadyVerified = (phoneNumber) => {
     if (!phoneNumber || phoneNumber.length < 10) return false;
@@ -2116,10 +2124,17 @@ const Checkin = () => {
                                   <input
                                     type="tel"
                                     placeholder="Enter phone"
-                                    value={guest.phoneNumber}
-                                    onChange={(e) =>
-                                      handlePhoneChange(index, e.target.value)
-                                    }
+                                    value={formatPhoneNumber(guest.phoneNumber)}
+                                    onChange={(e) => {
+                                      const rawValue = e.target.value.replace(
+                                        /\D/g,
+                                        "",
+                                      );
+                                      // Limit to 10 digits
+                                      if (rawValue.length <= 10) {
+                                        handlePhoneChange(index, rawValue);
+                                      }
+                                    }}
                                     className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
                                   />
                                 </div>
@@ -2183,7 +2198,7 @@ const Checkin = () => {
                                       "Physical verification mocked!",
                                     );
                                   }}
-                                  className="w-full mt-3 py-3 rounded-xl bg-[#10b981] text-white font-bold text-sm"
+                                  className="w-full mt-3 py-4 rounded-xl bg-[#10b981] text-white font-bold text-sm"
                                 >
                                   Mock Physical Verify
                                 </button>
@@ -2527,6 +2542,7 @@ const Checkin = () => {
                           country={"in"}
                           value={guest.phoneNumber}
                           onChange={(val) => handlePhoneChange(index, val)}
+                          masks={{ in: ".....-....." }}
                           disabled={
                             !isPhoneInputEnabled ||
                             guest.status === "pending" ||
