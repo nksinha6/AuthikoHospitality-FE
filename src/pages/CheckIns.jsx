@@ -1251,10 +1251,10 @@ const Checkin = () => {
             >
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
-                    ? "bg-[#10b981] text-white"
-                    : mobileStep === step
-                      ? "bg-[#1b3631] text-white"
-                      : "bg-white border-[1.5px] border-gray-100 text-gray-300"
+                  ? "bg-[#10b981] text-white"
+                  : mobileStep === step
+                    ? "bg-[#1b3631] text-white"
+                    : "bg-white border-[1.5px] border-gray-100 text-gray-300"
                   }`}
               >
                 {mobileStep > step ? <CheckCircle size={18} /> : step}
@@ -1445,10 +1445,10 @@ const Checkin = () => {
               <div
                 key={i}
                 className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i
-                    ? "border-[#10b981] ring-4 ring-[#10b981]/10"
-                    : manualCode[i]
-                      ? "border-[#10b981]/30 bg-[#f0fdf4]"
-                      : "border-gray-100"
+                  ? "border-[#10b981] ring-4 ring-[#10b981]/10"
+                  : manualCode[i]
+                    ? "border-[#10b981]/30 bg-[#f0fdf4]"
+                    : "border-gray-100"
                   }`}
               >
                 {manualCode[i] || ""}
@@ -1864,6 +1864,10 @@ const Checkin = () => {
                       <p className="text-[#64748b] text-sm leading-relaxed font-medium">
                         Step 1: Provide booking details
                       </p>
+                      <div className="flex items-center gap-2 text-[#1b3631] font-bold mt-2">
+                        <Calendar size={18} />
+                        <span>{dayjs().format("dddd, D MMM YYYY")}</span>
+                      </div>
                     </div>
 
                     <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-[0.75rem] p-5 shadow-sm">
@@ -1872,20 +1876,6 @@ const Checkin = () => {
                       </h3>
 
                       <div className="space-y-10">
-                        <div className="relative !mb-5">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">
-                            Verification Date
-                          </label>
-                          <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl flex items-center gap-5 p-6 shadow-inner">
-                            <Calendar size={22} className="text-gray-400" />
-                            <span className="flex-1 font-bold text-[#1e293b]">
-                              {isLoadingServerDate
-                                ? "Loading..."
-                                : bookingInfo.verificationDate}
-                            </span>
-                          </div>
-                        </div>
-
                         <div className="relative !mb-5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 block">
                             Booking Source *
@@ -2035,8 +2025,8 @@ const Checkin = () => {
                             {/* Left accent */}
                             <div
                               className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${physicalVerified || readyForScan
-                                  ? "bg-[#22c55e]"
-                                  : "bg-[#fbbf24]"
+                                ? "bg-[#22c55e]"
+                                : "bg-[#fbbf24]"
                                 }`}
                             />
 
@@ -2057,10 +2047,10 @@ const Checkin = () => {
 
                                 <p
                                   className={`text-[10px] font-black uppercase tracking-widest mt-1 ${physicalVerified
+                                    ? "text-[#22c55e]"
+                                    : readyForScan
                                       ? "text-[#22c55e]"
-                                      : readyForScan
-                                        ? "text-[#22c55e]"
-                                        : "text-[#f59e0b]"
+                                      : "text-[#f59e0b]"
                                     }`}
                                 >
                                   {physicalVerified
@@ -2098,8 +2088,8 @@ const Checkin = () => {
                                 {/* Physical */}
                                 <div
                                   className={`flex-1 rounded-full ${physicalVerified
-                                      ? "bg-[#22c55e]"
-                                      : "bg-gray-200"
+                                    ? "bg-[#22c55e]"
+                                    : "bg-gray-200"
                                     }`}
                                 />
                               </div>
@@ -2467,10 +2457,10 @@ const Checkin = () => {
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
                   className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
                     } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
                     }`}
                 />
@@ -2540,10 +2530,10 @@ const Checkin = () => {
                           }
                           containerClass="!w-full"
                           inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
                             } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
                           buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
                             } hover:!bg-gray-50`}
