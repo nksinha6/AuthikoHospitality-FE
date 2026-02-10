@@ -4,6 +4,9 @@
   --color-brand: #1b3631;
   --color-link: #1b3631;
   --color-bg-brand: #1b3631;
+  --font-sans:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .bg-brand {
