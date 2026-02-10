@@ -2020,8 +2020,10 @@ const Checkin = () => {
                         Detailed Guest List
                       </h3>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-6 -mx-4 px-4 pb-10 custom-scrollbar">
+                    <div
+                      className="flex-1 max-h-[40vh]
+ overflow-y-auto space-y-6 -mx-4 px-4 pb-5 custom-scrollbar"
+                    >
                       {guests.map((guest, index) => {
                         const idVerified = isIdVerified(guest);
                         const physicalVerified = isPhysicalVerified(guest);
@@ -2169,9 +2171,10 @@ const Checkin = () => {
                                     setActiveVerificationGuestIndex(index);
                                     setMobileVerificationView("scanner");
                                   }}
-                                  className="w-full py-4 rounded-xl bg-[#2dd4bf] text-white font-bold flex items-center justify-center gap-2"
+                                  className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold flex items-center justify-center gap-2"
                                 >
-                                  📷 Scan QR Code
+                                  <QrCode size={18} className="stroke-[2.5]" />
+                                  Scan QR Code
                                 </button>
                               </>
                             )}
@@ -2289,14 +2292,28 @@ const Checkin = () => {
 
           {/* Floating Action Button for Add Guest */}
           {isMobile && mobileStep === 2 && (
+            // <button
+            //   onClick={addGuest}
+            //   disabled={isAddGuestDisabled}
+            //   className="absolute bottom-40 right-3 w-10 h-10 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed font-bold text-lg"
+            //   title="Add Guest"
+            // >
+            //   <Plus size={20} className="mr-0.5" />
+            //   {/* {guests.length} */}
+            // </button>
             <button
               onClick={addGuest}
               disabled={isAddGuestDisabled}
-              className="absolute bottom-10 right-5 w-16 h-16 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed font-bold text-lg"
+              className="absolute bottom-40 right-3 w-10 h-10 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed"
               title="Add Guest"
             >
-              <Plus size={20} className="mr-0.5" />
-              {guests.length}
+              <div className="relative">
+                <User size={18} />
+                <Plus
+                  size={12}
+                  className="absolute -bottom-1 -right-1 bg-[#1f5a52] rounded-full"
+                />
+              </div>
             </button>
           )}
         </div>
