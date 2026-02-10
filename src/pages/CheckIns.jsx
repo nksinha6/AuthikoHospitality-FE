@@ -205,6 +205,27 @@ const Checkin = () => {
     setUsedPhoneNumbers(newUsedPhoneNumbers);
   }, [guests, hasVerificationStarted]);
 
+  // Helper to determine sort priority
+  // 0: Not Verified/Pending (Top)
+  // 1: ID Verified/Ready for Scan (Middle)
+  // 2: Fully Verified (Bottom)
+  const getVerificationPriority = (guest) => {
+    if (guest.status === "verified") return 2; // Fully Verified
+    if (guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED) return 1; // ID Verified
+    return 0; // Not Verified/Pending
+  };
+
+  // Memoized sorted guests preserving original index for handlers
+  const sortedGuestsWithIndex = React.useMemo(() => {
+    return guests
+      .map((guest, index) => ({ guest, originalIndex: index }))
+      .sort((a, b) => {
+        const priorityA = getVerificationPriority(a.guest);
+        const priorityB = getVerificationPriority(b.guest);
+        return priorityA - priorityB;
+      });
+  }, [guests]);
+
   // Update isWalkIn when booking source changes
   useEffect(() => {
     const walkIn = bookingInfo.bookingSource === "Walk-In";
@@ -701,7 +722,7 @@ const Checkin = () => {
       setTimeout(() => {
         const scrollContainer = document.querySelector(".custom-scrollbar");
         if (scrollContainer) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          scrollContainer.scrollTop = 0;
         }
       }, 100);
 
@@ -1250,13 +1271,12 @@ const Checkin = () => {
               className="relative z-20 flex flex-col items-center"
             >
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  mobileStep > step
-                    ? "bg-[#10b981] text-white"
-                    : mobileStep === step
-                      ? "bg-[#1b3631] text-white"
-                      : "bg-white border-[1.5px] border-gray-100 text-gray-300"
-                }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
+                  ? "bg-[#10b981] text-white"
+                  : mobileStep === step
+                    ? "bg-[#1b3631] text-white"
+                    : "bg-white border-[1.5px] border-gray-100 text-gray-300"
+                  }`}
               >
                 {mobileStep > step ? <CheckCircle size={18} /> : step}
               </div>
@@ -1445,13 +1465,12 @@ const Checkin = () => {
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${
-                  manualCode.length === i
-                    ? "border-[#10b981] ring-4 ring-[#10b981]/10"
-                    : manualCode[i]
-                      ? "border-[#10b981]/30 bg-[#f0fdf4]"
-                      : "border-gray-100"
-                }`}
+                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i
+                  ? "border-[#10b981] ring-4 ring-[#10b981]/10"
+                  : manualCode[i]
+                    ? "border-[#10b981]/30 bg-[#f0fdf4]"
+                    : "border-gray-100"
+                  }`}
               >
                 {manualCode[i] || ""}
                 {manualCode.length === i && (
@@ -2025,7 +2044,7 @@ const Checkin = () => {
                       className="flex-1 max-h-[40vh]
  overflow-y-auto space-y-6 -mx-4 mb-15 px-4 pb-5 custom-scrollbar"
                     >
-                      {guests.map((guest, index) => {
+                      {sortedGuestsWithIndex.map(({ guest, originalIndex }) => {
                         const idVerified = isIdVerified(guest);
                         const physicalVerified = isPhysicalVerified(guest);
                         const readyForScan = isReadyForScan(guest);
@@ -2037,11 +2056,10 @@ const Checkin = () => {
                           >
                             {/* Left accent */}
                             <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
-                                physicalVerified || readyForScan
-                                  ? "bg-[#22c55e]"
-                                  : "bg-[#fbbf24]"
-                              }`}
+                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${physicalVerified || readyForScan
+                                ? "bg-[#22c55e]"
+                                : "bg-[#fbbf24]"
+                                }`}
                             />
 
                             {/* Header */}
@@ -2060,13 +2078,12 @@ const Checkin = () => {
                                 </div>
 
                                 <p
-                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
-                                    physicalVerified
+                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${physicalVerified
+                                    ? "text-[#22c55e]"
+                                    : readyForScan
                                       ? "text-[#22c55e]"
-                                      : readyForScan
-                                        ? "text-[#22c55e]"
-                                        : "text-[#f59e0b]"
-                                  }`}
+                                      : "text-[#f59e0b]"
+                                    }`}
                                 >
                                   {physicalVerified
                                     ? "Fully Verified"
@@ -2078,7 +2095,7 @@ const Checkin = () => {
 
                               {/* Delete */}
                               <button
-                                onClick={() => handleDeleteGuest(index)}
+                                onClick={() => handleDeleteGuest(originalIndex)}
                                 disabled={guest.status === "pending"}
                                 className="p-2 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-30 transition-colors"
                                 title="Delete guest"
@@ -2097,17 +2114,15 @@ const Checkin = () => {
                               <div className="h-[4px] w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
                                 {/* ID */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
-                                  }`}
+                                  className={`flex-1 rounded-full ${idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
+                                    }`}
                                 />
                                 {/* Physical */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    physicalVerified
-                                      ? "bg-[#22c55e]"
-                                      : "bg-gray-200"
-                                  }`}
+                                  className={`flex-1 rounded-full ${physicalVerified
+                                    ? "bg-[#22c55e]"
+                                    : "bg-gray-200"
+                                    }`}
                                 />
                               </div>
                             </div>
@@ -2133,7 +2148,7 @@ const Checkin = () => {
                                     placeholder="Enter phone"
                                     value={guest.phoneNumber}
                                     onChange={(e) =>
-                                      handlePhoneChange(index, e.target.value)
+                                      handlePhoneChange(originalIndex, e.target.value)
                                     }
                                     className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-[#1e293b] placeholder:text-gray-300 focus:outline-none"
                                   />
@@ -2141,10 +2156,10 @@ const Checkin = () => {
 
                                 {/* Verify */}
                                 <button
-                                  onClick={() => handleVerifyGuest(index)}
+                                  onClick={() => handleVerifyGuest(originalIndex)}
                                   disabled={isVerifyButtonDisabled(
                                     guest,
-                                    index,
+                                    originalIndex,
                                   )}
                                   className="w-full py-3 rounded-xl bg-[#1b3631] text-white font-bold disabled:opacity-50"
                                 >
@@ -2173,7 +2188,7 @@ const Checkin = () => {
                                 {/* Scan QR */}
                                 <button
                                   onClick={() => {
-                                    setActiveVerificationGuestIndex(index);
+                                    setActiveVerificationGuestIndex(originalIndex);
                                     setMobileVerificationView("scanner");
                                   }}
                                   className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold flex items-center justify-center gap-2"
@@ -2186,8 +2201,8 @@ const Checkin = () => {
                                   onClick={() => {
                                     setGuests((prev) => {
                                       const next = [...prev];
-                                      next[index] = {
-                                        ...next[index],
+                                      next[originalIndex] = {
+                                        ...next[originalIndex],
                                         status: "verified", // ✅ Physical verification done
                                       };
                                       return next;
@@ -2286,12 +2301,11 @@ const Checkin = () => {
                         className={`flex-[1.8] py-3 rounded-[0.75rem]
             font-black text-lg flex items-center justify-center gap-3
             transition-all active:scale-95 shadow-xl
-            ${
-              (mobileStep === 2 && !areAllGuestsVerified) ||
-              (mobileStep === 3 && isConfirmingCheckin)
-                ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
-                : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
-            }`}
+            ${(mobileStep === 2 && !areAllGuestsVerified) ||
+                            (mobileStep === 3 && isConfirmingCheckin)
+                            ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
+                            : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
+                          }`}
                       >
                         {isConfirmingCheckin ? (
                           <>
@@ -2474,15 +2488,13 @@ const Checkin = () => {
                   placeholder={
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
                 {!isBookingIdEnabled && !isWalkIn && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -2526,7 +2538,7 @@ const Checkin = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F1F5F9]">
-                {guests.map((guest, index) => (
+                {sortedGuestsWithIndex.map(({ guest, originalIndex }) => (
                   <tr
                     key={guest.id}
                     className="group hover:bg-[#F8FAFC]/50 transition-colors"
@@ -2541,7 +2553,7 @@ const Checkin = () => {
                         <PhoneInput
                           country={"in"}
                           value={guest.phoneNumber}
-                          onChange={(val) => handlePhoneChange(index, val)}
+                          onChange={(val) => handlePhoneChange(originalIndex, val)}
                           disabled={
                             !isPhoneInputEnabled ||
                             guest.status === "pending" ||
@@ -2549,23 +2561,21 @@ const Checkin = () => {
                             guest.status === "verified"
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
                         {guest.status === "pending" &&
                           !guest.isChangingNumber && (
                             <button
-                              onClick={() => handleChangeNumber(index)}
+                              onClick={() => handleChangeNumber(originalIndex)}
                               disabled={!isPhoneInputEnabled}
                               className="px-3 py-2 rounded-lg text-xs font-semibold text-[#1b3631] bg-[#F1F5F9] hover:bg-[#E2E8F0] transition-all flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -2576,7 +2586,7 @@ const Checkin = () => {
 
                         {guest.isChangingNumber && (
                           <button
-                            onClick={() => handleCancelChangeNumber(index)}
+                            onClick={() => handleCancelChangeNumber(originalIndex)}
                             className="px-3 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-800"
                           >
                             Cancel
@@ -2635,7 +2645,7 @@ const Checkin = () => {
                             Enter Booking ID to enable verification
                           </span>
                         </div>
-                      ) : isPhoneNumberDuplicate(guest.phoneNumber, index) ? (
+                      ) : isPhoneNumberDuplicate(guest.phoneNumber, originalIndex) ? (
                         <div className="flex flex-col">
                           <span className="text-red-500 italic">
                             Phone number already in use
@@ -2655,8 +2665,8 @@ const Checkin = () => {
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleVerifyGuest(index)}
-                          disabled={isVerifyButtonDisabled(guest, index)}
+                          onClick={() => handleVerifyGuest(originalIndex)}
+                          disabled={isVerifyButtonDisabled(guest, originalIndex)}
                           className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                         >
                           <CheckCircle size={16} />
