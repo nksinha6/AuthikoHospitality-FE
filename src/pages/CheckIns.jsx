@@ -2051,8 +2051,11 @@ const Checkin = () => {
                                   <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-700 text-sm font-black flex items-center justify-center">
                                     {guest.id}
                                   </div>
+
                                   <h4 className="font-bold text-[#111827]">
-                                    Guest {guest.id}
+                                    {guest.status === "verified"
+                                      ? guest.fullName || guest.name
+                                      : `Guest ${guest.id}`}
                                   </h4>
                                 </div>
 
