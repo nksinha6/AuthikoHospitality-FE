@@ -1798,7 +1798,8 @@ const Checkin = () => {
     };
 
     return (
-      <div className="min-h-screen bg-[#000000] flex flex-col items-center px-1.5 py-1.5 font-sans selection:bg-[#1b3631]/10">
+
+      <div className="fixed inset-0 bg-white flex flex-col h-[100dvh] w-full font-sans selection:bg-[#1b3631]/10 overflow-hidden">
         <style>{`
           @keyframes scan {
             0% { top: 0; }
@@ -1807,9 +1808,7 @@ const Checkin = () => {
           }
         `}</style>
         <div
-          className="w-full max-w-md bg-white rounded-[0.75rem] mx-auto
-  overflow-hidden
-  flex flex-col min-h-[100vh] relative"
+          className="flex-1 flex flex-col w-full max-w-md mx-auto relative overflow-hidden h-full"
         >
           {/* Main List Views */}
           {mobileVerificationView === "list" ? (
@@ -1817,7 +1816,7 @@ const Checkin = () => {
               {/* Mobile Header (Unified Style) */}
               {/* {renderMobileStepper()} */}
 
-              <div className="flex-1 flex flex-col py-5 px-5">
+              <div className="flex-1 flex flex-col py-5 px-5 overflow-y-auto">
                 {/* Step Navigation */}
 
                 {mobileStep !== 1 && (
@@ -1889,7 +1888,7 @@ const Checkin = () => {
                               name="bookingSource"
                               value={bookingInfo.bookingSource}
                               onChange={handleBookingInfoChange}
-                              className="w-full bg-white border border-gray-100 rounded-2xl py-3 px-6 pl-16 text-[#1e293b] font-bold text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                              className="w-full bg-white border border-gray-100 rounded-2xl py-4 px-6 pl-16 text-[#1e293b] font-bold text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
                             >
                               <option value="">Select Booking Source</option>
                               {otaOptions.map((o) => (
@@ -1916,7 +1915,7 @@ const Checkin = () => {
                               value={bookingInfo.bookingId}
                               onChange={handleBookingInfoChange}
                               placeholder="Enter Booking ID*"
-                              className="w-full bg-white border border-gray-100 rounded-2xl py-3 px-6 text-[#1e293b] font-bold text-sm focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                              className="w-full bg-white border border-gray-100 rounded-2xl py-4 px-6 text-[#1e293b] font-bold text-sm focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
                             />
                             <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-gray-100 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-gray-400">
                               i
@@ -1982,8 +1981,8 @@ const Checkin = () => {
                         </div>
 
                         {/* Date + Guest Count (SAME LINE) */}
-                        <div className="mt-1 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="mt-1 flex items-center align-center justify-between">
+                          <div className="flex items-center align-center gap-2">
                             <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest">
                               Check-in Date
                             </p>
@@ -2201,7 +2200,7 @@ const Checkin = () => {
 
               {/* Mobile Footer (Match refined style) */}
 
-              <div className=" px-5 mb-20 bg-white">
+              <div className=" px-5 mb-2 bg-white">
                 {mobileStep === 1 ? (
                   <>
                     {/* Primary CTA */}
