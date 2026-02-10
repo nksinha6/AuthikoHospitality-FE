@@ -1767,26 +1767,37 @@ const Checkin = () => {
 
               <div className="flex-1 flex flex-col py-5 px-5">
                 {/* Step Navigation */}
+
                 {mobileStep !== 1 && (
-                  <div className="mb-8 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setMobileStep(mobileStep - 1)}
-                        className="p-2 -ml-2 text-[#1b3631] hover:bg-gray-100 rounded-full"
-                      >
-                        <ChevronLeft size={24} />
-                      </button>
-                      <h2 className="text-xl font-black text-[#1b3631]">
-                        {mobileStep === 2 ? "Verification" : "Review & Post"}
-                      </h2>
+                  <>
+                    {/* Header */}
+                    <div className=" flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setMobileStep(mobileStep - 1)}
+                          className="p-2 -ml-4 text-[#1b3631] hover:bg-gray-100 rounded-full"
+                        >
+                          <ChevronLeft size={24} />
+                        </button>
+
+                        <h2 className="text-xl font-black text-[#1b3631]">
+                          {mobileStep === 2 ? "Verification" : "Review & Post"}
+                        </h2>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-3 py-1.5 rounded-full border border-[#bcf0da]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></div>
+                        <span className="text-[9px] font-black text-[#10b981] uppercase tracking-wider">
+                          {mobileStep === 2 ? "Live" : "All Verified"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-[#f0fdf4] px-3 py-1.5 rounded-full border border-[#bcf0da]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></div>
-                      <span className="text-[9px] font-black text-[#10b981] uppercase tracking-wider">
-                        {mobileStep === 2 ? "Live" : "All Verified"}
-                      </span>
-                    </div>
-                  </div>
+
+                    {/* 🔽 Mobile Stepper BELOW heading (ONLY for Step 2) */}
+                    {mobileStep === 2 && (
+                      <div className="">{renderMobileStepper()}</div>
+                    )}
+                  </>
                 )}
 
                 {mobileStep === 1 && (
@@ -1882,8 +1893,9 @@ const Checkin = () => {
                 {mobileStep === 2 && (
                   <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-6 duration-500 min-h-0">
                     {/* Booking Context Card */}
-                    <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-10 flex items-center gap-4 shadow-sm">
-                      <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center">
+                    <div className="bg-white border border-gray-100 rounded-3xl px-3 py-2 mb-5 shadow-sm flex items-center gap-4">
+                      {/* Left Icon */}
+                      <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center flex-shrink-0">
                         <svg
                           width="20"
                           height="20"
@@ -1902,48 +1914,51 @@ const Checkin = () => {
                             d="M7 7H17"
                             stroke="currentColor"
                             strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
                           />
                           <path
                             d="M7 12H17"
                             stroke="currentColor"
                             strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
                           />
                           <path
                             d="M7 17H13"
                             stroke="currentColor"
                             strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
                           />
                         </svg>
                       </div>
-                      <div className="flex-1 flex gap-6">
+
+                      {/* Middle Content */}
+                      <div className="flex-1 flex flex-col justify-between min-w-0">
+                        {/* Booking ID (TOP) */}
                         <div>
                           <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
-                            Booking
+                            Booking ID
                           </p>
-                          <span className="font-extrabold text-[#111827] text-sm">
-                            {bookingInfo.bookingId || "BK-882910"}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
-                            Check-in
+                          <p className="font-extrabold text-[#111827] text-sm break-all">
+                            {bookingInfo.bookingId || "WALK-IN-XXXX"}
                           </p>
-                          <span className="font-bold text-gray-400 text-xs">
-                            {dayjs().format("DD MMM YYYY")}
-                          </span>
                         </div>
-                      </div>
-                      <div className="bg-[#f8fafc] border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2">
-                        <User size={12} className="text-gray-300" />
-                        <span className="font-black text-[#111827] text-xs leading-none">
-                          {guests.length}
-                        </span>
+
+                        {/* Date + Guest Count (SAME LINE) */}
+                        <div className="mt-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
+                              Check-in Date
+                            </p>
+                            <p className="text-xs font-bold text-gray-500">
+                              {dayjs().format("DD MMM YYYY")}
+                            </p>
+                          </div>
+
+                          {/* Guest Count */}
+                          <div className="flex items-center gap-1 bg-[#f8fafc] border border-gray-100 rounded-md px-2 py-1">
+                            <User size={10} className="text-gray-300" />
+                            <span className="font-black text-[#111827] text-[11px] leading-none">
+                              {guests.length}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
