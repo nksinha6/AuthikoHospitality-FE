@@ -1809,7 +1809,7 @@ const Checkin = () => {
         <div
           className="w-full max-w-md bg-white rounded-[0.75rem] mx-auto
   overflow-hidden
-  flex flex-col min-h-[95vh] relative"
+  flex flex-col min-h-[100vh] relative"
         >
           {/* Main List Views */}
           {mobileVerificationView === "list" ? (
@@ -1889,7 +1889,7 @@ const Checkin = () => {
                               name="bookingSource"
                               value={bookingInfo.bookingSource}
                               onChange={handleBookingInfoChange}
-                              className="w-full bg-white border border-gray-100 rounded-2xl p-6 pl-16 text-[#1e293b] font-bold text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                              className="w-full bg-white border border-gray-100 rounded-2xl py-3 px-6 pl-16 text-[#1e293b] font-bold text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
                             >
                               <option value="">Select Booking Source</option>
                               {otaOptions.map((o) => (
@@ -1916,7 +1916,7 @@ const Checkin = () => {
                               value={bookingInfo.bookingId}
                               onChange={handleBookingInfoChange}
                               placeholder="Enter Booking ID*"
-                              className="w-full bg-white border border-gray-100 rounded-2xl p-6 text-[#1e293b] font-bold text-sm focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
+                              className="w-full bg-white border border-gray-100 rounded-2xl py-3 px-6 text-[#1e293b] font-bold text-sm focus:outline-none focus:ring-4 focus:ring-[#1b3631]/5 transition-all"
                             />
                             <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-gray-100 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-gray-400">
                               i
@@ -1982,13 +1982,13 @@ const Checkin = () => {
                         </div>
 
                         {/* Date + Guest Count (SAME LINE) */}
-                        <div className="mt-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-1">
+                        <div className="mt-1 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest">
                               Check-in Date
                             </p>
                             <p className="text-xs font-bold text-gray-500">
-                              {dayjs().format("DD MMM YYYY")}
+                              {dayjs().format("dddd, D MMM YYYY")}
                             </p>
                           </div>
 
@@ -2010,7 +2010,7 @@ const Checkin = () => {
                     </div>
                     <div
                       className="flex-1 max-h-[40vh]
- overflow-y-auto space-y-6 -mx-4 mb-15 px-4 pb-5 custom-scrollbar"
+ overflow-y-auto space-y-6 -mx-4 mb-5 px-4 pb-5 custom-scrollbar"
                     >
                       {guests.map((guest, index) => {
                         const idVerified = isIdVerified(guest);
@@ -2201,7 +2201,7 @@ const Checkin = () => {
 
               {/* Mobile Footer (Match refined style) */}
 
-              <div className="mt-auto px-5 mb-3 pt-0 bg-white">
+              <div className=" px-5 mb-20 bg-white">
                 {mobileStep === 1 ? (
                   <>
                     {/* Primary CTA */}
