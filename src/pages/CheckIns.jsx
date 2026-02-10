@@ -1250,13 +1250,12 @@ const Checkin = () => {
               className="relative z-20 flex flex-col items-center"
             >
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  mobileStep > step
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${mobileStep > step
                     ? "bg-[#10b981] text-white"
                     : mobileStep === step
                       ? "bg-[#1b3631] text-white"
                       : "bg-white border-[1.5px] border-gray-100 text-gray-300"
-                }`}
+                  }`}
               >
                 {mobileStep > step ? <CheckCircle size={18} /> : step}
               </div>
@@ -1445,13 +1444,12 @@ const Checkin = () => {
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${
-                  manualCode.length === i
+                className={`w-14 h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-200 ${manualCode.length === i
                     ? "border-[#10b981] ring-4 ring-[#10b981]/10"
                     : manualCode[i]
                       ? "border-[#10b981]/30 bg-[#f0fdf4]"
                       : "border-gray-100"
-                }`}
+                  }`}
               >
                 {manualCode[i] || ""}
                 {manualCode.length === i && (
@@ -1980,8 +1978,8 @@ const Checkin = () => {
                         </div>
 
                         {/* Date + Guest Count (SAME LINE) */}
-                        <div className="mt-1 flex items-center align-center justify-between">
-                          <div className="flex items-center align-center gap-2">
+                        <div className="mt-1 flex items-center justify-between">
+                          <div className="flex items-baseline gap-2">
                             <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest">
                               Check-in Date
                             </p>
@@ -2022,11 +2020,10 @@ const Checkin = () => {
                           >
                             {/* Left accent */}
                             <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
-                                physicalVerified || readyForScan
+                              className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${physicalVerified || readyForScan
                                   ? "bg-[#22c55e]"
                                   : "bg-[#fbbf24]"
-                              }`}
+                                }`}
                             />
 
                             {/* Header */}
@@ -2045,13 +2042,12 @@ const Checkin = () => {
                                 </div>
 
                                 <p
-                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
-                                    physicalVerified
+                                  className={`text-[10px] font-black uppercase tracking-widest mt-1 ${physicalVerified
                                       ? "text-[#22c55e]"
                                       : readyForScan
                                         ? "text-[#22c55e]"
                                         : "text-[#f59e0b]"
-                                  }`}
+                                    }`}
                                 >
                                   {physicalVerified
                                     ? "Fully Verified"
@@ -2082,17 +2078,15 @@ const Checkin = () => {
                               <div className="h-[4px] w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
                                 {/* ID */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
-                                  }`}
+                                  className={`flex-1 rounded-full ${idVerified ? "bg-[#22c55e]" : "bg-[#fbbf24]"
+                                    }`}
                                 />
                                 {/* Physical */}
                                 <div
-                                  className={`flex-1 rounded-full ${
-                                    physicalVerified
+                                  className={`flex-1 rounded-full ${physicalVerified
                                       ? "bg-[#22c55e]"
                                       : "bg-gray-200"
-                                  }`}
+                                    }`}
                                 />
                               </div>
                             </div>
@@ -2271,12 +2265,11 @@ const Checkin = () => {
                         className={`flex-[1.8] py-3 rounded-[0.75rem]
             font-black text-lg flex items-center justify-center gap-3
             transition-all active:scale-95 shadow-xl
-            ${
-              (mobileStep === 2 && !areAllGuestsVerified) ||
-              (mobileStep === 3 && isConfirmingCheckin)
-                ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
-                : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
-            }`}
+            ${(mobileStep === 2 && !areAllGuestsVerified) ||
+                            (mobileStep === 3 && isConfirmingCheckin)
+                            ? "bg-[#1b3631] font-bold opacity-50 text-white cursor-not-allowed"
+                            : "bg-[#1b3631] font-bold text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
+                          }`}
                       >
                         {isConfirmingCheckin ? (
                           <>
@@ -2459,15 +2452,13 @@ const Checkin = () => {
                   placeholder={
                     isWalkIn ? "Auto-generated" : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
                       ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
                       : !isBookingIdEnabled
                         ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
                         : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
                 {!isBookingIdEnabled && !isWalkIn && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -2534,16 +2525,14 @@ const Checkin = () => {
                             guest.status === "verified"
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
                               ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
                               : guest.isChangingNumber
                                 ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
                                 : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
