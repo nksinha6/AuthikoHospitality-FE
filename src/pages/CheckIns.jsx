@@ -2248,7 +2248,7 @@ const Checkin = () => {
                     {/* Secondary Action */}
                     <button
                       onClick={handleCancel}
-                      className="mt-6 w-full flex items-center justify-center gap-2
+                      className="mt-3 mb-1 w-full flex items-center justify-center gap-2
                    text-gray-400 font-semibold text-sm"
                     >
                       <RotateCcw size={16} />
