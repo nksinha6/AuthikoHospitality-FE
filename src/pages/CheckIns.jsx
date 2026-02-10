@@ -1869,7 +1869,7 @@ const Checkin = () => {
                       </p>
                     </div>
 
-                    <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-[2rem] p-5 shadow-sm">
+                    <div className="bg-[#fcfdfe] border border-[#f1f5f9] rounded-[0.75rem] p-5 shadow-sm">
                       <h3 className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.2em] mb-5">
                         Booking Information
                       </h3>
@@ -1947,7 +1947,7 @@ const Checkin = () => {
                 {mobileStep === 2 && (
                   <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-6 duration-500 min-h-0">
                     {/* Booking Context Card */}
-                    <div className="bg-white border border-gray-100 rounded-3xl px-3 py-2 mb-5 shadow-sm flex items-center gap-4">
+                    <div className="bg-white border border-gray-100 rounded-[0.75rem] px-3 py-2 mb-5 shadow-sm flex items-center gap-4">
                       {/* Left Icon */}
                       <div className="w-12 h-12 bg-[#1b3631] text-white rounded-2xl flex items-center justify-center flex-shrink-0">
                         <svg
@@ -2143,7 +2143,7 @@ const Checkin = () => {
                                     guest,
                                     index,
                                   )}
-                                  className="w-full py-4 rounded-xl bg-[#1b3631] text-white font-bold disabled:opacity-50"
+                                  className="w-full py-3 rounded-xl bg-[#1b3631] text-white font-bold disabled:opacity-50"
                                 >
                                   Verify
                                 </button>
@@ -2210,7 +2210,7 @@ const Checkin = () => {
                           );
                         }
                       }}
-                      className="w-full py-3 bg-[#1b3631] text-white rounded-2xl
+                      className="w-full py-3 bg-[#1b3631] text-white rounded-[0.75rem]
                    font-bold text-lg flex items-center justify-center gap-3
                    shadow-xl shadow-[#1b3631]/30
                    active:scale-95 transition-all"
@@ -2236,7 +2236,7 @@ const Checkin = () => {
                       <button
                         onClick={handleCancel}
                         className="flex-1 py-3 bg-[#f0f4f8] text-[#1b3631]
-                     rounded-[1.25rem] font-bold
+                     rounded-[0.75rem] font-bold
                      flex items-center justify-center gap-3
                      active:scale-95 transition-all"
                       >
@@ -2257,7 +2257,7 @@ const Checkin = () => {
                           (mobileStep === 2 && !areAllGuestsVerified) ||
                           (mobileStep === 3 && isConfirmingCheckin)
                         }
-                        className={`flex-[1.8] py-5 rounded-[1.25rem]
+                        className={`flex-[1.8] py-3 rounded-[0.75rem]
             font-black text-lg flex items-center justify-center gap-3
             transition-all active:scale-95 shadow-xl
             ${
