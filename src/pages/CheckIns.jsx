@@ -2022,8 +2022,8 @@ const Checkin = () => {
                       </h3>
                     </div>
                     <div
-                      className="flex-1 max-h-[100vh]
- overflow-y-auto space-y-6 -mx-4 px-4 pb-5 custom-scrollbar"
+                      className="flex-1 max-h-[40vh]
+ overflow-y-auto space-y-6 -mx-4 mb-15 px-4 pb-5 custom-scrollbar"
                     >
                       {guests.map((guest, index) => {
                         const idVerified = isIdVerified(guest);
@@ -2294,19 +2294,10 @@ const Checkin = () => {
 
           {/* Floating Action Button for Add Guest */}
           {isMobile && mobileStep === 2 && (
-            // <button
-            //   onClick={addGuest}
-            //   disabled={isAddGuestDisabled}
-            //   className="absolute bottom-40 right-3 w-10 h-10 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed font-bold text-lg"
-            //   title="Add Guest"
-            // >
-            //   <Plus size={20} className="mr-0.5" />
-            //   {/* {guests.length} */}
-            // </button>
             <button
               onClick={addGuest}
               disabled={isAddGuestDisabled}
-              className="absolute bottom-40 right-3 w-10 h-10 bg-[#1f5a52] hover:bg-[#1a4944] disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1f5a52]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed"
+              className="absolute bottom-25 right-3 w-10 h-10 bg-[#1b3631] hover:bg-[#1b3631]/90 disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1b3631]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed"
               title="Add Guest"
             >
               <div className="relative">
