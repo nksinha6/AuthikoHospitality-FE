@@ -2146,65 +2146,6 @@ const Checkin = () => {
               </div>
 
               {/* Mobile Footer (Match refined style) */}
-              {/* <div className="mt-auto p-8 pt-0 bg-white">
-                <div className="flex gap-4 mb-6">
-                  <button
-                    onClick={handleCancel}
-                    className="flex-1 py-5 bg-[#f0f4f8] text-[#1b3631] rounded-[1.25rem] font-bold flex items-center justify-center gap-3 active:scale-95 transition-all"
-                  >
-                    <X size={18} />
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (mobileStep === 1) {
-                        if (bookingInfo.bookingSource && bookingInfo.bookingId)
-                          setMobileStep(2);
-                        else showToast("error", "Fill details first");
-                      } else if (mobileStep === 2) {
-                        if (areAllGuestsVerified) setMobileStep(3);
-                        else showToast("error", "Verify all guests first");
-                      } else {
-                        handleConfirmCheckIn();
-                      }
-                    }}
-                    disabled={
-                      (mobileStep === 2 && !areAllGuestsVerified) ||
-                      (mobileStep === 3 && isConfirmingCheckin)
-                    }
-                    className={`flex-[1.8] py-5 rounded-[1.25rem] font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl ${
-                      (mobileStep === 2 && !areAllGuestsVerified) ||
-                      (mobileStep === 3 && isConfirmingCheckin)
-                        ? "bg-[#1b3631] opacity-50 text-white cursor-not-allowed"
-                        : "bg-[#1b3631] text-white shadow-[#1b3631]/30 hover:bg-[#142925]"
-                    }`}
-                  >
-                    {isConfirmingCheckin ? (
-                      <>
-                        <Clock size={18} className="animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Confirm & Post
-                        <ChevronRight size={18} />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-center gap-3">
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-3.5 h-[5px] bg-[#10b981] rounded-full"></div>
-                    <div className="w-[5px] h-[5px] bg-gray-100 rounded-full"></div>
-                  </div>
-                  <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">
-                    Verified:{" "}
-                    {guests.filter((g) => g.status === "verified").length} of{" "}
-                    {guests.length} Guests
-                  </span>
-                </div>
-              </div> */}
 
               <div className="mt-auto p-8 pt-0 bg-white">
                 {mobileStep === 1 ? (
