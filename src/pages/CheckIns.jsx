@@ -2178,6 +2178,29 @@ const Checkin = () => {
                                   <QrCode size={18} className="stroke-[2.5]" />
                                   Scan QR Code
                                 </button>
+                                {/* 🔴 MOCK Physical Verification (DEV ONLY) */}
+                                <button
+                                  onClick={() => {
+                                    setGuests((prev) => {
+                                      const next = [...prev];
+                                      next[index] = {
+                                        ...next[index],
+                                        status: "verified", // ✅ Physical verification done
+                                      };
+                                      return next;
+                                    });
+
+                                    showToast(
+                                      "success",
+                                      "Physical verification mocked!",
+                                    );
+                                  }}
+                                  className="w-full mt-3 py-3 rounded-xl bg-[#10b981] text-white font-bold text-sm"
+                                >
+                                  Mock Physical Verify
+                                </button>
+
+                                {/* 🔴 MOCK Physical Verification (DEV ONLY) */}
                               </>
                             )}
                           </div>
