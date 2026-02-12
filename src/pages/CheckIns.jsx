@@ -46,6 +46,7 @@ import ConfirmationModal from "../components/ConfirmationModal.jsx";
 const Checkin = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
+  const scannerRef = useRef(null);
 
   const isIdVerified = (guest) =>
     guest.aadhaarStatus === VERIFICATION_STATUS.VERIFIED;
@@ -176,7 +177,6 @@ const Checkin = () => {
   const [manualCode, setManualCode] = useState("");
   // Track verification method for each guest
   const [guestVerificationMethod, setGuestVerificationMethod] = useState({});
-  const scannerRef = useRef(null);
 
   // Handle QR Scan Success
   const handleQrScanSuccess = (decodedText) => {
@@ -201,56 +201,51 @@ const Checkin = () => {
 
   // QR Scanner Lifecycle
   useEffect(() => {
-    let html5QrCode;
-
     const startScanner = async () => {
       if (
         mobileVerificationView === "scanner" &&
         activeVerificationGuestIndex !== null
       ) {
-        // Give the DOM a moment to render the reader div
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         const readerElement = document.getElementById("reader");
-        if (!readerElement) {
-          console.error("Scanner element #reader not found");
-          return;
-        }
+        if (!readerElement) return;
 
-        html5QrCode = new Html5Qrcode("reader");
+        // 🔥 Create scanner and store in ref
+        scannerRef.current = new Html5Qrcode("reader");
+
         const config = {
           fps: 10,
           qrbox: { width: 250, height: 250 },
-
           aspectRatio: 1.0,
         };
 
         try {
-          await html5QrCode.start(
+          await scannerRef.current.start(
             { facingMode: "environment" },
             config,
             (decodedText) => {
               handleQrScanSuccess(decodedText);
             },
           );
-          console.log("Scanner started");
         } catch (err) {
           console.error("Error starting scanner:", err);
-          // showToast("error", "Unable to access camera");
         }
       }
     };
 
     startScanner();
 
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode
-          .stop()
-          .then(() => {
-            console.log("Scanner stopped");
-          })
-          .catch((err) => console.error("Error stopping scanner:", err));
+    return async () => {
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop();
+          await scannerRef.current.clear();
+          scannerRef.current = null;
+          console.log("Scanner stopped & cleared");
+        } catch (err) {
+          console.error("Error stopping scanner:", err);
+        }
       }
     };
   }, [mobileVerificationView, activeVerificationGuestIndex]);
@@ -1468,7 +1463,14 @@ const Checkin = () => {
             </div> */}
 
             <button
-              onClick={() => setMobileVerificationView("manual_code")}
+              onClick={async () => {
+                if (scannerRef.current) {
+                  await scannerRef.current.stop();
+                  await scannerRef.current.clear();
+                  scannerRef.current = null;
+                }
+                setMobileVerificationView("manual_code");
+              }}
               className="w-full py-3 h-12 !text-md border border-gray-200 rounded-xl bg-[#1b3631] flex items-center justify-center gap-2 font-bold text-white hover:bg-gray-50 transition-all"
             >
               <Edit size={18} />
