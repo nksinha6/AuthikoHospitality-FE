@@ -7,6 +7,7 @@ import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
 import GuestDetails from "./pages/GuestDetails.jsx";
+import OwnerReport from "./pages/OwnerReport.jsx";
 // import GuestVerification from "./pages/GuestVerification.jsx";
 
 // ✅ Compute basename as a string first
@@ -24,6 +25,7 @@ const routes = [
       // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
       // { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
       { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
+      { path: ROUTES.OWNER_REPORT, element: <OwnerReport /> },
     ],
   },
   { path: ROUTES.LOGIN, element: <Login /> },

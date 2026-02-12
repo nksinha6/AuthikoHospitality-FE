@@ -45,6 +45,20 @@ export default function Sidebar() {
             <span>{UI_TEXT.NAV_GUEST_DETAILS}</span>
           </NavLink>
         )}
+
+        {!isMobile && (
+          <NavLink
+            to={ROUTES.OWNER_REPORT}
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-lg text-sm ${isActive
+                ? "bg-gray-100 text-brand font-semibold"
+                : "text-brand hover:bg-gray-50"
+              }`
+            }
+          >
+            <span>{UI_TEXT.NAV_OWNER_REPORT}</span>
+          </NavLink>
+        )}
       </div>
     </nav>
   );

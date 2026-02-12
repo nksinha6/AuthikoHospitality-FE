@@ -11,6 +11,7 @@ export const UI_TEXT = {
   NAV_ALL_BOOKINGS: "All Bookings",
   NAV_TODAYS_BOOKINGS: "Today's Bookings",
   NAV_GUEST_DETAILS: "View all Guest",
+  NAV_OWNER_REPORT: "Property Owner Report",
   BUTTON_LOGOUT: "Logout",
 
   // Login
@@ -168,6 +169,7 @@ export const ROUTES = {
   // TODAYS_BOOKINGS: "/todays-bookings",
   ALL_BOOKINGS: "/all-bookings",
   GUEST_DETAILS: "/guest-details",
+  OWNER_REPORT: "/owner-report",
 };
 
 // Filter Conditions
@@ -192,8 +194,8 @@ export const OTA_OPTIONS = {
   // TRIPADVISOR: "Tripadvisor",
   MAKE_MY_TRIP: "MakeMyTrip",
   // GOIBIBO: "Goibibo",
-  OYO:"Oyo",
-  FABHOTELS:"FabHotels",
+  OYO: "Oyo",
+  FABHOTELS: "FabHotels",
   OTHERS: "Others",
   WALK_IN: "Walk-In",
 };

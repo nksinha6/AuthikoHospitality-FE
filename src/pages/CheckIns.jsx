@@ -3060,7 +3060,8 @@ underline items-center justify-center gap-2
                 hasDuplicatePhoneNumbersInBooking()
               }
               className="px-8 py-3 !text-md bg-[#1b3631] text-white rounded-xl font-bold hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
+
+>
               {isConfirmingCheckin ? (
                 <span className="flex items-center gap-2">
                   <Clock size={16} className="animate-spin" />
