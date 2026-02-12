@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       host: true,
-      allowedHosts: ["all"],
+      allowedHosts: true,
       proxy: {
         "/api": {
           target: env.API_TARGET,
