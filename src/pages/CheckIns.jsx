@@ -1741,9 +1741,12 @@ const Checkin = () => {
               Status Overview
             </p>
 
-            <h2 className="text-2xl font-bold mb-2">1 of 1 Guests Verified</h2>
+            <h2 className="text-2xl font-bold mb-1">
+              {guests.filter((g) => g.status === "verified").length} of{" "}
+              {guests.length} Guests Verified
+            </h2>
 
-            <p className="text-sm text-white/70 mb-2">
+            <p className="text-xs text-white/70 mb-2">
               All records are validated and ready for submission.
             </p>
 
@@ -1791,8 +1794,8 @@ const Checkin = () => {
 
           {/* Guest Verification Status */}
           <div className="mb-6">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-              Detailed Guest List
+            <h3 className="text-xs font-black font-bold text-gray-400 uppercase tracking-widest">
+              Verified Guests List
             </h3>
             <p className="text-[10px] text-gray-400 mt-1">
               {guests.filter((g) => g.status === "verified").length} of{" "}
@@ -1802,12 +1805,12 @@ const Checkin = () => {
 
           {/* Guest Cards List */}
           <div className="flex-1 overflow-y-auto space-y-4 -mx-5 px-5 pb-10 custom-scrollbar">
-            {guests.map((guest, index) => (
+            {/* {guests.map((guest, index) => (
               <div
                 key={guest.id}
                 className="relative rounded-2xl p-5 shadow-sm bg-white border border-gray-100 w-full"
               >
-                {/* Guest Header */}
+            
                 <div className="flex items-center justify-between mb-4 gap-2 min-w-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-[#f0fdf4] flex items-center justify-center text-[#10b981] shrink-0">
@@ -1830,8 +1833,7 @@ const Checkin = () => {
                     </span>
                   </div>
                 </div>
-
-                {/* Guest Details */}
+\
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">
@@ -1850,7 +1852,7 @@ const Checkin = () => {
                   </div>
                 </div>
 
-                {/* Verification Timestamp */}
+               
                 <div className="mt-4 pt-4 border-t border-gray-50">
                   <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">
                     Verified At
@@ -1860,7 +1862,60 @@ const Checkin = () => {
                   </p>
                 </div>
               </div>
-            ))}
+            ))} */}
+
+            {guests.map((guest, index) => {
+              return (
+                <div
+                  key={guest.id}
+                  className="relative rounded-2xl p-5 shadow-sm bg-white border border-gray-100 w-full"
+                >
+                  {/* HEADER */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {/* Guest ID Circle */}
+                        <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 text-sm font-black flex items-center justify-center">
+                          {guest.id}
+                        </div>
+
+                        {/* Guest Name */}
+                        <h4 className="font-bold text-[#111827]">
+                          {guest.fullName || guest.name || `Guest ${guest.id}`}
+                        </h4>
+                      </div>
+
+                      {/* Always Fully Verified */}
+                      <p className="text-[10px] font-black uppercase tracking-widest mt-1 text-[#22c55e]">
+                        Fully Verified
+                      </p>
+                    </div>
+
+                    {/* Delete Button (optional – remove if not needed after verification) */}
+                    <button
+                      onClick={() => handleDeleteGuest(index)}
+                      className="p-2 rounded-full text-red-500 hover:bg-red-50 transition-colors"
+                      title="Delete guest"
+                    >
+                      <Trash2 size={18} className="stroke-[2.5]" />
+                    </button>
+                  </div>
+
+                  {/* Progress Bar – Always Completed */}
+                  <div className="mb-5">
+                    <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <span>ID Verified</span>
+                      <span>Physical Verified</span>
+                    </div>
+
+                    <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden flex gap-1">
+                      <div className="flex-1 rounded-full bg-[#22c55e]" />
+                      <div className="flex-1 rounded-full bg-[#22c55e]" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Verification Summary */}
