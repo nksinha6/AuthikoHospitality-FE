@@ -1434,7 +1434,7 @@ const Checkin = () => {
             </div>
           </div>
 
-          <div className="py-10 px-5">
+          <div className="py-5 px-5">
             {/* <div className="flex justify-around mb-8">
               <button className="flex flex-col items-center gap-2 group">
                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#1b3631] group-hover:text-white transition-all">
@@ -1462,7 +1462,8 @@ const Checkin = () => {
               </button>
             </div> */}
 
-            <button
+            {/* Enter Code Manual Button Commented for Link Text  */}
+            {/* <button
               onClick={async () => {
                 if (scannerRef.current) {
                   await scannerRef.current.stop();
@@ -1475,7 +1476,36 @@ const Checkin = () => {
             >
               <Edit size={18} />
               Enter code manually
-            </button>
+            </button> */}
+
+            {/* Enter Code Manually Link Text  */}
+
+            <a
+              href="#"
+              onClick={async (e) => {
+                e.preventDefault();
+
+                if (scannerRef.current) {
+                  try {
+                    await scannerRef.current.stop();
+                    await scannerRef.current.clear();
+                  } catch (err) {
+                    console.log("Scanner already stopped");
+                  }
+                  scannerRef.current = null;
+                }
+
+                setMobileVerificationView("manual_code");
+              }}
+              className="w-full flex h-12 !text-lg 
+underline items-center justify-center gap-2 
+             text-blue-600 text-sm font-semibold 
+             hover:text-blue-700 hover:underline 
+             transition-all duration-200"
+            >
+              <Edit size={16} />
+              Enter code manually
+            </a>
           </div>
         </div>
       );
