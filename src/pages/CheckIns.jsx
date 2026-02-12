@@ -35,6 +35,14 @@ import { Html5Qrcode } from "html5-qrcode";
 import SuccessModal from "../components/SuccessModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 
+<style>{`
+  #reader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+`}</style>;
+
 const Checkin = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
@@ -213,6 +221,7 @@ const Checkin = () => {
         const config = {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+
           aspectRatio: 1.0,
         };
 
@@ -1424,19 +1433,19 @@ const Checkin = () => {
             </h3>
           </div>
 
-          <div className="flex-1 relative mx-6 rounded-4xl overflow-hidden bg-black flex items-center justify-center">
+          <div className="relative mx-6 rounded-4xl overflow-hidden bg-black flex items-center justify-center aspect-square max-h-[70vh]">
             {/* Real Camera View */}
-            <div id="reader" className="w-full h-full object-cover"></div>
+            <div id="reader" className="w-full h-full"></div>
 
             {/* Scan Area Overlay */}
-            <div className="absolute z-10 w-64 h-64 border-2 border-[#10b981] rounded-3xl pointer-events-none">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-xl -translate-x-1 -translate-y-1"></div>
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-xl translate-x-1 -translate-y-1"></div>
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-xl -translate-x-1 translate-y-1"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-xl translate-x-1 translate-y-1"></div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="relative w-[250px] h-[250px]">
+                {/* GREEN BORDER */}
+                <div className="absolute inset-0 border-[3px] border-[#10b981] rounded-l"></div>
 
-              {/* Moving Scan Line */}
-              <div className="w-full h-1 bg-[#10b981] absolute top-0 left-0 animate-[scan_2s_infinite_linear] opacity-80 shadow-[0_0_15px_#10b981]"></div>
+                {/* SCAN LINE */}
+                <div className="absolute left-0 w-full h-[3px] bg-[#10b981] animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_15px_#10b981]"></div>
+              </div>
             </div>
           </div>
 
@@ -1908,12 +1917,13 @@ const Checkin = () => {
     return (
       <div className="fixed inset-0 bg-white flex flex-col h-dvh w-full font-sans selection:bg-[#1b3631]/10 overflow-hidden">
         <style>{`
-          @keyframes scan {
-            0% { top: 0; }
-            50% { top: 100%; }
-            100% { top: 0; }
-          }
-        `}</style>
+  @keyframes scan {
+    0% { top: 0%; }
+    50% { top: calc(100% - 4px); }
+    100% { top: 0%; }
+  }
+`}</style>
+
         <div className="flex-1 flex flex-col w-full max-w-md mx-auto relative overflow-hidden h-full">
           {/* Main List Views */}
           {mobileVerificationView === "list" ? (
