@@ -1736,7 +1736,7 @@ const Checkin = () => {
           {/* Header */}
 
           {/* Booking Summary Card */}
-          <div className=" mb-5 bg-[#1b3631] rounded-3xl p-4 text-white shadow-lg">
+          {/* <div className=" mb-5 bg-[#1b3631] rounded-3xl p-4 text-white shadow-lg">
             <p className="text-[11px] tracking-widest uppercase font-semibold text-emerald-300 mb-2">
               Status Overview
             </p>
@@ -1750,9 +1750,9 @@ const Checkin = () => {
               All records are validated and ready for submission.
             </p>
 
-            {/* Bottom Info Row */}
+            
             <div className="pt-2 mt-2 border-t border-white/20 space-y-2">
-              {/* Row 1 — Booking ID Full Width */}
+              
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-emerald-300/70 mb-1">
                   Booking ID
@@ -1762,7 +1762,66 @@ const Checkin = () => {
                 </p>
               </div>
 
-              {/* Row 2 — Date & Source Side by Side */}
+              
+              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch pt-2">
+         
+                <div className="pr-6">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-300/70 mb-1">
+                    Date
+                  </p>
+                  <p className="text-sm font-semibold text-white">
+                    {bookingInfo?.checkInDate
+                      ? dayjs(bookingInfo.checkInDate).format("DD MMM YYYY")
+                      : dayjs().format("DD MMM YYYY")}
+                  </p>
+                </div>
+
+                <div className="w-px bg-white/30"></div>
+
+   
+                <div className="pl-6 text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-300/70 mb-1">
+                    Source
+                  </p>
+                  <p className="text-sm font-semibold text-white">
+                    {bookingInfo?.bookingSource || "Walk-In"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div> */}
+
+          <div className="mb-5 bg-[#1b3631] rounded-3xl p-4 text-white shadow-lg">
+            {/* Top Row */}
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] tracking-widest uppercase font-semibold text-emerald-300">
+                Status Overview
+              </p>
+
+              <p className="text-sm font-semibold text-white">
+                {guests.filter((g) => g.status === "verified").length} of{" "}
+                {guests.length} Guests Verified
+              </p>
+            </div>
+
+            {/* Subtitle */}
+            <p className="text-xs text-white/70 mt-2 mb-2">
+              All records are validated and ready for submission.
+            </p>
+
+            {/* Bottom Info Section */}
+            <div className="pt-2 mt-2 border-t border-white/20 space-y-2">
+              {/* Row 1 — Booking ID */}
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-emerald-300/70 mb-1">
+                  Booking ID
+                </p>
+                <p className="text-sm font-semibold text-white break-words">
+                  {bookingInfo?.bookingId || "N/A"}
+                </p>
+              </div>
+
+              {/* Row 2 — Date & Source */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-stretch pt-2">
                 {/* Date */}
                 <div className="pr-6">
@@ -2005,9 +2064,7 @@ const Checkin = () => {
                 {mobileStep !== 1 && (
                   <>
                     {/* Header */}
-                    <div
-                      className={`flex items-center justify-between ${mobileStep !== 2 ? "mb-5" : ""}`}
-                    >
+                    <div className={`flex items-center justify-between`}>
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => setMobileStep(mobileStep - 1)}
@@ -2030,8 +2087,12 @@ const Checkin = () => {
                     </div>
 
                     {/* 🔽 Mobile Stepper BELOW heading (ONLY for Step 2) */}
-                    {mobileStep === 2 && (
+                    {/* {mobileStep === 2 && (
                       <div className="">{renderMobileStepper()}</div>
+                    )} */}
+
+                    {mobileStep >= 2 && (
+                      <div className="mt-3">{renderMobileStepper()}</div>
                     )}
                   </>
                 )}
@@ -2472,24 +2533,6 @@ const Checkin = () => {
           ) : (
             renderSuccessView()
           )}
-
-          {/* Floating Action Button for Add Guest */}
-          {/* {isMobile && mobileStep === 2 && (
-            <button
-              onClick={addGuest}
-              disabled={isAddGuestDisabled}
-              className="absolute bottom-25 right-3 w-10 h-10 bg-[#1b3631] hover:bg-[#1b3631]/90 disabled:bg-gray-300 text-white rounded-full shadow-lg shadow-[#1b3631]/40 flex items-center justify-center transition-all active:scale-95 disabled:cursor-not-allowed"
-              title="Add Guest"
-            >
-              <div className="relative">
-                <User size={18} />
-                <Plus
-                  size={12}
-                  className="absolute -bottom-1 -right-1 bg-[#1f5a52] rounded-full"
-                />
-              </div>
-            </button>
-          )} */}
 
           {/* Floating Action Button for Add Guest */}
           {isMobile &&
