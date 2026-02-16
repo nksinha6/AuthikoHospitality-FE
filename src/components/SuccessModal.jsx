@@ -12,6 +12,7 @@ const SuccessModal = ({
     bookingId = "BKG-9901-PRO",
     totalGuests = "01",
     bookingSource = "OTA (Online Travel Agent)",
+    isCorporate = false,
     onClose
 }) => {
     if (!show) return null;
@@ -44,7 +45,7 @@ const SuccessModal = ({
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-[#475569] font-medium">Booking Source</span>
+                                <span className="text-sm text-[#475569] font-medium">{isCorporate ? "Purpose" : "Booking Source"}</span>
                                 <div className="flex items-center gap-2 text-[#1e293b] font-bold text-xs">
                                     <Globe size={14} className="text-[#10B981]" />
                                     {bookingSource}

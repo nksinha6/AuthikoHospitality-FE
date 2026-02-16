@@ -5,11 +5,11 @@ import { STORAGE_KEYS } from "../constants/config.js";
 const decodeJWT = (token) => {
   try {
     if (!token) return null;
-    
+
     // JWT format: header.payload.signature
     const base64Url = token.split('.')[1];
     if (!base64Url) return null;
-    
+
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(
       atob(base64)
@@ -17,7 +17,7 @@ const decodeJWT = (token) => {
         .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
         .join('')
     );
-    
+
     return JSON.parse(jsonPayload);
   } catch (error) {
     console.error("Failed to decode JWT:", error);
@@ -28,16 +28,16 @@ const decodeJWT = (token) => {
 // Utility function to extract tenantId and propertyIds from token
 const extractIdsFromToken = (decodedToken) => {
   if (!decodedToken) return { tenantId: null, propertyIds: [] };
-  
+
   // Extract tenantId (it might be string or number)
-  const tenantId = decodedToken.tenantId ? 
-    String(decodedToken.tenantId) : 
+  const tenantId = decodedToken.tenantId ?
+    String(decodedToken.tenantId) :
     decodedToken["tenantId"] || null;
-  
+
   // Extract propertyIds (can be string or array)
   let propertyIds = [];
   const propertyIdsValue = decodedToken.propertyIds || decodedToken["propertyIds"];
-  
+
   if (propertyIdsValue) {
     if (Array.isArray(propertyIdsValue)) {
       propertyIds = propertyIdsValue.map(id => String(id));
@@ -48,15 +48,15 @@ const extractIdsFromToken = (decodedToken) => {
       propertyIds = [String(propertyIdsValue)];
     }
   }
-  
+
   // Extract user role
-  const role = decodedToken["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || 
-               decodedToken.role || 
-               "Receptionist";
-  
+  const role = decodedToken["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+    decodedToken.role ||
+    "Receptionist";
+
   // Extract user email
   const userEmail = decodedToken.sub || decodedToken.email || "";
-  
+
   return {
     tenantId,
     propertyIds,
@@ -75,7 +75,8 @@ export function AuthProvider({ children }) {
     tenantId: null,
     propertyIds: [],
     role: "",
-    userEmail: ""
+    userEmail: "",
+    loginType: "" // Store the explicit login type selected by user
   });
 
   useEffect(() => {
@@ -106,20 +107,26 @@ export function AuthProvider({ children }) {
           const decodedToken = decodeJWT(accessToken);
           if (decodedToken) {
             const ids = extractIdsFromToken(decodedToken);
-            setUserData(ids);
-            
+            const savedLoginType = getItemFromStorages("onepass_login_type") || "";
+            const finalData = {
+              ...ids,
+              loginType: savedLoginType,
+              role: ids.role === "Receptionist" && savedLoginType ? savedLoginType : ids.role
+            };
+            setUserData(finalData);
+
             // Also store in storage for quick access
-            const storage = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ? 
-                          sessionStorage : localStorage;
-            storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(ids));
+            const storage = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ?
+              sessionStorage : localStorage;
+            storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(finalData));
           }
-          
+
           setIsAuthenticated(true);
         } else {
           // Token expired, clear storage
           clearAuthData();
           setIsAuthenticated(false);
-          setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "" });
+          setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "", loginType: "" });
         }
       } else {
         setIsAuthenticated(false);
@@ -134,8 +141,8 @@ export function AuthProvider({ children }) {
 
   const clearAuthData = () => {
     setIsAuthenticated(false);
-    setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "" });
-    
+    setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "", loginType: "" });
+
     if (typeof window !== "undefined") {
       // Remove auth data from both storages to be safe
       localStorage.removeItem(STORAGE_KEYS.AUTH);
@@ -148,26 +155,39 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       sessionStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRES_AT);
       sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      localStorage.removeItem("onepass_login_type");
+      sessionStorage.removeItem("onepass_login_type");
     }
   };
 
   // tokens: { accessToken, refreshToken, expiresAt }
   // remember: boolean -> when true persist to localStorage, otherwise sessionStorage
-  const login = (tokens, remember = true) => {
+  // explicitLoginType: 'Corporate' | 'Hospitality'
+  const login = (tokens, remember = true, explicitLoginType = "") => {
     setIsAuthenticated(true);
-    
+
     // Decode token and extract IDs
     const decodedToken = decodeJWT(tokens.accessToken);
     const ids = extractIdsFromToken(decodedToken);
-    setUserData(ids);
-    
+
+    // If we have an explicit login type, ensure it's used if role matches
+    const finalData = {
+      ...ids,
+      loginType: explicitLoginType,
+      // If token role is generic, use explicitLoginType as role
+      role: ids.role === "Receptionist" && explicitLoginType ? explicitLoginType : ids.role
+    };
+
+    setUserData(finalData);
+
     if (typeof window !== "undefined") {
       const storage = remember ? localStorage : sessionStorage;
       storage.setItem(STORAGE_KEYS.AUTH, "true");
       storage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
       storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
       storage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, tokens.expiresAt);
-      storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(ids));
+      storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(finalData));
+      storage.setItem("onepass_login_type", explicitLoginType);
     }
   };
 
@@ -176,12 +196,12 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ 
-      isAuthenticated, 
-      loading, 
-      login, 
+    () => ({
+      isAuthenticated,
+      loading,
+      login,
       logout,
-      userData 
+      userData
     }),
     [isAuthenticated, loading, userData]
   );

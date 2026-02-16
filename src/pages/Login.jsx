@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Building2, Hotel } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
@@ -26,6 +26,7 @@ export default function Login() {
     return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME) === "true";
   });
   const [logoError, setLogoError] = useState(false);
+  const [loginType, setLoginType] = useState("Hospitality"); // Default to Hospitality
 
   // const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
   const from = location.state?.from?.pathname || ROUTES.CHECK_INS;
@@ -66,10 +67,11 @@ export default function Login() {
       const tokens = await authService.login({
         userId: values[FORM_FIELDS.USER_ID],
         password: values[FORM_FIELDS.PASSWORD],
+        loginType: loginType, // Pass login type to service
       });
 
       // Persist tokens according to "Remember me" preference
-      login(tokens, rememberMe);
+      login(tokens, rememberMe, loginType);
       navigate(from, { replace: true });
     } catch (error) {
       setErrorMessage(error.message || "Login failed. Please try again.");
@@ -126,6 +128,32 @@ export default function Login() {
                 <span>{errorMessage}</span>
               </div>
             )}
+          </div>
+
+          {/* Login Type Selection */}
+          <div className="flex gap-4 mb-8">
+            <button
+              type="button"
+              onClick={() => setLoginType("Hospitality")}
+              className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${loginType === "Hospitality"
+                ? "border-brand bg-brand/5 text-brand shadow-sm"
+                : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                }`}
+            >
+              <Hotel size={24} strokeWidth={loginType === "Hospitality" ? 2.5 : 2} />
+              <span className="text-sm font-bold">Hospitality</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType("Corporate")}
+              className={`flex-1 py-3 px-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${loginType === "Corporate"
+                ? "border-brand bg-brand/5 text-brand shadow-sm"
+                : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                }`}
+            >
+              <Building2 size={24} strokeWidth={loginType === "Corporate" ? 2.5 : 2} />
+              <span className="text-sm font-bold">Corporate</span>
+            </button>
           </div>
 
           {/* Form */}

@@ -29,6 +29,20 @@ import ConfirmationModal from "../components/ConfirmationModal.jsx";
 const Checkin = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
+  const isCorporate = userData?.loginType === "Corporate" || userData?.role === "Corporate";
+  const isHospitality = userData?.loginType === "Hospitality" || userData?.role === "Hospitality" || userData?.role === "Receptionist";
+
+  // Purpose options for Corporate users
+  const PURPOSE_OPTIONS = [
+    "Meeting",
+    "Conference",
+    "Official",
+    "Interview",
+    "Company Visit",
+    "Personal",
+    "Other"
+  ];
+
 
   // Ref for Booking Source dropdown focus
   const bookingSourceRef = useRef(null);
@@ -140,13 +154,13 @@ const Checkin = () => {
 
   // Update verification status whenever guests change
   useEffect(() => {
-    console.log("Guests updated:", guests.map(g => ({ 
-      id: g.id, 
-      status: g.status, 
+    console.log("Guests updated:", guests.map(g => ({
+      id: g.id,
+      status: g.status,
       phone: g.phoneNumber,
-      originalPhone: g.originalPhoneNumber 
+      originalPhone: g.originalPhoneNumber
     })));
-    
+
     const anyVerifying = guests.some(
       (g) =>
         g.status === "pending" ||
@@ -154,7 +168,7 @@ const Checkin = () => {
         g.isWaitingForRestart,
     );
     const allVerified = guests.every((g) => g.status === "verified");
-    
+
     console.log("Any verifying:", anyVerifying);
     console.log("All verified:", allVerified);
 
@@ -168,24 +182,24 @@ const Checkin = () => {
     // Update phone number tracking
     const newAllPhoneNumbers = new Map();
     const newUsedPhoneNumbers = new Set();
-    
+
     guests.forEach((guest, index) => {
       if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
         const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
-        
+
         // Track all phone numbers
         newAllPhoneNumbers.set(normalizedNumber, index);
-        
+
         // Track used phone numbers (not idle)
         if (guest.status !== "idle" && guest.status !== "changing") {
           newUsedPhoneNumbers.add(normalizedNumber);
         }
       }
     });
-    
+
     setAllPhoneNumbers(newAllPhoneNumbers);
     setUsedPhoneNumbers(newUsedPhoneNumbers);
-    
+
     console.log("All phone numbers map:", Array.from(newAllPhoneNumbers.entries()));
     console.log("Used phone numbers:", Array.from(newUsedPhoneNumbers));
   }, [guests, hasVerificationStarted]);
@@ -298,7 +312,7 @@ const Checkin = () => {
   // Helper function to normalize phone number
   const normalizePhoneNumber = (phoneNumber) => {
     if (!phoneNumber || phoneNumber.length < 10) return "";
-    
+
     return phoneNumber.startsWith("91") && phoneNumber.length > 2
       ? phoneNumber.slice(2)
       : phoneNumber.startsWith("+91")
@@ -322,7 +336,7 @@ const Checkin = () => {
     }
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
-    
+
     // Check if this number exists in any other guest (excluding current)
     for (let i = 0; i < guests.length; i++) {
       if (i === currentIndex) continue;
@@ -367,7 +381,7 @@ const Checkin = () => {
     if (!phoneNumber || phoneNumber.length < 10) return false;
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
-    
+
     // Count how many guests have this phone number
     let count = 0;
     for (let i = 0; i < guests.length; i++) {
@@ -557,18 +571,18 @@ const Checkin = () => {
   const handlePhoneChange = (index, value) => {
     // Disable phone input if booking ID is not set
     if (!isPhoneInputEnabled) {
-      showToast("error", "Please enter Booking ID first");
+      showToast("error", isCorporate ? "Please enter Email ID first" : "Please enter Booking ID first");
       return;
     }
 
     // Normalize the new phone number
     const normalizedNewNumber = normalizePhoneNumber(value);
-    
+
     // Check if this is a valid phone number
     if (value && value.length >= 10) {
       // Check if this phone number is already used by another guest
       const isDuplicate = isPhoneNumberDuplicate(value, index);
-      
+
       if (isDuplicate) {
         showToast(
           "error",
@@ -1191,7 +1205,7 @@ const Checkin = () => {
         {/* Header Fields Group with visual grouping */}
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-12 shadow-sm">
           <h3 className="text-sm font-bold text-gray-700 mb-6 pb-2 border-b border-[#F1F5F9]">
-            BOOKING INFORMATION
+            VISIT INFORMATION
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
@@ -1222,7 +1236,7 @@ const Checkin = () => {
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                BOOKING SOURCE*
+                {isCorporate ? "PURPOSE*" : "BOOKING SOURCE*"}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -1237,15 +1251,25 @@ const Checkin = () => {
                   required
                   className={`w-full pl-12 pr-10 py-4 bg-white border rounded-xl text-gray-700 appearance-none focus:outline-none focus:ring-1 focus:ring-[#1b3631] focus:border-[#1b3631] transition-colors`}
                 >
-                  <option value="">Select Booking Source</option>
-                  <option value="Walk-In">Walk-In</option>
-                  {otaOptions
-                    .filter((o) => o !== "Walk-In")
-                    .map((ota) => (
-                      <option key={ota} value={ota}>
-                        {ota}
+                  <option value="">{isCorporate ? "Select Purpose" : "Select Booking Source"}</option>
+                  {isCorporate ? (
+                    PURPOSE_OPTIONS.map((purpose) => (
+                      <option key={purpose} value={purpose}>
+                        {purpose}
                       </option>
-                    ))}
+                    ))
+                  ) : (
+                    <>
+                      <option value="Walk-In">Walk-In</option>
+                      {otaOptions
+                        .filter((o) => o !== "Walk-In")
+                        .map((ota) => (
+                          <option key={ota} value={ota}>
+                            {ota}
+                          </option>
+                        ))}
+                    </>
+                  )}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                   <ChevronDown size={18} />
@@ -1258,14 +1282,14 @@ const Checkin = () => {
               </div>
               {hasVerificationStarted && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Cannot change booking source during verification
+                  {isCorporate ? "Cannot change purpose during verification" : "Cannot change booking source during verification"}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                BOOKING ID*
+                {isCorporate ? "Host EMAIL ID*" : "BOOKING ID*"}
               </label>
               <div className="relative">
                 {isWalkIn && (
@@ -1274,7 +1298,7 @@ const Checkin = () => {
                   </div>
                 )}
                 <input
-                  type="text"
+                  type={isCorporate ? "email" : "text"}
                   name="bookingId"
                   required
                   value={bookingInfo.bookingId}
@@ -1282,17 +1306,15 @@ const Checkin = () => {
                   readOnly={isWalkIn || !isBookingIdEnabled}
                   disabled={!isBookingIdEnabled}
                   placeholder={
-                    isWalkIn ? "Auto-generated" : "Enter Booking ID*"
+                    isWalkIn ? "Auto-generated" : isCorporate ? "Enter Email ID*" : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
                 {!isBookingIdEnabled && !isWalkIn && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -1306,11 +1328,11 @@ const Checkin = () => {
                 </p>
               ) : !isBookingIdEnabled ? (
                 <p className="text-xs text-gray-500 mt-1">
-                  Select a booking source first
+                  {isCorporate ? "Select a purpose first" : "Select a booking source first"}
                 </p>
               ) : (
                 <p className="text-xs text-gray-500 mt-1">
-                  Enter your booking ID
+                  {isCorporate ? "Enter your email ID" : "Enter your booking ID"}
                 </p>
               )}
             </div>
@@ -1359,16 +1381,14 @@ const Checkin = () => {
                             guest.status === "verified"
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
@@ -1395,7 +1415,7 @@ const Checkin = () => {
                       </div>
                       {!isPhoneInputEnabled && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Enter Booking ID first
+                          {isCorporate ? "Enter Email ID first" : "Enter Booking ID first"}
                         </p>
                       )}
                     </td>
@@ -1442,7 +1462,7 @@ const Checkin = () => {
                       ) : !isPhoneInputEnabled ? (
                         <div className="flex flex-col">
                           <span className="text-gray-400 italic">
-                            Enter Booking ID to enable verification
+                            {isCorporate ? "Enter Email ID to enable verification" : "Enter Booking ID to enable verification"}
                           </span>
                         </div>
                       ) : isPhoneNumberDuplicate(guest.phoneNumber, index) ? (
@@ -1492,7 +1512,7 @@ const Checkin = () => {
             </button>
             {!isPhoneInputEnabled && (
               <p className="text-sm text-gray-500 mt-2">
-                Please enter Booking ID before adding guests
+                {isCorporate ? "Please enter Email ID before adding guests" : "Please enter Booking ID before adding guests"}
               </p>
             )}
             {isAddGuestDisabled && isPhoneInputEnabled && (
@@ -1542,6 +1562,7 @@ const Checkin = () => {
         bookingId={bookingInfo.bookingId}
         totalGuests={guests.length}
         bookingSource={bookingInfo.bookingSource}
+        isCorporate={isCorporate}
       />
 
       <ConfirmationModal
