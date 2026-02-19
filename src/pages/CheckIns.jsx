@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import Webcam from "react-webcam";
 import {
   CheckCircle,
   X,
@@ -13,13 +14,18 @@ import {
   Circle,
   RotateCcw,
   Edit,
+  Camera,
+  Key,
+  UserCheck,
+  Shield,
+  Building2,
+  Hotel,
 } from "lucide-react";
 import {
   GUEST_VERIFICATION,
   VERIFICATION_STATUS,
 } from "../constants/config.js";
-import { verificationService } from "../services/verificationService";
-import { OTA_OPTIONS, ROUTES, UI_TEXT } from "../constants/ui";
+import { OTA_OPTIONS, ROUTES } from "../constants/ui";
 import { useAuth } from "../context/AuthContext.jsx";
 import dayjs from "dayjs";
 import { showToast } from "../utility/toast.js";
@@ -32,6 +38,25 @@ const Checkin = () => {
   const isCorporate = userData?.loginType === "Corporate" || userData?.role === "Corporate";
   const isHospitality = userData?.loginType === "Hospitality" || userData?.role === "Hospitality" || userData?.role === "Receptionist";
 
+  // State for plan selection (for demo purposes)
+  // In production, this would come from user's subscription
+  const [selectedPlan, setSelectedPlan] = useState("smb"); // Default to SMB for Hospitality
+
+  // Determine user plan based on role or login type
+  const getUserPlan = () => {
+    if (isCorporate) {
+      return "starter"; // Corporate only has starter plan
+    } else {
+      // Hospitality can have SMB or Enterprise - use selectedPlan state
+      return selectedPlan;
+    }
+  };
+
+  const userPlan = getUserPlan();
+
+  // Static verification code for starter and smb plans
+  const STATIC_VERIFICATION_CODE = "123456";
+
   // Purpose options for Corporate users
   const PURPOSE_OPTIONS = [
     "Meeting",
@@ -43,9 +68,9 @@ const Checkin = () => {
     "Other"
   ];
 
-
-  // Ref for Booking Source dropdown focus
+  // Refs
   const bookingSourceRef = useRef(null);
+  const webcamRef = useRef(null);
 
   // Generate unique booking ID for Walk-In
   const generateWalkInBookingId = () => {
@@ -58,8 +83,8 @@ const Checkin = () => {
 
   // Basic Form State
   const [bookingInfo, setBookingInfo] = useState({
-    verificationDate: "", // Will be populated from server
-    bookingSource: "", // Changed from default value
+    verificationDate: "",
+    bookingSource: "",
     bookingId: "",
   });
 
@@ -80,6 +105,15 @@ const Checkin = () => {
       isWaitingForRestart: false,
       isChangingNumber: false,
       originalPhoneNumber: "",
+      // Verification flow fields
+      verificationCode: "",
+      isCodeVerified: false,
+      showCodeInput: false,
+      showWebcam: false,
+      capturedImage: null,
+      idVerificationTimer: 0,
+      isIdVerifying: false,
+      planType: userPlan,
     },
   ]);
 
@@ -101,28 +135,30 @@ const Checkin = () => {
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [hasVerificationStarted, setHasVerificationStarted] = useState(false);
   const cancellationInProgressRef = useRef(false);
-  const pollingInProgressRef = useRef(new Set());
   const [usedPhoneNumbers, setUsedPhoneNumbers] = useState(new Set());
   const [verifiedPhoneNumbers, setVerifiedPhoneNumbers] = useState(new Set());
 
   // Track all phone numbers in use across all guests
-  const [allPhoneNumbers, setAllPhoneNumbers] = useState(new Map()); // Map: phoneNumber -> guest index
+  const [allPhoneNumbers, setAllPhoneNumbers] = useState(new Map());
 
   // State for server date
   const [isLoadingServerDate, setIsLoadingServerDate] = useState(true);
+
+  // Update guests when plan changes
+  useEffect(() => {
+    setGuests((prev) => 
+      prev.map(guest => ({
+        ...guest,
+        planType: userPlan,
+      }))
+    );
+  }, [userPlan]);
 
   // Fetch server date on component mount
   useEffect(() => {
     const fetchServerDate = async () => {
       try {
-        // Replace with actual API call to get server date
-        // For now, we'll simulate with dayjs but you should replace with:
-        // const serverDate = await verificationService.getServerDate();
-        // const formattedDate = dayjs(serverDate).format("dddd, D MMM YYYY");
-
-        // For demonstration, using current date but in real app use API
         const formattedDate = dayjs().format("dddd, D MMM YYYY");
-
         setBookingInfo((prev) => ({
           ...prev,
           verificationDate: formattedDate,
@@ -130,7 +166,6 @@ const Checkin = () => {
         setIsLoadingServerDate(false);
       } catch (error) {
         console.error("Failed to fetch server date:", error);
-        // Fallback to client date if server fails
         setBookingInfo((prev) => ({
           ...prev,
           verificationDate: dayjs().format("dddd, D MMM YYYY"),
@@ -145,7 +180,6 @@ const Checkin = () => {
   // Focus on Booking Source when component mounts
   useEffect(() => {
     if (bookingSourceRef.current && !bookingInfo.bookingSource) {
-      // Small delay to ensure component is fully mounted
       setTimeout(() => {
         bookingSourceRef.current.focus();
       }, 100);
@@ -154,23 +188,16 @@ const Checkin = () => {
 
   // Update verification status whenever guests change
   useEffect(() => {
-    console.log("Guests updated:", guests.map(g => ({
-      id: g.id,
-      status: g.status,
-      phone: g.phoneNumber,
-      originalPhone: g.originalPhoneNumber
-    })));
-
     const anyVerifying = guests.some(
       (g) =>
         g.status === "pending" ||
         g.status === "verifying" ||
-        g.isWaitingForRestart,
+        g.isWaitingForRestart ||
+        g.showCodeInput ||
+        g.showWebcam ||
+        g.isIdVerifying
     );
     const allVerified = guests.every((g) => g.status === "verified");
-
-    console.log("Any verifying:", anyVerifying);
-    console.log("All verified:", allVerified);
 
     setIsAnyGuestVerifying(anyVerifying);
     setAreAllGuestsVerified(allVerified);
@@ -186,11 +213,8 @@ const Checkin = () => {
     guests.forEach((guest, index) => {
       if (guest.phoneNumber && guest.phoneNumber.length >= 10) {
         const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
-
-        // Track all phone numbers
         newAllPhoneNumbers.set(normalizedNumber, index);
 
-        // Track used phone numbers (not idle)
         if (guest.status !== "idle" && guest.status !== "changing") {
           newUsedPhoneNumbers.add(normalizedNumber);
         }
@@ -199,9 +223,6 @@ const Checkin = () => {
 
     setAllPhoneNumbers(newAllPhoneNumbers);
     setUsedPhoneNumbers(newUsedPhoneNumbers);
-
-    console.log("All phone numbers map:", Array.from(newAllPhoneNumbers.entries()));
-    console.log("Used phone numbers:", Array.from(newUsedPhoneNumbers));
   }, [guests, hasVerificationStarted]);
 
   // Update isWalkIn when booking source changes
@@ -209,7 +230,6 @@ const Checkin = () => {
     const walkIn = bookingInfo.bookingSource === "Walk-In";
     setIsWalkIn(walkIn);
 
-    // Generate automatic booking ID for Walk-In
     if (walkIn && !bookingInfo.bookingId.startsWith("WALK-IN-")) {
       const newBookingId = generateWalkInBookingId();
       setBookingInfo((prev) => ({
@@ -218,6 +238,48 @@ const Checkin = () => {
       }));
     }
   }, [bookingInfo.bookingSource]);
+
+  // ID Verification timer for SMB and Enterprise plans
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setGuests((prevGuests) => {
+        const updatedGuests = [...prevGuests];
+        let anyChanges = false;
+
+        updatedGuests.forEach((guest, index) => {
+          if (guest.isIdVerifying && guest.idVerificationTimer > 0) {
+            updatedGuests[index] = {
+              ...guest,
+              idVerificationTimer: guest.idVerificationTimer - 1,
+            };
+            anyChanges = true;
+
+            // When timer reaches 0, complete ID verification
+            if (guest.idVerificationTimer <= 1) {
+              updatedGuests[index] = {
+                ...guest,
+                isIdVerifying: false,
+                idVerificationTimer: 0,
+                // Show next step based on plan
+                showCodeInput: guest.planType === "smb" || (isCorporate && guest.planType === "starter"),
+                showWebcam: guest.planType === "enterprise" && !isCorporate,
+              };
+              
+              if (guest.planType === "smb" || (isCorporate && guest.planType === "starter")) {
+                showToast("info", "ID verification complete. Please enter verification code");
+              } else if (guest.planType === "enterprise" && !isCorporate) {
+                showToast("info", "ID verification complete. Please capture photo");
+              }
+            }
+          }
+        });
+
+        return anyChanges ? updatedGuests : prevGuests;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCorporate]);
 
   // Update phone input enabled status based on Booking ID
   const isPhoneInputEnabled =
@@ -230,89 +292,9 @@ const Checkin = () => {
     };
   }, []);
 
-  // Timer for reverse countdown
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setGuests((prevGuests) => {
-        const updatedGuests = [...prevGuests];
-        let anyChanges = false;
-
-        updatedGuests.forEach((guest, index) => {
-          if (
-            guest.isTimerActive &&
-            guest.timerSeconds > 0 &&
-            guest.status === "pending"
-          ) {
-            updatedGuests[index] = {
-              ...guest,
-              timerSeconds: guest.timerSeconds - 1,
-            };
-            anyChanges = true;
-
-            if (guest.timerSeconds <= 1) {
-              setTimeout(() => {
-                setGuests((prev) => {
-                  const newState = [...prev];
-                  if (newState[index].status === "pending") {
-                    newState[index] = {
-                      ...newState[index],
-                      status: "idle",
-                      isTimerActive: false,
-                      timerSeconds: 0,
-                      isWaitingForRestart: true,
-                    };
-
-                    if (pollingIntervals[index]) {
-                      clearInterval(pollingIntervals[index]);
-                      setPollingIntervals((prev) => {
-                        const newIntervals = { ...prev };
-                        delete newIntervals[index];
-                        return newIntervals;
-                      });
-                    }
-
-                    const restartTimer = setTimeout(() => {
-                      setGuests((prev) => {
-                        const restartState = [...prev];
-                        if (
-                          restartState[index].status === "idle" &&
-                          restartState[index].isWaitingForRestart &&
-                          restartState[index].phoneNumber &&
-                          restartState[index].phoneNumber.length >= 10
-                        ) {
-                          restartState[index] = {
-                            ...restartState[index],
-                            isWaitingForRestart: false,
-                          };
-                          startVerificationCycle(index);
-                        }
-                        return restartState;
-                      });
-                    }, 30000);
-
-                    setCheckStatusTimers((prev) => ({
-                      ...prev,
-                      [`restart-${index}`]: restartTimer,
-                    }));
-                  }
-                  return newState;
-                });
-              }, 1000);
-            }
-          }
-        });
-
-        return anyChanges ? updatedGuests : prevGuests;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [pollingIntervals]);
-
   // Helper function to normalize phone number
   const normalizePhoneNumber = (phoneNumber) => {
     if (!phoneNumber || phoneNumber.length < 10) return "";
-
     return phoneNumber.startsWith("91") && phoneNumber.length > 2
       ? phoneNumber.slice(2)
       : phoneNumber.startsWith("+91")
@@ -337,7 +319,6 @@ const Checkin = () => {
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
 
-    // Check if this number exists in any other guest (excluding current)
     for (let i = 0; i < guests.length; i++) {
       if (i === currentIndex) continue;
 
@@ -366,7 +347,6 @@ const Checkin = () => {
           return true;
         }
 
-        // Only add to set if the number is being used (not idle)
         if (guest.status !== "idle" || guest.isChangingNumber) {
           phoneNumbers.add(normalizedNumber);
         }
@@ -382,7 +362,6 @@ const Checkin = () => {
 
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
 
-    // Count how many guests have this phone number
     let count = 0;
     for (let i = 0; i < guests.length; i++) {
       const guest = guests[i];
@@ -392,7 +371,7 @@ const Checkin = () => {
         if (guestNormalized === normalizedNumber) {
           count++;
           if (count > 1) {
-            return true; // Duplicate found
+            return true;
           }
         }
       }
@@ -401,7 +380,7 @@ const Checkin = () => {
     return false;
   };
 
-  // Function to start verification cycle (2-minute timer)
+  // Function to start verification cycle
   const startVerificationCycle = (index) => {
     setGuests((prev) => {
       const newState = [...prev];
@@ -419,32 +398,20 @@ const Checkin = () => {
 
   // Function to clear all verification processes
   const clearAllVerificationProcesses = () => {
-    console.log("Clearing all verification processes...");
-
     Object.values(pollingIntervals).forEach((intervalId) => {
       clearInterval(intervalId);
-      console.log("Cleared polling interval:", intervalId);
     });
 
     Object.values(checkStatusTimers).forEach((timerId) => {
       clearTimeout(timerId);
-      console.log("Cleared check status timer:", timerId);
     });
 
     setPollingIntervals({});
     setCheckStatusTimers({});
-    pollingInProgressRef.current.clear();
   };
 
   // Function to stop verification for a specific guest
   const stopGuestVerification = (index) => {
-    console.log(`Stopping verification for guest at index ${index}`);
-
-    if (guests[index] && guests[index].phoneNumber) {
-      const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
-      pollingInProgressRef.current.delete(normalizedNumber);
-    }
-
     if (pollingIntervals[index]) {
       clearInterval(pollingIntervals[index]);
       setPollingIntervals((prev) => {
@@ -474,10 +441,8 @@ const Checkin = () => {
     }
   };
 
-  // Function to reset the entire app state and set phone input to India
+  // Function to reset the entire app state
   const resetAppState = () => {
-    console.log("Resetting app state...");
-
     clearAllVerificationProcesses();
 
     setGuests([
@@ -496,12 +461,20 @@ const Checkin = () => {
         isWaitingForRestart: false,
         isChangingNumber: false,
         originalPhoneNumber: "",
+        verificationCode: "",
+        isCodeVerified: false,
+        showCodeInput: false,
+        showWebcam: false,
+        capturedImage: null,
+        idVerificationTimer: 0,
+        isIdVerifying: false,
+        planType: userPlan,
       },
     ]);
 
     setBookingInfo({
       verificationDate: dayjs().format("dddd, D MMM YYYY"),
-      bookingSource: "", // Reset to empty
+      bookingSource: "",
       bookingId: "",
     });
 
@@ -517,14 +490,11 @@ const Checkin = () => {
     setVerifiedPhoneNumbers(new Set());
     setAllPhoneNumbers(new Map());
 
-    // Focus back on Booking Source
     setTimeout(() => {
       if (bookingSourceRef.current) {
         bookingSourceRef.current.focus();
       }
     }, 100);
-
-    console.log("App state reset complete");
   };
 
   // Function to handle success modal close and reset
@@ -537,7 +507,6 @@ const Checkin = () => {
   const handleBookingInfoChange = (e) => {
     const { name, value } = e.target;
 
-    // If verification has started, don't allow changing booking source
     if (name === "bookingSource" && hasVerificationStarted) {
       showToast("error", "Cannot change booking source during verification");
       return;
@@ -552,7 +521,6 @@ const Checkin = () => {
           bookingId: newBookingId,
         }));
       } else {
-        // Reset booking ID for non-Walk-In (user will enter manually)
         setBookingInfo((prev) => ({
           ...prev,
           [name]: value,
@@ -562,25 +530,21 @@ const Checkin = () => {
     } else if (
       name === "bookingId" &&
       bookingInfo.bookingSource !== "Walk-In" &&
-      !hasVerificationStarted // Only allow editing if verification hasn't started
+      !hasVerificationStarted
     ) {
       setBookingInfo((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handlePhoneChange = (index, value) => {
-    // Disable phone input if booking ID is not set
     if (!isPhoneInputEnabled) {
       showToast("error", isCorporate ? "Please enter Email ID first" : "Please enter Booking ID first");
       return;
     }
 
-    // Normalize the new phone number
     const normalizedNewNumber = normalizePhoneNumber(value);
 
-    // Check if this is a valid phone number
     if (value && value.length >= 10) {
-      // Check if this phone number is already used by another guest
       const isDuplicate = isPhoneNumberDuplicate(value, index);
 
       if (isDuplicate) {
@@ -588,7 +552,7 @@ const Checkin = () => {
           "error",
           "This phone number is already entered for another guest"
         );
-        return; // Don't update the phone number
+        return;
       }
     }
 
@@ -608,6 +572,12 @@ const Checkin = () => {
         newGuests[index].timerSeconds = 0;
         newGuests[index].status = "idle";
         newGuests[index].isWaitingForRestart = false;
+        newGuests[index].showCodeInput = false;
+        newGuests[index].showWebcam = false;
+        newGuests[index].verificationCode = "";
+        newGuests[index].isCodeVerified = false;
+        newGuests[index].isIdVerifying = false;
+        newGuests[index].idVerificationTimer = 0;
 
         if (pollingIntervals[index]) {
           clearInterval(pollingIntervals[index]);
@@ -633,6 +603,81 @@ const Checkin = () => {
     });
   };
 
+  const handleVerificationCodeChange = (index, value) => {
+    setGuests((prev) => {
+      const newGuests = [...prev];
+      newGuests[index].verificationCode = value;
+      return newGuests;
+    });
+  };
+
+  const handleVerifyCode = (index) => {
+    const guest = guests[index];
+    
+    if (!guest.verificationCode || guest.verificationCode.length < 4) {
+      showToast("error", "Please enter a valid verification code");
+      return;
+    }
+
+    // Check if code matches static code
+    if (guest.verificationCode === STATIC_VERIFICATION_CODE) {
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          isCodeVerified: true,
+          status: "verified",
+          name: "Verified Guest",
+          fullName: "Verified Guest",
+          aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+          isTimerActive: false,
+          timerSeconds: 0,
+          showCodeInput: false,
+          verificationCode: "",
+        };
+        return newState;
+      });
+
+      const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+      const newVerifiedSet = new Set(verifiedPhoneNumbers);
+      newVerifiedSet.add(normalizedNumber);
+      setVerifiedPhoneNumbers(newVerifiedSet);
+
+      showToast("success", "Guest verified successfully!");
+    } else {
+      showToast("error", "Invalid verification code. Please use 123456");
+    }
+  };
+
+  const handleCapturePhoto = (index) => {
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          capturedImage: imageSrc,
+          showWebcam: false,
+          status: "verified",
+          name: "Verified Guest",
+          fullName: "Verified Guest",
+          aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+          faceStatus: VERIFICATION_STATUS.VERIFIED,
+          isTimerActive: false,
+          timerSeconds: 0,
+        };
+        return newState;
+      });
+
+      const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
+      const newVerifiedSet = new Set(verifiedPhoneNumbers);
+      newVerifiedSet.add(normalizedNumber);
+      setVerifiedPhoneNumbers(newVerifiedSet);
+
+      showToast("success", "Guest verified successfully!");
+    }
+  };
+
   // Function to enable number change mode
   const handleChangeNumber = (index) => {
     setGuests((prev) => {
@@ -651,6 +696,13 @@ const Checkin = () => {
         name: "",
         fullName: "",
         aadhaarStatus: VERIFICATION_STATUS.PENDING,
+        verificationCode: "",
+        isCodeVerified: false,
+        showCodeInput: false,
+        showWebcam: false,
+        capturedImage: null,
+        isIdVerifying: false,
+        idVerificationTimer: 0,
       };
 
       return newState;
@@ -694,206 +746,69 @@ const Checkin = () => {
         isWaitingForRestart: false,
         isChangingNumber: false,
         originalPhoneNumber: "",
+        verificationCode: "",
+        isCodeVerified: false,
+        showCodeInput: false,
+        showWebcam: false,
+        capturedImage: null,
+        idVerificationTimer: 0,
+        isIdVerifying: false,
+        planType: userPlan,
       },
     ]);
   };
 
-  const startIdVerificationPolling = (index, phoneCountryCode, phoneno) => {
-    if (isPhoneNumberAlreadyVerified(phoneno)) {
-      console.log(
-        `Phone number ${phoneno} is already verified, skipping polling`,
-      );
-      return;
-    }
-
-    if (pollingInProgressRef.current.has(phoneno)) {
-      console.log(`Polling already in progress for ${phoneno}, skipping`);
-      return;
-    }
-
-    pollingInProgressRef.current.add(phoneno);
-    console.log(`Started polling for ${phoneno}`);
-
-    if (pollingIntervals[index]) {
-      clearInterval(pollingIntervals[index]);
-    }
-
-    let hasNotifiedVerification = false;
-
-    const poll = async () => {
-      if (cancellationInProgressRef.current) {
-        console.log(`Cancellation in progress, stopping poll for ${phoneno}`);
-        pollingInProgressRef.current.delete(phoneno);
-        return;
-      }
-
-      if (isPhoneNumberAlreadyVerified(phoneno)) {
-        console.log(
-          `Phone number ${phoneno} became verified during polling, stopping`,
-        );
-        pollingInProgressRef.current.delete(phoneno);
-        stopGuestVerification(index);
-        return;
-      }
-
-      if (hasNotifiedVerification) {
-        console.log(
-          `Already notified verification for ${phoneno}, stopping poll`,
-        );
-        pollingInProgressRef.current.delete(phoneno);
-        stopGuestVerification(index);
-        return;
-      }
-
-      try {
-        console.log(`Polling API call for ${phoneno}`);
-        const guestResponse = await verificationService.getGuestById(
-          phoneCountryCode,
-          phoneno,
-        );
-
-        console.log(`API response for ${phoneno}:`, guestResponse);
-
-        if (
-          guestResponse.verificationStatus === "verified" ||
-          guestResponse.aadhaar_verified ||
-          (guestResponse.fullName &&
-            guestResponse.verificationStatus === "verified")
-        ) {
-          hasNotifiedVerification = true;
-
-          console.log(
-            `Verification successful for ${phoneno}, updating guest status`,
-          );
-
-          setGuests((prev) => {
-            const newState = [...prev];
-            newState[index].status = "verified";
-            newState[index].name =
-              guestResponse.fullName || guestResponse.name || "Verified Guest";
-            newState[index].fullName =
-              guestResponse.fullName || guestResponse.name || "Verified Guest";
-            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            newState[index].isTimerActive = false;
-            newState[index].timerSeconds = 0;
-            newState[index].isWaitingForRestart = false;
-            newState[index].isChangingNumber = false;
-            newState[index].originalPhoneNumber = "";
-            return newState;
-          });
-
-          const newVerifiedSet = new Set(verifiedPhoneNumbers);
-          newVerifiedSet.add(phoneno);
-          setVerifiedPhoneNumbers(newVerifiedSet);
-
-          showToast("success", "Guest verified successfully!");
-
-          if (pollingIntervals[index]) {
-            clearInterval(pollingIntervals[index]);
-            console.log(`Cleared polling interval for guest ${index}`);
-          }
-
-          if (checkStatusTimers[index]) {
-            clearTimeout(checkStatusTimers[index]);
-            console.log(`Cleared timeout for guest ${index}`);
-          }
-
-          setPollingIntervals((prev) => {
-            const newIntervals = { ...prev };
-            delete newIntervals[index];
-            return newIntervals;
-          });
-
-          setCheckStatusTimers((prev) => {
-            const newTimers = { ...prev };
-            delete newTimers[index];
-            return newTimers;
-          });
-
-          pollingInProgressRef.current.delete(phoneno);
-          console.log(`Stopped polling for ${phoneno}`);
-        }
-      } catch (error) {
-        console.error("Polling error:", error);
-        if (error.status && error.status >= 400 && error.status < 500) {
-          pollingInProgressRef.current.delete(phoneno);
-          stopGuestVerification(index);
-        }
-      }
-    };
-
-    poll();
-
-    const intervalId = setInterval(poll, GUEST_VERIFICATION.POLL_INTERVAL);
-    setPollingIntervals((prev) => ({ ...prev, [index]: intervalId }));
-
-    const timeoutId = setTimeout(() => {
-      console.log(`Polling timeout reached for guest ${index} (${phoneno})`);
-      pollingInProgressRef.current.delete(phoneno);
-      stopGuestVerification(index);
-    }, GUEST_VERIFICATION.ID_VERIFICATION_TIMEOUT);
-
-    setCheckStatusTimers((prev) => ({ ...prev, [index]: timeoutId }));
-  };
-
   const handleVerifyGuest = async (index) => {
     const guest = guests[index];
-    console.log(`Verifying guest ${index}:`, guest);
 
-    // Check if phone number is a duplicate BEFORE any other checks
+    // Check if phone number is a duplicate
     if (isPhoneNumberDuplicate(guest.phoneNumber, index)) {
       showToast(
         "error",
-        "This phone number is already entered for another guest. Please use a unique phone number.",
+        "This phone number is already entered for another guest. Please use a unique phone number."
       );
       return;
     }
 
-    // Enhanced duplicate validation check
     if (hasDuplicatePhoneNumbersInBooking()) {
       showToast(
         "error",
-        "Duplicate phone numbers detected in this booking. Please use unique phone numbers for each guest.",
+        "Duplicate phone numbers detected in this booking. Please use unique phone numbers for each guest."
       );
       return;
     }
 
-    // Normalize the phone number for checking
     const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
 
-    // Check if phone number is already verified
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
       showToast("error", "This phone number is already verified");
       return;
     }
 
-    // Check if phone number is already used by another guest
     if (isPhoneNumberAlreadyUsed(guest.phoneNumber, index)) {
       const isVerified = isPhoneNumberAlreadyVerified(normalizedNumber);
       showToast(
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being used by another guest",
+          : "This phone number is already being used by another guest"
       );
       return;
     }
 
-    // If user is changing number, they need to confirm the change first
+    // If user is changing number
     if (guest.isChangingNumber) {
-      // Check if phone number is already used by another guest or already verified
       if (isPhoneNumberAlreadyUsed(guest.phoneNumber, index)) {
         const isVerified = isPhoneNumberAlreadyVerified(normalizedNumber);
         showToast(
           "error",
           isVerified
             ? "This phone number is already verified"
-            : "This phone number is already being used by another guest",
+            : "This phone number is already being used by another guest"
         );
         return;
       }
 
-      // Check if new number is the same as original
       if (
         guest.originalPhoneNumber &&
         guest.phoneNumber === guest.originalPhoneNumber
@@ -907,83 +822,11 @@ const Checkin = () => {
         return;
       }
 
-      // Mark that verification has started
       if (!hasVerificationStarted) {
         setHasVerificationStarted(true);
       }
 
-      // Start the 2-minute timer cycle with new number
-      startVerificationCycle(index);
-      setIsVerifying(true);
-
-      const phoneCountryCode = "91";
-      const phoneno = normalizedNumber;
-
-      try {
-        console.log(
-          `Calling ensureVerification API for changed number: ${phoneno}`,
-        );
-
-        if (!isBookingInitialized) {
-          const beginPayload = {
-            bookingId: bookingInfo.bookingId,
-            ota: bookingInfo.bookingSource,
-            phoneCountryCode: phoneCountryCode,
-            phoneNumber: phoneno,
-            adultsCount: guests.filter((g) => !g.isMinor).length,
-            minorsCount: guests.filter((g) => g.isMinor).length,
-          };
-          await verificationService.beginVerification(beginPayload);
-          setIsBookingInitialized(true);
-        }
-
-        const response = await verificationService.ensureVerification(
-          bookingInfo.bookingId,
-          phoneCountryCode,
-          phoneno,
-        );
-
-        if (
-          response.verificationStatus === "verified" ||
-          response.aadhaar_verified ||
-          (response.fullName && response.verificationStatus === "verified")
-        ) {
-          setGuests((prev) => {
-            const newState = [...prev];
-            newState[index].status = "verified";
-            newState[index].name =
-              response.fullName || response.name || "Verified Guest";
-            newState[index].fullName =
-              response.fullName || response.name || "Verified Guest";
-            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            newState[index].isTimerActive = false;
-            newState[index].timerSeconds = 0;
-            newState[index].isWaitingForRestart = false;
-            newState[index].isChangingNumber = false;
-            newState[index].originalPhoneNumber = "";
-            return newState;
-          });
-
-          const newVerifiedSet = new Set(verifiedPhoneNumbers);
-          newVerifiedSet.add(phoneno);
-          setVerifiedPhoneNumbers(newVerifiedSet);
-
-          showToast("success", "Guest verified successfully!");
-        } else {
-          startIdVerificationPolling(index, phoneCountryCode, phoneno);
-          showToast("info", "Verification started with new phone number");
-        }
-      } catch (error) {
-        console.error("Verification error:", error);
-        if (error.code === "USER_NOT_FOUND") {
-          startIdVerificationPolling(index, phoneCountryCode, phoneno);
-          showToast("info", "Verification started with new phone number");
-        } else {
-          showToast("error", error.message || "Verification failed");
-        }
-      } finally {
-        setIsVerifying(false);
-      }
+      startVerificationFlow(index);
       return;
     }
 
@@ -997,104 +840,88 @@ const Checkin = () => {
       return;
     }
 
-    // Check if phone number is already used by another guest
     if (isPhoneNumberAlreadyUsed(guest.phoneNumber, index)) {
       const isVerified = isPhoneNumberAlreadyVerified(normalizedNumber);
       showToast(
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being used by another guest",
+          : "This phone number is already being used by another guest"
       );
       return;
     }
 
-    // Final check: ensure number is not already verified before proceeding
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
       showToast("error", "This phone number is already verified");
       return;
     }
 
-    // Mark that verification has started
     if (!hasVerificationStarted) {
       setHasVerificationStarted(true);
     }
 
+    startVerificationFlow(index);
+  };
+
+  const startVerificationFlow = (index) => {
+    const guest = guests[index];
+    const plan = guest.planType;
+
     // Start the 2-minute timer cycle
     startVerificationCycle(index);
 
-    // Start the actual verification process
-    setIsVerifying(true);
-
-    const phoneCountryCode = "91";
-    const phoneno = normalizedNumber;
-
-    try {
-      if (!isBookingInitialized) {
-        const beginPayload = {
-          bookingId: bookingInfo.bookingId,
-          ota: bookingInfo.bookingSource,
-          phoneCountryCode: phoneCountryCode,
-          phoneNumber: phoneno,
-          adultsCount: guests.filter((g) => !g.isMinor).length,
-          minorsCount: guests.filter((g) => g.isMinor).length,
+    // Determine which flow to use based on plan
+    if (isCorporate && plan === "starter") {
+      // Corporate Starter Plan: Show verification code input immediately
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          showCodeInput: true,
         };
-        await verificationService.beginVerification(beginPayload);
-        setIsBookingInitialized(true);
-      }
-
-      const response = await verificationService.ensureVerification(
-        bookingInfo.bookingId,
-        phoneCountryCode,
-        phoneno,
-      );
-
-      if (
-        response.verificationStatus === "verified" ||
-        response.aadhaar_verified ||
-        (response.fullName && response.verificationStatus === "verified")
-      ) {
-        setGuests((prev) => {
-          const newState = [...prev];
-          newState[index].status = "verified";
-          newState[index].name =
-            response.fullName || response.name || "Verified Guest";
-          newState[index].fullName =
-            response.fullName || response.name || "Verified Guest";
-          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-          newState[index].isTimerActive = false;
-          newState[index].timerSeconds = 0;
-          newState[index].isWaitingForRestart = false;
-          newState[index].isChangingNumber = false;
-          return newState;
-        });
-
-        const newVerifiedSet = new Set(verifiedPhoneNumbers);
-        newVerifiedSet.add(phoneno);
-        setVerifiedPhoneNumbers(newVerifiedSet);
-
-        showToast("success", "Guest verified successfully!");
-      } else {
-        startIdVerificationPolling(index, phoneCountryCode, phoneno);
-      }
-    } catch (error) {
-      console.error("Verification error:", error);
-      if (error.code === "USER_NOT_FOUND") {
-        startIdVerificationPolling(index, phoneCountryCode, phoneno);
-      } else {
-        showToast("error", error.message || "Verification failed");
-      }
-    } finally {
-      setIsVerifying(false);
+        return newState;
+      });
+      showToast("info", "Please enter verification code 123456");
+    } 
+    else if (!isCorporate && plan === "smb") {
+      // Hospitality SMB: Start 40-second ID verification timer
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          isIdVerifying: true,
+          idVerificationTimer: 40, // 40 seconds timer
+        };
+        return newState;
+      });
+      showToast("info", "ID verification started. Please wait 40 seconds...");
+    }
+    else if (!isCorporate && plan === "enterprise") {
+      // Hospitality Enterprise: Start 40-second ID verification timer
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          isIdVerifying: true,
+          idVerificationTimer: 40, // 40 seconds timer
+        };
+        return newState;
+      });
+      showToast("info", "ID verification started. Please wait 40 seconds...");
     }
   };
 
+  const handlePlanChange = (plan) => {
+    setSelectedPlan(plan);
+    resetAppState();
+    showToast("success", `Switched to ${plan === "smb" ? "SMB" : "Enterprise"} plan`);
+  };
+
   const handleConfirmCheckIn = async () => {
-    // Final duplicate check before check-in
     if (hasDuplicatePhoneNumbersInBooking()) {
       showToast(
         "error",
-        "Cannot check-in with duplicate phone numbers. Please verify all guests with unique phone numbers.",
+        "Cannot check-in with duplicate phone numbers. Please verify all guests with unique phone numbers."
       );
       return;
     }
@@ -1107,10 +934,8 @@ const Checkin = () => {
 
     setIsConfirmingCheckin(true);
     try {
-      await verificationService.endVerification(bookingInfo.bookingId);
-
+      await new Promise(resolve => setTimeout(resolve, 1000));
       clearAllVerificationProcesses();
-
       setShowSuccessModal(true);
       setModalMessage("Check-in completed successfully!");
     } catch (error) {
@@ -1126,21 +951,13 @@ const Checkin = () => {
   };
 
   const confirmCancel = () => {
-    console.log("Confirming cancellation...");
-
     cancellationInProgressRef.current = true;
-
     clearAllVerificationProcesses();
-
     resetAppState();
-
     showToast("success", "Verification cancelled.");
-
     setTimeout(() => {
       cancellationInProgressRef.current = false;
-      console.log("Cancellation flag reset");
     }, 1000);
-
     setShowCancelModal(false);
   };
 
@@ -1166,7 +983,6 @@ const Checkin = () => {
 
   // Check if Verify button should be disabled for a specific guest
   const isVerifyButtonDisabled = (guest, index) => {
-    // Basic conditions
     if (
       !isPhoneInputEnabled ||
       guest.status === "verified" ||
@@ -1174,17 +990,60 @@ const Checkin = () => {
       guest.status === "pending" ||
       !guest.phoneNumber ||
       guest.phoneNumber.length < 10 ||
-      hasDuplicatePhoneNumbersInBooking()
+      hasDuplicatePhoneNumbersInBooking() ||
+      guest.showCodeInput ||
+      guest.showWebcam ||
+      guest.isIdVerifying
     ) {
       return true;
     }
 
-    // Additional check: if this phone number is already used by another guest (even if idle)
     if (isPhoneNumberDuplicate(guest.phoneNumber, index)) {
       return true;
     }
 
     return false;
+  };
+
+  // Get plan display name
+  const getPlanDisplayName = () => {
+    if (isCorporate) {
+      return "Corporate Starter Plan";
+    } else {
+      if (selectedPlan === "smb") return "Hospitality SMB Plan";
+      if (selectedPlan === "enterprise") return "Hospitality Enterprise Plan";
+    }
+    return "";
+  };
+
+  // Get button text based on plan
+  const getVerifyButtonText = (guest) => {
+    if (guest.isIdVerifying) return "Verifying ID...";
+    if (guest.showCodeInput) return "Enter Code";
+    if (guest.showWebcam) return "Capture Photo";
+    
+    if (isCorporate) {
+      return "Get Code";
+    } else {
+      if (selectedPlan === "smb") return "Verify";
+      if (selectedPlan === "enterprise") return "Start Verification";
+    }
+    return "Verify";
+  };
+
+  // Get button icon based on plan
+  const getVerifyButtonIcon = (guest) => {
+    if (guest.isIdVerifying) return <Clock size={16} className="animate-spin" />;
+    if (guest.showCodeInput) return <Key size={16} />;
+    if (guest.showWebcam) return <Camera size={16} />;
+    
+    if (isCorporate) {
+      return <Key size={16} />;
+    } else {
+      if (selectedPlan === "smb") return <UserCheck size={16} />;
+      if (selectedPlan === "enterprise") return <Camera size={16} />;
+    }
+    return <UserCheck size={16} />;
   };
 
   return (
@@ -1193,16 +1052,45 @@ const Checkin = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-1">
           <h1 className="text-3xl font-bold">Guest Verification</h1>
-          <div className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
-            <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
-            System Online
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
+              <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
+              System Online
+            </div>
+            
+            {/* Plan Selection Dropdown - Only for Hospitality */}
+            {!isCorporate && (
+              <div className="relative">
+                <select
+                  value={selectedPlan}
+                  onChange={(e) => handlePlanChange(e.target.value)}
+                  className="appearance-none bg-[#F1F5F9] border border-[#E2E8F0] text-gray-700 py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 cursor-pointer"
+                >
+                  <option value="smb">SMB Plan</option>
+                  <option value="enterprise">Enterprise Plan</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2 text-sm font-medium bg-[#F1F5F9] px-4 py-2 rounded-full">
+              {isCorporate ? <Building2 size={16} /> : <Hotel size={16} />}
+              <span>{getPlanDisplayName()}</span>
+              {isCorporate ? (
+                <Shield size={16} className="text-blue-600" />
+              ) : selectedPlan === "enterprise" ? (
+                <Shield size={16} className="text-purple-600" />
+              ) : (
+                <Shield size={16} className="text-green-600" />
+              )}
+            </div>
           </div>
         </div>
         <p className="text-gray-500 mb-8">
           Enter phone numbers to retrieve guest identity for arrival check-in.
         </p>
 
-        {/* Header Fields Group with visual grouping */}
+        {/* Header Fields Group */}
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-12 shadow-sm">
           <h3 className="text-sm font-bold text-gray-700 mb-6 pb-2 border-b border-[#F1F5F9]">
             VISIT INFORMATION
@@ -1227,11 +1115,6 @@ const Checkin = () => {
                   className="w-full pl-12 pr-4 py-4 bg-[#F1F5F9] border border-transparent rounded-xl text-gray-600 focus:outline-none cursor-default"
                 />
               </div>
-              {!isLoadingServerDate && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Date fetched from server
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -1274,17 +1157,7 @@ const Checkin = () => {
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                   <ChevronDown size={18} />
                 </div>
-                {hasVerificationStarted && (
-                  <div className="absolute right-12 top-1/2 -translate-y-1/2">
-                    <Clock size={14} className="text-gray-400" />
-                  </div>
-                )}
               </div>
-              {hasVerificationStarted && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {isCorporate ? "Cannot change purpose during verification" : "Cannot change booking source during verification"}
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -1316,11 +1189,6 @@ const Checkin = () => {
                     } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
                     }`}
                 />
-                {!isBookingIdEnabled && !isWalkIn && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <Search size={16} />
-                  </div>
-                )}
               </div>
               {isWalkIn ? (
                 <p className="text-xs text-[#10B981] mt-1">
@@ -1330,11 +1198,7 @@ const Checkin = () => {
                 <p className="text-xs text-gray-500 mt-1">
                   {isCorporate ? "Select a purpose first" : "Select a booking source first"}
                 </p>
-              ) : (
-                <p className="text-xs text-gray-500 mt-1">
-                  {isCorporate ? "Enter your email ID" : "Enter your booking ID"}
-                </p>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1353,7 +1217,7 @@ const Checkin = () => {
                 <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   <th className="text-left py-4 px-6">SERIAL NO.</th>
                   <th className="text-left py-4 px-6">PHONE NUMBER</th>
-                  <th className="text-left py-4 px-6">GUEST NAME</th>
+                  <th className="text-left py-4 px-6">GUEST NAME / VERIFICATION</th>
                   <th className="text-right py-4 px-6">STATUS / ACTION</th>
                 </tr>
               </thead>
@@ -1378,7 +1242,10 @@ const Checkin = () => {
                             !isPhoneInputEnabled ||
                             guest.status === "pending" ||
                             guest.status === "verifying" ||
-                            guest.status === "verified"
+                            guest.status === "verified" ||
+                            guest.showCodeInput ||
+                            guest.showWebcam ||
+                            guest.isIdVerifying
                           }
                           containerClass="!w-full"
                           inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
@@ -1393,7 +1260,10 @@ const Checkin = () => {
                         />
 
                         {guest.status === "pending" &&
-                          !guest.isChangingNumber && (
+                          !guest.isChangingNumber &&
+                          !guest.showCodeInput &&
+                          !guest.showWebcam &&
+                          !guest.isIdVerifying && (
                             <button
                               onClick={() => handleChangeNumber(index)}
                               disabled={!isPhoneInputEnabled}
@@ -1431,6 +1301,69 @@ const Checkin = () => {
                               PRIMARY GUEST
                             </span>
                           )}
+                          {guest.capturedImage && (
+                            <div className="mt-2">
+                              <img 
+                                src={guest.capturedImage} 
+                                alt="Captured" 
+                                className="w-16 h-16 object-cover rounded-lg border border-[#E2E8F0]"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : guest.isIdVerifying ? (
+                        <div className="flex flex-col">
+                          <span className="text-[#F59E0B] font-medium">
+                            ID Verification in Progress
+                          </span>
+                          <div className="flex items-center gap-2 text-sm text-[#F59E0B] mt-1">
+                            <Clock size={14} className="animate-spin" />
+                            <span className="font-mono font-bold">
+                              {formatTime(guest.idVerificationTimer)} remaining
+                            </span>
+                          </div>
+                        </div>
+                      ) : guest.showCodeInput ? (
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Enter 6-digit code"
+                              value={guest.verificationCode}
+                              onChange={(e) => handleVerificationCodeChange(index, e.target.value)}
+                              className="pl-10 pr-4 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10"
+                              maxLength={6}
+                              autoFocus
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleVerifyCode(index)}
+                            className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all"
+                          >
+                            Verify Code
+                          </button>
+                          <div className="text-xs text-gray-500">
+                            Use: 123456
+                          </div>
+                        </div>
+                      ) : guest.showWebcam ? (
+                        <div className="space-y-3">
+                          <Webcam
+                            audio={false}
+                            ref={webcamRef}
+                            screenshotFormat="image/jpeg"
+                            width={200}
+                            height={150}
+                            className="rounded-lg border border-[#E2E8F0]"
+                          />
+                          <button
+                            onClick={() => handleCapturePhoto(index)}
+                            className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
+                          >
+                            <Camera size={16} />
+                            Capture Photo
+                          </button>
                         </div>
                       ) : guest.status === "pending" ? (
                         <div className="flex flex-col">
@@ -1483,16 +1416,16 @@ const Checkin = () => {
                           <CheckCircle size={16} />
                           VERIFIED
                         </div>
-                      ) : (
+                      ) : !guest.showCodeInput && !guest.showWebcam && !guest.isIdVerifying ? (
                         <button
                           onClick={() => handleVerifyGuest(index)}
                           disabled={isVerifyButtonDisabled(guest, index)}
                           className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
                         >
-                          <CheckCircle size={16} />
-                          Verify
+                          {getVerifyButtonIcon(guest)}
+                          {getVerifyButtonText(guest)}
                         </button>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -1513,13 +1446,6 @@ const Checkin = () => {
             {!isPhoneInputEnabled && (
               <p className="text-sm text-gray-500 mt-2">
                 {isCorporate ? "Please enter Email ID before adding guests" : "Please enter Booking ID before adding guests"}
-              </p>
-            )}
-            {isAddGuestDisabled && isPhoneInputEnabled && (
-              <p className="text-sm text-gray-500 mt-2">
-                {isAnyGuestVerifying
-                  ? "Please wait for verification to complete before adding more guests."
-                  : "Please verify all existing guests before adding a new guest."}
               </p>
             )}
           </div>
