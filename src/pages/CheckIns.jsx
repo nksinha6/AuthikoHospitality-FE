@@ -35,22 +35,34 @@ import ConfirmationModal from "../components/ConfirmationModal.jsx";
 const Checkin = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
-  const isCorporate = userData?.loginType === "Corporate" || userData?.role === "Corporate";
-  const isHospitality = userData?.loginType === "Hospitality" || userData?.role === "Hospitality" || userData?.role === "Receptionist";
+
+  console.log("userData:", userData);
+  console.log("loginType:", userData?.loginType);
+  console.log("plan:", userData?.plan);
+
+  const isCorporate =
+    userData?.loginType === "Corporate" || userData?.role === "Corporate";
+  const isHospitality =
+    userData?.loginType === "Hospitality" ||
+    userData?.role === "Hospitality" ||
+    userData?.role === "Receptionist";
 
   // State for plan selection (for demo purposes)
   // In production, this would come from user's subscription
-  const [selectedPlan, setSelectedPlan] = useState("smb"); // Default to SMB for Hospitality
+  // const [selectedPlan, setSelectedPlan] = useState("smb"); // Default to SMB for Hospitality
+  const [selectedPlan, setSelectedPlan] = useState(userData?.plan || "smb");
 
   // Determine user plan based on role or login type
-  const getUserPlan = () => {
-    if (isCorporate) {
-      return "starter"; // Corporate only has starter plan
-    } else {
-      // Hospitality can have SMB or Enterprise - use selectedPlan state
-      return selectedPlan;
-    }
-  };
+  // const getUserPlan = () => {
+  //   if (isCorporate) {
+  //     return "starter"; // Corporate only has starter plan
+  //   } else {
+  //     // Hospitality can have SMB or Enterprise - use selectedPlan state
+  //     return selectedPlan;
+  //   }
+  // };
+
+  const getUserPlan = () => selectedPlan;
 
   const userPlan = getUserPlan();
 
@@ -65,7 +77,7 @@ const Checkin = () => {
     "Interview",
     "Company Visit",
     "Personal",
-    "Other"
+    "Other",
   ];
 
   // Refs
@@ -146,11 +158,11 @@ const Checkin = () => {
 
   // Update guests when plan changes
   useEffect(() => {
-    setGuests((prev) => 
-      prev.map(guest => ({
+    setGuests((prev) =>
+      prev.map((guest) => ({
         ...guest,
         planType: userPlan,
-      }))
+      })),
     );
   }, [userPlan]);
 
@@ -195,7 +207,7 @@ const Checkin = () => {
         g.isWaitingForRestart ||
         g.showCodeInput ||
         g.showWebcam ||
-        g.isIdVerifying
+        g.isIdVerifying,
     );
     const allVerified = guests.every((g) => g.status === "verified");
 
@@ -261,14 +273,27 @@ const Checkin = () => {
                 isIdVerifying: false,
                 idVerificationTimer: 0,
                 // Show next step based on plan
-                showCodeInput: guest.planType === "smb" || (isCorporate && guest.planType === "starter"),
-                showWebcam: guest.planType === "enterprise" && !isCorporate,
+                // showCodeInput:
+                //   guest.planType === "smb" ||
+                //   (isCorporate && guest.planType === "starter"),
+                // showWebcam: guest.planType === "enterprise" && !isCorporate,
+                showCodeInput: guest.planType === "smb",
+                showWebcam: guest.planType === "enterprise",
               };
-              
-              if (guest.planType === "smb" || (isCorporate && guest.planType === "starter")) {
-                showToast("info", "ID verification complete. Please enter verification code");
-              } else if (guest.planType === "enterprise" && !isCorporate) {
-                showToast("info", "ID verification complete. Please capture photo");
+
+              if (
+                guest.planType === "smb"
+                // || (isCorporate && guest.planType === "starter")
+              ) {
+                showToast(
+                  "info",
+                  "ID verification complete. Please enter verification code",
+                );
+              } else if (guest.planType === "enterprise") {
+                showToast(
+                  "info",
+                  "ID verification complete. Please capture photo",
+                );
               }
             }
           }
@@ -538,7 +563,12 @@ const Checkin = () => {
 
   const handlePhoneChange = (index, value) => {
     if (!isPhoneInputEnabled) {
-      showToast("error", isCorporate ? "Please enter Email ID first" : "Please enter Booking ID first");
+      showToast(
+        "error",
+        isCorporate
+          ? "Please enter Email ID first"
+          : "Please enter Booking ID first",
+      );
       return;
     }
 
@@ -550,7 +580,7 @@ const Checkin = () => {
       if (isDuplicate) {
         showToast(
           "error",
-          "This phone number is already entered for another guest"
+          "This phone number is already entered for another guest",
         );
         return;
       }
@@ -613,7 +643,7 @@ const Checkin = () => {
 
   const handleVerifyCode = (index) => {
     const guest = guests[index];
-    
+
     if (!guest.verificationCode || guest.verificationCode.length < 4) {
       showToast("error", "Please enter a valid verification code");
       return;
@@ -765,7 +795,7 @@ const Checkin = () => {
     if (isPhoneNumberDuplicate(guest.phoneNumber, index)) {
       showToast(
         "error",
-        "This phone number is already entered for another guest. Please use a unique phone number."
+        "This phone number is already entered for another guest. Please use a unique phone number.",
       );
       return;
     }
@@ -773,7 +803,7 @@ const Checkin = () => {
     if (hasDuplicatePhoneNumbersInBooking()) {
       showToast(
         "error",
-        "Duplicate phone numbers detected in this booking. Please use unique phone numbers for each guest."
+        "Duplicate phone numbers detected in this booking. Please use unique phone numbers for each guest.",
       );
       return;
     }
@@ -791,7 +821,7 @@ const Checkin = () => {
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being used by another guest"
+          : "This phone number is already being used by another guest",
       );
       return;
     }
@@ -804,7 +834,7 @@ const Checkin = () => {
           "error",
           isVerified
             ? "This phone number is already verified"
-            : "This phone number is already being used by another guest"
+            : "This phone number is already being used by another guest",
         );
         return;
       }
@@ -846,7 +876,7 @@ const Checkin = () => {
         "error",
         isVerified
           ? "This phone number is already verified"
-          : "This phone number is already being used by another guest"
+          : "This phone number is already being used by another guest",
       );
       return;
     }
@@ -867,12 +897,10 @@ const Checkin = () => {
     const guest = guests[index];
     const plan = guest.planType;
 
-    // Start the 2-minute timer cycle
     startVerificationCycle(index);
 
-    // Determine which flow to use based on plan
-    if (isCorporate && plan === "starter") {
-      // Corporate Starter Plan: Show verification code input immediately
+    // 🟢 STARTER → OTP only
+    if (plan === "starter") {
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
@@ -881,32 +909,37 @@ const Checkin = () => {
         };
         return newState;
       });
+
       showToast("info", "Please enter verification code 123456");
-    } 
-    else if (!isCorporate && plan === "smb") {
-      // Hospitality SMB: Start 40-second ID verification timer
+    }
+
+    // 🔵 SMB → ID → OTP
+    else if (plan === "smb") {
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 40, // 40 seconds timer
+          idVerificationTimer: 40,
         };
         return newState;
       });
+
       showToast("info", "ID verification started. Please wait 40 seconds...");
     }
-    else if (!isCorporate && plan === "enterprise") {
-      // Hospitality Enterprise: Start 40-second ID verification timer
+
+    // 🟣 ENTERPRISE → ID → FACE
+    else if (plan === "enterprise") {
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 40, // 40 seconds timer
+          idVerificationTimer: 40,
         };
         return newState;
       });
+
       showToast("info", "ID verification started. Please wait 40 seconds...");
     }
   };
@@ -914,14 +947,17 @@ const Checkin = () => {
   const handlePlanChange = (plan) => {
     setSelectedPlan(plan);
     resetAppState();
-    showToast("success", `Switched to ${plan === "smb" ? "SMB" : "Enterprise"} plan`);
+    showToast(
+      "success",
+      `Switched to ${plan === "smb" ? "SMB" : "Enterprise"} plan`,
+    );
   };
 
   const handleConfirmCheckIn = async () => {
     if (hasDuplicatePhoneNumbersInBooking()) {
       showToast(
         "error",
-        "Cannot check-in with duplicate phone numbers. Please verify all guests with unique phone numbers."
+        "Cannot check-in with duplicate phone numbers. Please verify all guests with unique phone numbers.",
       );
       return;
     }
@@ -934,7 +970,7 @@ const Checkin = () => {
 
     setIsConfirmingCheckin(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       clearAllVerificationProcesses();
       setShowSuccessModal(true);
       setModalMessage("Check-in completed successfully!");
@@ -973,7 +1009,8 @@ const Checkin = () => {
   };
 
   // Check if Add Guest button should be disabled
-  const isAddGuestDisabled = !areAllGuestsVerified || isAnyGuestVerifying || !isPhoneInputEnabled;
+  const isAddGuestDisabled =
+    !areAllGuestsVerified || isAnyGuestVerifying || !isPhoneInputEnabled;
 
   // Check if Booking ID should be enabled
   const isBookingIdEnabled =
@@ -1006,13 +1043,26 @@ const Checkin = () => {
   };
 
   // Get plan display name
+  // const getPlanDisplayName = () => {
+  //   if (isCorporate) {
+  //     return "Corporate Starter Plan";
+  //   } else {
+  //     if (selectedPlan === "smb") return "Hospitality SMB Plan";
+  //     if (selectedPlan === "enterprise") return "Hospitality Enterprise Plan";
+  //   }
+  //   return "";
+  // };
+
   const getPlanDisplayName = () => {
     if (isCorporate) {
-      return "Corporate Starter Plan";
+      if (selectedPlan === "starter") return "Corporate Starter Plan";
+      if (selectedPlan === "smb") return "Corporate SMB Plan";
+      if (selectedPlan === "enterprise") return "Corporate Enterprise Plan";
     } else {
       if (selectedPlan === "smb") return "Hospitality SMB Plan";
       if (selectedPlan === "enterprise") return "Hospitality Enterprise Plan";
     }
+
     return "";
   };
 
@@ -1021,7 +1071,7 @@ const Checkin = () => {
     if (guest.isIdVerifying) return "Verifying ID...";
     if (guest.showCodeInput) return "Enter Code";
     if (guest.showWebcam) return "Capture Photo";
-    
+
     if (isCorporate) {
       return "Get Code";
     } else {
@@ -1033,10 +1083,11 @@ const Checkin = () => {
 
   // Get button icon based on plan
   const getVerifyButtonIcon = (guest) => {
-    if (guest.isIdVerifying) return <Clock size={16} className="animate-spin" />;
+    if (guest.isIdVerifying)
+      return <Clock size={16} className="animate-spin" />;
     if (guest.showCodeInput) return <Key size={16} />;
     if (guest.showWebcam) return <Camera size={16} />;
-    
+
     if (isCorporate) {
       return <Key size={16} />;
     } else {
@@ -1057,7 +1108,7 @@ const Checkin = () => {
               <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
               System Online
             </div>
-            
+
             {/* Plan Selection Dropdown - Only for Hospitality */}
             {!isCorporate && (
               <div className="relative">
@@ -1066,13 +1117,21 @@ const Checkin = () => {
                   onChange={(e) => handlePlanChange(e.target.value)}
                   className="appearance-none bg-[#F1F5F9] border border-[#E2E8F0] text-gray-700 py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 cursor-pointer"
                 >
+                  {/* 🏢 Corporate → show Starter + SMB + Enterprise */}
+                  {isCorporate && <option value="starter">Starter Plan</option>}
+
+                  {/* 🏨 Hospitality → only SMB + Enterprise */}
                   <option value="smb">SMB Plan</option>
                   <option value="enterprise">Enterprise Plan</option>
                 </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+
+                <ChevronDown
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
               </div>
             )}
-            
+
             <div className="flex items-center gap-2 text-sm font-medium bg-[#F1F5F9] px-4 py-2 rounded-full">
               {isCorporate ? <Building2 size={16} /> : <Hotel size={16} />}
               <span>{getPlanDisplayName()}</span>
@@ -1134,7 +1193,9 @@ const Checkin = () => {
                   required
                   className={`w-full pl-12 pr-10 py-4 bg-white border rounded-xl text-gray-700 appearance-none focus:outline-none focus:ring-1 focus:ring-[#1b3631] focus:border-[#1b3631] transition-colors`}
                 >
-                  <option value="">{isCorporate ? "Select Purpose" : "Select Booking Source"}</option>
+                  <option value="">
+                    {isCorporate ? "Select Purpose" : "Select Booking Source"}
+                  </option>
                   {isCorporate ? (
                     PURPOSE_OPTIONS.map((purpose) => (
                       <option key={purpose} value={purpose}>
@@ -1179,15 +1240,21 @@ const Checkin = () => {
                   readOnly={isWalkIn || !isBookingIdEnabled}
                   disabled={!isBookingIdEnabled}
                   placeholder={
-                    isWalkIn ? "Auto-generated" : isCorporate ? "Enter Email ID*" : "Enter Booking ID*"
+                    isWalkIn
+                      ? "Auto-generated"
+                      : isCorporate
+                        ? "Enter Email ID*"
+                        : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
-                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                    : !isBookingIdEnabled
-                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                      : "border-[#E2E8F0] text-gray-700"
-                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
-                    }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
+                    isWalkIn
+                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                      : !isBookingIdEnabled
+                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                        : "border-[#E2E8F0] text-gray-700"
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
+                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
               {isWalkIn ? (
@@ -1196,7 +1263,9 @@ const Checkin = () => {
                 </p>
               ) : !isBookingIdEnabled ? (
                 <p className="text-xs text-gray-500 mt-1">
-                  {isCorporate ? "Select a purpose first" : "Select a booking source first"}
+                  {isCorporate
+                    ? "Select a purpose first"
+                    : "Select a booking source first"}
                 </p>
               ) : null}
             </div>
@@ -1217,7 +1286,9 @@ const Checkin = () => {
                 <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   <th className="text-left py-4 px-6">SERIAL NO.</th>
                   <th className="text-left py-4 px-6">PHONE NUMBER</th>
-                  <th className="text-left py-4 px-6">GUEST NAME / VERIFICATION</th>
+                  <th className="text-left py-4 px-6">
+                    GUEST NAME / VERIFICATION
+                  </th>
                   <th className="text-right py-4 px-6">STATUS / ACTION</th>
                 </tr>
               </thead>
@@ -1248,14 +1319,16 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
-                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                            : guest.isChangingNumber
-                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                              : "!bg-white !text-gray-700"
-                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                            } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
+                            !isPhoneInputEnabled
+                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                              : guest.isChangingNumber
+                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                                : "!bg-white !text-gray-700"
+                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
+                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                          } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
@@ -1285,7 +1358,9 @@ const Checkin = () => {
                       </div>
                       {!isPhoneInputEnabled && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {isCorporate ? "Enter Email ID first" : "Enter Booking ID first"}
+                          {isCorporate
+                            ? "Enter Email ID first"
+                            : "Enter Booking ID first"}
                         </p>
                       )}
                     </td>
@@ -1303,9 +1378,9 @@ const Checkin = () => {
                           )}
                           {guest.capturedImage && (
                             <div className="mt-2">
-                              <img 
-                                src={guest.capturedImage} 
-                                alt="Captured" 
+                              <img
+                                src={guest.capturedImage}
+                                alt="Captured"
                                 className="w-16 h-16 object-cover rounded-lg border border-[#E2E8F0]"
                               />
                             </div>
@@ -1326,12 +1401,20 @@ const Checkin = () => {
                       ) : guest.showCodeInput ? (
                         <div className="flex items-center gap-2">
                           <div className="relative">
-                            <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Key
+                              size={16}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
                             <input
                               type="text"
                               placeholder="Enter 6-digit code"
                               value={guest.verificationCode}
-                              onChange={(e) => handleVerificationCodeChange(index, e.target.value)}
+                              onChange={(e) =>
+                                handleVerificationCodeChange(
+                                  index,
+                                  e.target.value,
+                                )
+                              }
                               className="pl-10 pr-4 py-2 border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10"
                               maxLength={6}
                               autoFocus
@@ -1395,7 +1478,9 @@ const Checkin = () => {
                       ) : !isPhoneInputEnabled ? (
                         <div className="flex flex-col">
                           <span className="text-gray-400 italic">
-                            {isCorporate ? "Enter Email ID to enable verification" : "Enter Booking ID to enable verification"}
+                            {isCorporate
+                              ? "Enter Email ID to enable verification"
+                              : "Enter Booking ID to enable verification"}
                           </span>
                         </div>
                       ) : isPhoneNumberDuplicate(guest.phoneNumber, index) ? (
@@ -1416,7 +1501,9 @@ const Checkin = () => {
                           <CheckCircle size={16} />
                           VERIFIED
                         </div>
-                      ) : !guest.showCodeInput && !guest.showWebcam && !guest.isIdVerifying ? (
+                      ) : !guest.showCodeInput &&
+                        !guest.showWebcam &&
+                        !guest.isIdVerifying ? (
                         <button
                           onClick={() => handleVerifyGuest(index)}
                           disabled={isVerifyButtonDisabled(guest, index)}
@@ -1445,7 +1532,9 @@ const Checkin = () => {
             </button>
             {!isPhoneInputEnabled && (
               <p className="text-sm text-gray-500 mt-2">
-                {isCorporate ? "Please enter Email ID before adding guests" : "Please enter Booking ID before adding guests"}
+                {isCorporate
+                  ? "Please enter Email ID before adding guests"
+                  : "Please enter Booking ID before adding guests"}
               </p>
             )}
           </div>

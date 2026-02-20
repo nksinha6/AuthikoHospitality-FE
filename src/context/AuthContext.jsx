@@ -7,15 +7,15 @@ const decodeJWT = (token) => {
     if (!token) return null;
 
     // JWT format: header.payload.signature
-    const base64Url = token.split('.')[1];
+    const base64Url = token.split(".")[1];
     if (!base64Url) return null;
 
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
     );
 
     return JSON.parse(jsonPayload);
@@ -30,27 +30,34 @@ const extractIdsFromToken = (decodedToken) => {
   if (!decodedToken) return { tenantId: null, propertyIds: [] };
 
   // Extract tenantId (it might be string or number)
-  const tenantId = decodedToken.tenantId ?
-    String(decodedToken.tenantId) :
-    decodedToken["tenantId"] || null;
+  const tenantId = decodedToken.tenantId
+    ? String(decodedToken.tenantId)
+    : decodedToken["tenantId"] || null;
 
   // Extract propertyIds (can be string or array)
   let propertyIds = [];
-  const propertyIdsValue = decodedToken.propertyIds || decodedToken["propertyIds"];
+  const propertyIdsValue =
+    decodedToken.propertyIds || decodedToken["propertyIds"];
 
   if (propertyIdsValue) {
     if (Array.isArray(propertyIdsValue)) {
-      propertyIds = propertyIdsValue.map(id => String(id));
-    } else if (typeof propertyIdsValue === 'string') {
+      propertyIds = propertyIdsValue.map((id) => String(id));
+    } else if (typeof propertyIdsValue === "string") {
       // Handle comma-separated string or single value
-      propertyIds = propertyIdsValue.split(',').map(id => id.trim()).filter(id => id);
+      propertyIds = propertyIdsValue
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id);
     } else {
       propertyIds = [String(propertyIdsValue)];
     }
   }
 
   // Extract user role
-  const role = decodedToken["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+  const role =
+    decodedToken[
+      "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    ] ||
     decodedToken.role ||
     "Receptionist";
 
@@ -62,7 +69,7 @@ const extractIdsFromToken = (decodedToken) => {
     propertyIds,
     role,
     userEmail,
-    fullTokenData: decodedToken
+    fullTokenData: decodedToken,
   };
 };
 
@@ -76,7 +83,8 @@ export function AuthProvider({ children }) {
     propertyIds: [],
     role: "",
     userEmail: "",
-    loginType: "" // Store the explicit login type selected by user
+    loginType: "", // Store the explicit login type selected by user
+    plan: "", // ✅ ADD THIS
   });
 
   useEffect(() => {
@@ -107,17 +115,25 @@ export function AuthProvider({ children }) {
           const decodedToken = decodeJWT(accessToken);
           if (decodedToken) {
             const ids = extractIdsFromToken(decodedToken);
-            const savedLoginType = getItemFromStorages("onepass_login_type") || "";
+            const savedLoginType =
+              getItemFromStorages("onepass_login_type") || "";
+            const savedPlan = getItemFromStorages("onepass_plan") || "";
+
             const finalData = {
               ...ids,
               loginType: savedLoginType,
-              role: ids.role === "Receptionist" && savedLoginType ? savedLoginType : ids.role
+              plan: savedPlan, // ✅ restore plan
+              role:
+                ids.role === "Receptionist" && savedLoginType
+                  ? savedLoginType
+                  : ids.role,
             };
             setUserData(finalData);
 
             // Also store in storage for quick access
-            const storage = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ?
-              sessionStorage : localStorage;
+            const storage = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+              ? sessionStorage
+              : localStorage;
             storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(finalData));
           }
 
@@ -126,11 +142,23 @@ export function AuthProvider({ children }) {
           // Token expired, clear storage
           clearAuthData();
           setIsAuthenticated(false);
-          setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "", loginType: "" });
+          setUserData({
+            tenantId: null,
+            propertyIds: [],
+            role: "",
+            userEmail: "",
+            loginType: "",
+            plan: "", // ✅ ADD THIS
+          });
         }
       } else {
         setIsAuthenticated(false);
-        setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "" });
+        setUserData({
+          tenantId: null,
+          propertyIds: [],
+          role: "",
+          userEmail: "",
+        });
       }
 
       setLoading(false);
@@ -141,7 +169,13 @@ export function AuthProvider({ children }) {
 
   const clearAuthData = () => {
     setIsAuthenticated(false);
-    setUserData({ tenantId: null, propertyIds: [], role: "", userEmail: "", loginType: "" });
+    setUserData({
+      tenantId: null,
+      propertyIds: [],
+      role: "",
+      userEmail: "",
+      loginType: "",
+    });
 
     if (typeof window !== "undefined") {
       // Remove auth data from both storages to be safe
@@ -157,13 +191,20 @@ export function AuthProvider({ children }) {
       sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
       localStorage.removeItem("onepass_login_type");
       sessionStorage.removeItem("onepass_login_type");
+      localStorage.removeItem("onepass_plan");
+      sessionStorage.removeItem("onepass_plan");
     }
   };
 
   // tokens: { accessToken, refreshToken, expiresAt }
   // remember: boolean -> when true persist to localStorage, otherwise sessionStorage
   // explicitLoginType: 'Corporate' | 'Hospitality'
-  const login = (tokens, remember = true, explicitLoginType = "") => {
+  const login = (
+    tokens,
+    remember = true,
+    explicitLoginType = "",
+    explicitPlan = "",
+  ) => {
     setIsAuthenticated(true);
 
     // Decode token and extract IDs
@@ -174,8 +215,12 @@ export function AuthProvider({ children }) {
     const finalData = {
       ...ids,
       loginType: explicitLoginType,
+      plan: explicitPlan,
       // If token role is generic, use explicitLoginType as role
-      role: ids.role === "Receptionist" && explicitLoginType ? explicitLoginType : ids.role
+      role:
+        ids.role === "Receptionist" && explicitLoginType
+          ? explicitLoginType
+          : ids.role,
     };
 
     setUserData(finalData);
@@ -188,6 +233,7 @@ export function AuthProvider({ children }) {
       storage.setItem(STORAGE_KEYS.TOKEN_EXPIRES_AT, tokens.expiresAt);
       storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(finalData));
       storage.setItem("onepass_login_type", explicitLoginType);
+      storage.setItem("onepass_plan", explicitPlan);
     }
   };
 
@@ -201,9 +247,9 @@ export function AuthProvider({ children }) {
       loading,
       login,
       logout,
-      userData
+      userData,
     }),
-    [isAuthenticated, loading, userData]
+    [isAuthenticated, loading, userData],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, Building2, Hotel, ChevronDown } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Building2,
+  Hotel,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
@@ -56,7 +64,7 @@ export default function Login() {
       if (rememberMe) {
         localStorage.setItem(
           STORAGE_KEYS.SAVED_EMAIL,
-          values[FORM_FIELDS.USER_ID]
+          values[FORM_FIELDS.USER_ID],
         );
         localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "true");
       } else {
@@ -65,15 +73,17 @@ export default function Login() {
       }
 
       const [type, planName] = selectedPlan.split("-");
+      const normalizedPlan = planName.toLowerCase();
+
       const tokens = await authService.login({
         userId: values[FORM_FIELDS.USER_ID],
         password: values[FORM_FIELDS.PASSWORD],
         loginType: type, // Pass login type to service
-        plan: planName,
+        plan: normalizedPlan,
       });
 
       // Persist tokens according to "Remember me" preference
-      login(tokens, rememberMe, type, planName);
+      login(tokens, rememberMe, type, normalizedPlan);
       navigate(from, { replace: true });
     } catch (error) {
       setErrorMessage(error.message || "Login failed. Please try again.");
@@ -149,12 +159,16 @@ export default function Login() {
               >
                 <optgroup label="Hospitality Plans">
                   <option value="Hospitality-SMB">Hospitality SMB</option>
-                  <option value="Hospitality-Enterprise">Hospitality Enterprise</option>
+                  <option value="Hospitality-Enterprise">
+                    Hospitality Enterprise
+                  </option>
                 </optgroup>
                 <optgroup label="Corporate Plans">
                   <option value="Corporate-Starter">Corporate Starter</option>
                   <option value="Corporate-SMB">Corporate SMB</option>
-                  <option value="Corporate-Enterprise">Corporate Enterprise</option>
+                  <option value="Corporate-Enterprise">
+                    Corporate Enterprise
+                  </option>
                 </optgroup>
               </select>
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
