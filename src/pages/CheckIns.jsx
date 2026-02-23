@@ -920,7 +920,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 40,
+          idVerificationTimer: 20,
         };
         return newState;
       });
@@ -935,7 +935,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 40,
+          idVerificationTimer: 20,
         };
         return newState;
       });
