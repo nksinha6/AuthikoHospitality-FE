@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   BOOKING_GUEST_DETAILS: "HotelGuestRead/booking_guest_details",
   GUEST_AADHAAR_IMAGE: "HotelGuestRead/aadhar/image",
   PROPERTY_BY_ID: "/HotelPropertyRead/property_by_id",
+  TENANT_BY_ID: "/HotelPropertyRead/tenant_by_id",
 };
 
 // Storage Keys

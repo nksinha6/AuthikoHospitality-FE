@@ -13,34 +13,8 @@ import { exportToPDF, exportToExcel } from "../utility/exportUtils";
 import { guestDetailsService } from "../services/guestDetailsService";
 import { transformGuestsArray } from "../utility/guestDataTransformer";
 import { STORAGE_KEYS, API_ENDPOINTS } from "../constants/config.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
-/* -- Get Property ID From Token -- */
-
-const getPropertyIdFromSession = () => {
-  try {
-    const userData = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
-    if (!userData) return null;
-
-    const parsed = JSON.parse(userData);
-
-    // propertyIds is array → take first
-    const propertyId = parsed?.propertyIds?.[0];
-
-    console.log("Resolved propertyId from session:", propertyId);
-    return propertyId || null;
-  } catch (err) {
-    console.error("Failed to read USER_DATA from sessionStorage", err);
-    return null;
-  }
-};
-
-/* ---------------- PROPERTY DETAILS ---------------- */
-const PROPERTY_DETAILS = {
-  propertyName: "Silver Sands Resort & Spa",
-  propertyAddress:
-    "Plot No. 45, Banjara Hills, Road No. 12, Hyderabad, Telangana - 500034",
-  correspondingPoliceStation: "Banjara Hills Police Station, Hyderabad",
-};
 
 /* ---------------- UTILITY FUNCTIONS ---------------- */
 const maskAadhaar = (aadhaar) => {
@@ -84,12 +58,15 @@ export default function GuestDetails() {
   const [showModal, setShowModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [propertyDetails, setPropertyDetails] = useState(null);
 
   // Loading and Error States
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Auth Context
+  const { userData, propertyDetails: authPropertyDetails } = useAuth();
+  const propertyDetails = authPropertyDetails;
 
   const GUEST_COLUMNS = [
     { key: "checkInDate", label: "Check-in Date" },
@@ -188,33 +165,10 @@ export default function GuestDetails() {
     [],
   );
 
-  const fetchPropertyDetails = useCallback(async () => {
-    const propertyId = getPropertyIdFromSession();
-
-    if (!propertyId) {
-      console.warn("Property ID not found in session storage");
-      return;
-    }
-
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.PROPERTY_BY_ID, {
-        params: { propertyId },
-      });
-
-      console.log("🏨 Property Details API Response:", response.data?.name);
-
-      // store for PDF / header / filename
-      setPropertyDetails(response.data);
-    } catch (error) {
-      console.error("❌ Error fetching property details:", error);
-    }
-  }, []);
-
   /* ---------------- INITIAL DATA LOAD ---------------- */
   useEffect(() => {
     fetchGuestDetails();
-    fetchPropertyDetails();
-  }, [fetchGuestDetails, fetchPropertyDetails]);
+  }, [fetchGuestDetails]);
 
   /* ---------------- APPLY FILTERS ---------------- */
   const applyAllFilters = useCallback(() => {
@@ -773,18 +727,17 @@ export default function GuestDetails() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-semibold text-[#1b3631]">
-            Guest Details
+            {propertyDetails?.name || "Guest Details"}
           </h2>
           <p className="text-gray-600 mt-1">
-            View and manage guest information
+            {propertyDetails?.name ? "Guest Details" : "View and manage guest information"}
           </p>
         </div>
         <button
           onClick={() => fetchGuestDetails(true)}
           disabled={isRefreshing}
-          className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-lg transition-colors ${
-            isRefreshing ? "bg-gray-100 cursor-not-allowed" : "hover:bg-gray-50"
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-lg transition-colors ${isRefreshing ? "bg-gray-100 cursor-not-allowed" : "hover:bg-gray-50"
+            }`}
         >
           <FiRefreshCw
             className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
@@ -847,13 +800,13 @@ export default function GuestDetails() {
           filters.bookingId ||
           filters.city ||
           filters.state) && (
-          <button
-            onClick={clearFilters}
-            className="mt-2 text-sm text-[#1b3631] hover:underline"
-          >
-            Clear all filters
-          </button>
-        )}
+            <button
+              onClick={clearFilters}
+              className="mt-2 text-sm text-[#1b3631] hover:underline"
+            >
+              Clear all filters
+            </button>
+          )}
       </div>
 
       <div className="flex justify-between items-center mb-6">
@@ -912,11 +865,10 @@ export default function GuestDetails() {
           <button
             onClick={handleDownloadSelectedPDF}
             disabled={isDownloading}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
-              isDownloading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#1b3631] hover:bg-[#2a4a43]"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${isDownloading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#1b3631] hover:bg-[#2a4a43]"
+              }`}
           >
             {isDownloading ? (
               <>

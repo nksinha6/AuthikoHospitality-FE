@@ -33,7 +33,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME) === "true";
   });
-  const [selectedPlan, setSelectedPlan] = useState("Hospitality-SMB");
   const [logoError, setLogoError] = useState(false);
 
   // const from = location.state?.from?.pathname || ROUTES.TODAYS_BOOKINGS;
@@ -72,18 +71,13 @@ export default function Login() {
         localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "false");
       }
 
-      const [type, planName] = selectedPlan.split("-");
-      const normalizedPlan = planName.toLowerCase();
-
       const tokens = await authService.login({
         userId: values[FORM_FIELDS.USER_ID],
         password: values[FORM_FIELDS.PASSWORD],
-        loginType: type, // Pass login type to service
-        plan: normalizedPlan,
       });
 
       // Persist tokens according to "Remember me" preference
-      login(tokens, rememberMe, type, normalizedPlan);
+      login(tokens, rememberMe);
       navigate(from, { replace: true });
     } catch (error) {
       setErrorMessage(error.message || "Login failed. Please try again.");
@@ -140,41 +134,6 @@ export default function Login() {
                 <span>{errorMessage}</span>
               </div>
             )}
-          </div>
-
-          {/* Plan Selection Dropdown */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Select Plan
-            </label>
-            <div className="relative">
-              <Building2
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
-              />
-              <select
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-colors appearance-none cursor-pointer"
-              >
-                <optgroup label="Hospitality Plans">
-                  <option value="Hospitality-SMB">Hospitality SMB</option>
-                  <option value="Hospitality-Enterprise">
-                    Hospitality Enterprise
-                  </option>
-                </optgroup>
-                <optgroup label="Corporate Plans">
-                  <option value="Corporate-Starter">Corporate Starter</option>
-                  <option value="Corporate-SMB">Corporate SMB</option>
-                  <option value="Corporate-Enterprise">
-                    Corporate Enterprise
-                  </option>
-                </optgroup>
-              </select>
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
-                <ChevronDown size={18} />
-              </div>
-            </div>
           </div>
 
           {/* Form */}

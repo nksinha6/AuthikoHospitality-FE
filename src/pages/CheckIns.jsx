@@ -34,15 +34,19 @@ import ConfirmationModal from "../components/ConfirmationModal.jsx";
 
 const Checkin = () => {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, propertyDetails } = useAuth();
 
   console.log("userData:", userData);
   console.log("loginType:", userData?.loginType);
   console.log("plan:", userData?.plan);
 
   const isCorporate =
-    userData?.loginType === "Corporate" || userData?.role === "Corporate";
+    userData?.type === "Corporate" ||
+    userData?.loginType === "Corporate" ||
+    userData?.role === "Corporate";
+
   const isHospitality =
+    userData?.type === "Hospitality" ||
     userData?.loginType === "Hospitality" ||
     userData?.role === "Hospitality" ||
     userData?.role === "Receptionist";
@@ -50,7 +54,16 @@ const Checkin = () => {
   // State for plan selection (for demo purposes)
   // In production, this would come from user's subscription
   // const [selectedPlan, setSelectedPlan] = useState("smb"); // Default to SMB for Hospitality
-  const [selectedPlan, setSelectedPlan] = useState(userData?.plan || "smb");
+  const [selectedPlan, setSelectedPlan] = useState(
+    userData?.tier?.toLowerCase() || userData?.plan || "smb",
+  );
+
+  // Sync selectedPlan if userData.tier changes (after API fetch)
+  useEffect(() => {
+    if (userData?.tier) {
+      setSelectedPlan(userData.tier.toLowerCase());
+    }
+  }, [userData?.tier]);
 
   // Determine user plan based on role or login type
   // const getUserPlan = () => {
@@ -125,6 +138,7 @@ const Checkin = () => {
       capturedImage: null,
       idVerificationTimer: 0,
       isIdVerifying: false,
+      idVerificationComplete: false, // New flag
       planType: userPlan,
     },
   ]);
@@ -273,18 +287,13 @@ const Checkin = () => {
                 isIdVerifying: false,
                 idVerificationTimer: 0,
                 // Show next step based on plan
-                // showCodeInput:
-                //   guest.planType === "smb" ||
-                //   (isCorporate && guest.planType === "starter"),
-                // showWebcam: guest.planType === "enterprise" && !isCorporate,
                 showCodeInput: guest.planType === "smb",
-                showWebcam: guest.planType === "enterprise",
+                // Don't auto-show webcam for enterprise, just set a flag that ID verification is complete
+                idVerificationComplete: guest.planType === "enterprise",
+                showWebcam: false, // Don't auto-show webcam
               };
 
-              if (
-                guest.planType === "smb"
-                // || (isCorporate && guest.planType === "starter")
-              ) {
+              if (guest.planType === "smb") {
                 showToast(
                   "info",
                   "ID verification complete. Please enter verification code",
@@ -292,7 +301,7 @@ const Checkin = () => {
               } else if (guest.planType === "enterprise") {
                 showToast(
                   "info",
-                  "ID verification complete. Please capture photo",
+                  "ID verification complete. Click 'Start Photo Verification' to capture photo",
                 );
               }
             }
@@ -493,6 +502,7 @@ const Checkin = () => {
         capturedImage: null,
         idVerificationTimer: 0,
         isIdVerifying: false,
+        idVerificationComplete: false,
         planType: userPlan,
       },
     ]);
@@ -608,6 +618,7 @@ const Checkin = () => {
         newGuests[index].isCodeVerified = false;
         newGuests[index].isIdVerifying = false;
         newGuests[index].idVerificationTimer = 0;
+        newGuests[index].idVerificationComplete = false;
 
         if (pollingIntervals[index]) {
           clearInterval(pollingIntervals[index]);
@@ -695,6 +706,7 @@ const Checkin = () => {
           faceStatus: VERIFICATION_STATUS.VERIFIED,
           isTimerActive: false,
           timerSeconds: 0,
+          idVerificationComplete: false,
         };
         return newState;
       });
@@ -706,6 +718,19 @@ const Checkin = () => {
 
       showToast("success", "Guest verified successfully!");
     }
+  };
+
+  // Function to start photo verification
+  const handleStartPhotoVerification = (index) => {
+    setGuests((prev) => {
+      const newState = [...prev];
+      newState[index] = {
+        ...newState[index],
+        showWebcam: true,
+        // Keep idVerificationComplete: true so the label stays visible
+      };
+      return newState;
+    });
   };
 
   // Function to enable number change mode
@@ -733,6 +758,7 @@ const Checkin = () => {
         capturedImage: null,
         isIdVerifying: false,
         idVerificationTimer: 0,
+        idVerificationComplete: false,
       };
 
       return newState;
@@ -783,6 +809,7 @@ const Checkin = () => {
         capturedImage: null,
         idVerificationTimer: 0,
         isIdVerifying: false,
+        idVerificationComplete: false,
         planType: userPlan,
       },
     ]);
@@ -921,14 +948,15 @@ const Checkin = () => {
           ...newState[index],
           isIdVerifying: true,
           idVerificationTimer: 20,
+          idVerificationComplete: false, // Reset flag
         };
         return newState;
       });
 
-      showToast("info", "ID verification started. Please wait 40 seconds...");
+      showToast("info", "ID verification started. Please wait 20 seconds...");
     }
 
-    // 🟣 ENTERPRISE → ID → FACE
+    // 🟣 ENTERPRISE → ID → FACE (manual trigger)
     else if (plan === "enterprise") {
       setGuests((prev) => {
         const newState = [...prev];
@@ -936,11 +964,13 @@ const Checkin = () => {
           ...newState[index],
           isIdVerifying: true,
           idVerificationTimer: 20,
+          idVerificationComplete: false, // Reset flag
+          showWebcam: false, // Ensure webcam is not shown
         };
         return newState;
       });
 
-      showToast("info", "ID verification started. Please wait 40 seconds...");
+      showToast("info", "ID verification started. Please wait 20 seconds...");
     }
   };
 
@@ -1030,7 +1060,8 @@ const Checkin = () => {
       hasDuplicatePhoneNumbersInBooking() ||
       guest.showCodeInput ||
       guest.showWebcam ||
-      guest.isIdVerifying
+      guest.isIdVerifying ||
+      guest.idVerificationComplete // Disable verify button if ID verification is complete (waiting for photo)
     ) {
       return true;
     }
@@ -1102,42 +1133,33 @@ const Checkin = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-1">
-          <h1 className="text-3xl font-bold">Guest Verification</h1>
+          <h1 className="text-3xl font-bold">
+            {propertyDetails?.name ? `${propertyDetails.name}` : "Guest Verification"}
+          </h1>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
               <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
               System Online
             </div>
 
-            {/* Plan Selection Dropdown - Only for Hospitality */}
-            {!isCorporate && (
-              <div className="relative">
-                <select
-                  value={selectedPlan}
-                  onChange={(e) => handlePlanChange(e.target.value)}
-                  className="appearance-none bg-[#F1F5F9] border border-[#E2E8F0] text-gray-700 py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 cursor-pointer"
-                >
-                  {/* 🏢 Corporate → show Starter + SMB + Enterprise */}
-                  {isCorporate && <option value="starter">Starter Plan</option>}
-
-                  {/* 🏨 Hospitality → only SMB + Enterprise */}
-                  <option value="smb">SMB Plan</option>
-                  <option value="enterprise">Enterprise Plan</option>
-                </select>
-
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-                />
+            <div className="flex items-center gap-2 text-sm font-medium bg-[#F1F5F9] px-4 py-2 rounded-full shadow-sm border border-[#E2E8F0]">
+              {isCorporate || userData?.type === "Corporate" ? (
+                <Building2 size={16} className="text-blue-600" />
+              ) : (
+                <Hotel size={16} className="text-green-600" />
+              )}
+              <div className="flex flex-col leading-tight">
+                {/* <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
+                  {userData?.type || (isCorporate ? "Corporate" : "Hospitality")}
+                </span> */}
+                <span className="text-[#1b3631]">
+                  {userData?.tier || getPlanDisplayName()}
+                </span>
               </div>
-            )}
-
-            <div className="flex items-center gap-2 text-sm font-medium bg-[#F1F5F9] px-4 py-2 rounded-full">
-              {isCorporate ? <Building2 size={16} /> : <Hotel size={16} />}
-              <span>{getPlanDisplayName()}</span>
-              {isCorporate ? (
+              {isCorporate || userData?.type === "Corporate" ? (
                 <Shield size={16} className="text-blue-600" />
-              ) : selectedPlan === "enterprise" ? (
+              ) : selectedPlan === "enterprise" ||
+                userData?.tier?.toLowerCase() === "enterprise" ? (
                 <Shield size={16} className="text-purple-600" />
               ) : (
                 <Shield size={16} className="text-green-600" />
@@ -1246,15 +1268,13 @@ const Checkin = () => {
                         ? "Enter Email ID*"
                         : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
               </div>
               {isWalkIn ? (
@@ -1319,16 +1339,14 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
@@ -1398,6 +1416,42 @@ const Checkin = () => {
                             </span>
                           </div>
                         </div>
+                      ) : (guest.idVerificationComplete || guest.showWebcam) ? (
+                        <div className="flex flex-col items-start gap-3">
+                          <div className="flex items-center gap-4">
+                            <span className="text-green-600 font-medium">
+                              ID Verification Complete
+                            </span>
+                            {!guest.showWebcam && (
+                              <button
+                                onClick={() => handleStartPhotoVerification(index)}
+                                className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
+                              >
+                                <Camera size={16} />
+                                Capture guest photo
+                              </button>
+                            )}
+                          </div>
+                          {guest.showWebcam && (
+                            <div className="space-y-3 mt-2">
+                              <Webcam
+                                audio={false}
+                                ref={webcamRef}
+                                screenshotFormat="image/jpeg"
+                                width={200}
+                                height={150}
+                                className="rounded-lg border border-[#E2E8F0]"
+                              />
+                              <button
+                                onClick={() => handleCapturePhoto(index)}
+                                className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
+                              >
+                                <Camera size={16} />
+                                Capture Photo
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       ) : guest.showCodeInput ? (
                         <div className="flex items-center gap-2">
                           <div className="relative">
@@ -1425,27 +1479,6 @@ const Checkin = () => {
                             className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all"
                           >
                             Verify Code
-                          </button>
-                          <div className="text-xs text-gray-500">
-                            Use: 123456
-                          </div>
-                        </div>
-                      ) : guest.showWebcam ? (
-                        <div className="space-y-3">
-                          <Webcam
-                            audio={false}
-                            ref={webcamRef}
-                            screenshotFormat="image/jpeg"
-                            width={200}
-                            height={150}
-                            className="rounded-lg border border-[#E2E8F0]"
-                          />
-                          <button
-                            onClick={() => handleCapturePhoto(index)}
-                            className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
-                          >
-                            <Camera size={16} />
-                            Capture Photo
                           </button>
                         </div>
                       ) : guest.status === "pending" ? (
@@ -1503,7 +1536,8 @@ const Checkin = () => {
                         </div>
                       ) : !guest.showCodeInput &&
                         !guest.showWebcam &&
-                        !guest.isIdVerifying ? (
+                        !guest.isIdVerifying &&
+                        !guest.idVerificationComplete ? ( // Hide verify button when ID verification is complete
                         <button
                           onClick={() => handleVerifyGuest(index)}
                           disabled={isVerifyButtonDisabled(guest, index)}

@@ -1,5 +1,6 @@
-import { createContext, useContext, useMemo, useState, useEffect } from "react";
-import { STORAGE_KEYS } from "../constants/config.js";
+import { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react";
+import { STORAGE_KEYS, API_ENDPOINTS, PROPERTY_ID, TENANT_ID } from "../constants/config.js";
+import apiClient from "../services/apiClient.js";
 
 // Utility function to decode JWT token
 const decodeJWT = (token) => {
@@ -64,11 +65,17 @@ const extractIdsFromToken = (decodedToken) => {
   // Extract user email
   const userEmail = decodedToken.sub || decodedToken.email || "";
 
+  // Extract Tier and Type
+  const tier = decodedToken.tier || decodedToken["tier"] || "";
+  const type = decodedToken.type || decodedToken["type"] || "";
+
   return {
     tenantId,
     propertyIds,
     role,
     userEmail,
+    tier,
+    type,
     fullTokenData: decodedToken,
   };
 };
@@ -83,9 +90,61 @@ export function AuthProvider({ children }) {
     propertyIds: [],
     role: "",
     userEmail: "",
+    tier: "",
+    type: "",
     loginType: "", // Store the explicit login type selected by user
     plan: "", // ✅ ADD THIS
   });
+  const [propertyDetails, setPropertyDetails] = useState(null);
+  const [tenantDetails, setTenantDetails] = useState(null);
+
+  const fetchPropertyDetails = useCallback(async (propertyId) => {
+    if (!propertyId) return;
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROPERTY_BY_ID, {
+        params: { propertyId },
+      });
+      const data = response.data;
+      setPropertyDetails(data);
+
+      // Update userData with tier and propertyType from API
+      setUserData((prev) => ({
+        ...prev,
+        tier: data.tier || prev.tier,
+        type: data.propertyType || prev.type,
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching property details in AuthContext:", error);
+    }
+  }, []);
+
+  const fetchTenantDetails = useCallback(async (tenantId) => {
+    if (!tenantId) return;
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.TENANT_BY_ID, {
+        params: { tenantId },
+      });
+      setTenantDetails(response.data);
+    } catch (error) {
+      console.error("❌ Error fetching tenant details in AuthContext:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Fetch Tenant Details if TENANT_ID or userData.tenantId exists
+    const effectiveTenantId = TENANT_ID || userData.tenantId;
+    if (effectiveTenantId && !tenantDetails) {
+      fetchTenantDetails(effectiveTenantId);
+    }
+
+    // Fetch Property Details if PROPERTY_ID or userData.propertyIds exists
+    const effectivePropertyId = PROPERTY_ID || userData.propertyIds?.[0];
+    if (effectivePropertyId && !propertyDetails) {
+      fetchPropertyDetails(effectivePropertyId);
+    }
+  }, [isAuthenticated, userData.tenantId, userData.propertyIds, propertyDetails, tenantDetails, fetchPropertyDetails, fetchTenantDetails]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -176,6 +235,8 @@ export function AuthProvider({ children }) {
       userEmail: "",
       loginType: "",
     });
+    setPropertyDetails(null);
+    setTenantDetails(null);
 
     if (typeof window !== "undefined") {
       // Remove auth data from both storages to be safe
@@ -248,8 +309,10 @@ export function AuthProvider({ children }) {
       login,
       logout,
       userData,
+      propertyDetails,
+      tenantDetails,
     }),
-    [isAuthenticated, loading, userData],
+    [isAuthenticated, loading, userData, propertyDetails, tenantDetails],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
