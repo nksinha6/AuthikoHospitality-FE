@@ -141,10 +141,7 @@ export default function GuestVerification() {
       /^\+/,
       ""
     );
-    const phoneno = guest.phoneNumber.replace(
-      new RegExp(`^${phoneCountryCode}`),
-      ""
-    );
+    const phoneno = guest.phoneNumber; // Use the full phone number including country code
 
     // Update guest status to processing
     const updatedGuests = [...guests];
@@ -159,24 +156,41 @@ export default function GuestVerification() {
     setGuests(updatedGuests);
 
     try {
-      // Call ensure verification API
-      const ensureResponse = await verificationService.ensureVerification(
-        bookingId,
+      // 1. Post Digilocker verification IDs
+      await verificationService.postDigilockerVerificationIds(phoneCountryCode, phoneno);
+
+      // 2. Check user status using get_guest_by_id
+      const guestResponse = await verificationService.getGuestById(
         phoneCountryCode,
         phoneno
       );
 
       // Case 1: Verified 1Pass user exists
-      if (ensureResponse.verificationStatus === "verified") {
+      if (guestResponse.verificationStatus === "verified" || guestResponse.aadhaar_verified) {
         setGuests((prev) => {
           const newState = [...prev];
           newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          // Store IDs for Aadhaar Data API
+          newState[index].verificationId = guestResponse.verificationId;
+          newState[index].referenceId = guestResponse.referenceId;
           // Face status remains pending until manually initiated
           newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
           return newState;
         });
+
+        // Fetch Aadhaar data after verification
+        if (guestResponse.verificationId) {
+          guestDetailsService.getAadhaarData(
+            guestResponse.verificationId,
+            guestResponse.referenceId,
+            phoneCountryCode,
+            phoneno
+          ).then(data => console.log("Aadhaar Data fetched after verification:", data))
+            .catch(err => console.error("Aadhaar fetch error after verification:", err));
+        }
+
         // Stop polling for face match status (Wait for manual trigger)
-      } else if (ensureResponse.verificationStatus === "pending") {
+      } else if (guestResponse.verificationStatus === "pending") {
         // Case 2: Status pending - start polling for ID verification
         startIdVerificationWithDelay(index, phoneCountryCode, phoneno);
 
@@ -241,10 +255,24 @@ export default function GuestVerification() {
           setGuests((prev) => {
             const newState = [...prev];
             newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+            // Store IDs for Aadhaar Data API
+            newState[index].verificationId = guestResponse.verificationId;
+            newState[index].referenceId = guestResponse.referenceId;
             // Face status remains pending until manually initiated which we do right after
             newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
             return newState;
           });
+
+          // Fetch Aadhaar data after verification success from polling
+          if (guestResponse.verificationId) {
+            guestDetailsService.getAadhaarData(
+              guestResponse.verificationId,
+              guestResponse.referenceId,
+              phoneCountryCode,
+              phoneno
+            ).then(data => console.log("Aadhaar Data fetched after polling verification:", data))
+              .catch(err => console.error("Aadhaar fetch error after polling:", err));
+          }
 
           // Clear polling interval
           clearInterval(pollingIntervals[index]);
@@ -411,10 +439,7 @@ export default function GuestVerification() {
       /^\+/,
       ""
     );
-    const phoneno = guest.phoneNumber.replace(
-      new RegExp(`^${phoneCountryCode}`),
-      ""
-    );
+    const phoneno = guest.phoneNumber;
 
     // Update status to processing
     setGuests((prev) => {
@@ -430,6 +455,17 @@ export default function GuestVerification() {
         phoneCountryCode,
         phoneno
       );
+
+      // Fetch Aadhaar data before/during face match
+      if (guest.verificationId) {
+        guestDetailsService.getAadhaarData(
+          guest.verificationId,
+          guest.referenceId,
+          phoneCountryCode,
+          phoneno
+        ).then(data => console.log("Aadhaar Data fetched during face match:", data))
+          .catch(err => console.error("Aadhaar fetch error during face match:", err));
+      }
 
       // Start polling
       startFaceMatchPolling(index, phoneCountryCode, phoneno);
@@ -463,10 +499,7 @@ export default function GuestVerification() {
       /^\+/,
       ""
     );
-    const phoneno = guest.phoneNumber.replace(
-      new RegExp(`^${phoneCountryCode}`),
-      ""
-    );
+    const phoneno = guest.phoneNumber;
 
     try {
       const guestResponse = await verificationService.getGuestById(
@@ -529,10 +562,7 @@ export default function GuestVerification() {
       /^\+/,
       ""
     );
-    const phoneno = guest.phoneNumber.replace(
-      new RegExp(`^${phoneCountryCode}`),
-      ""
-    );
+    const phoneno = guest.phoneNumber;
 
     try {
       const faceMatchResponse = await verificationService.getFaceMatchStatus(

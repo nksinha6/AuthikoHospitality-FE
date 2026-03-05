@@ -75,24 +75,30 @@ export const verificationService = {
   },
 
   /**
-   * Get guest by ID (Static)
+   * Get guest by ID (Real API call)
    */
   async getGuestById(phoneCountryCode, phoneNumber) {
-    console.log("Static getGuestById called with:", { phoneCountryCode, phoneNumber });
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    const plan = this.determinePlan(null, phoneNumber);
-
-    if (plan === "starter") {
-      return {
-        verificationStatus: "pending",
-        aadhaar_verified: false,
-        fullName: null
-      };
-    } else if (plan === "smb") {
-      return MOCK_VERIFICATION_DATA.smb.guestData;
-    } else {
-      return MOCK_VERIFICATION_DATA.enterprise.guestData;
+    try {
+      const countryCode = phoneCountryCode || "91";
+      // Ensure phoneNumber is 10 digits
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+      const response = await apiClient.get(API_ENDPOINTS.GET_GUEST_BY_ID, {
+        params: {
+          phoneCountryCode: countryCode,
+          phoneno: cleanPhoneNumber,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.log("Guest not found, likely a new user");
+        return null;
+      }
+      console.error("Error getting guest by ID:", error);
+      throw error;
     }
   },
 
@@ -122,7 +128,7 @@ export const verificationService = {
   },
 
   /**
-   * End verification (Static)
+   * End verification (Real API call)
    */
   async endVerification(bookingId) {
     console.log("Static endVerification called with:", { bookingId });
@@ -138,6 +144,26 @@ export const verificationService = {
   },
 
   /**
+   * Post Digilocker verification IDs
+   */
+  async postDigilockerVerificationIds(phoneCountryCode, phoneNumber) {
+    try {
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+      const response = await apiClient.post(API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS, {
+        phoneCountryCode: phoneCountryCode || "91",
+        phoneNumber: cleanPhoneNumber,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error posting Digilocker verification IDs:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Determine which plan to use for demo purposes
    * In real app, this would come from user's subscription/plan
    */
@@ -145,11 +171,11 @@ export const verificationService = {
     // For demo purposes, we'll determine plan based on:
     // - If phone number ends with specific digits
     // - Or if booking ID contains certain keywords
-    
+
     if (!phoneNumber) return "enterprise"; // Default to enterprise
 
     const lastDigit = phoneNumber.slice(-1);
-    
+
     if (lastDigit === '1' || lastDigit === '2' || lastDigit === '3') {
       return "starter";
     } else if (lastDigit === '4' || lastDigit === '5' || lastDigit === '6') {

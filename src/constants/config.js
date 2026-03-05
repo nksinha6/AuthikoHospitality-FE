@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
   GUEST_AADHAAR_IMAGE: "HotelGuestRead/aadhar/image",
   PROPERTY_BY_ID: "/HotelPropertyRead/property_by_id",
   TENANT_BY_ID: "/HotelPropertyRead/tenant_by_id",
+  DIGILOCKER_VERIFICATION_IDS: "HotelGuestRead/digilocker_verification_ids",
+  GET_AADHAAR_DATA: "HotelGuestRead/digilocker/aadhaar",
 };
 
 // Storage Keys

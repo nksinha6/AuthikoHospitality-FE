@@ -132,6 +132,175 @@ export const guestDetailsService = {
     console.warn("Failed to fetch guest image after retries:", lastError);
     return null;
   },
+
+  /**
+   * Ensure guest verification status
+   * @param {string} phoneCountryCode 
+   * @param {string} phoneNumber 
+   */
+  async ensureVerification(phoneCountryCode, phoneNumber) {
+    try {
+      // API expects phoneno without country code
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+
+      const response = await apiClient.get(API_ENDPOINTS.ENSURE_VERIFICATION, {
+        params: {
+          phoneCountryCode: phoneCountryCode || "91",
+          phoneno: cleanPhoneNumber,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error ensuring verification:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get guest details by ID
+   * @param {string} phoneCountryCode 
+   * @param {string} phoneNumber 
+   */
+  async getGuestById(phoneCountryCode, phoneNumber) {
+    if (!phoneNumber) return null;
+    try {
+      const countryCode = phoneCountryCode || "91";
+      // Ensure phoneNumber is 10 digits
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+
+      const response = await apiClient.get(API_ENDPOINTS.GET_GUEST_BY_ID, {
+        params: {
+          phoneCountryCode: countryCode,
+          phoneno: cleanPhoneNumber
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.log("Guest not found, likely a new user");
+        return null;
+      }
+      console.error("Error getting guest by ID:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Post Digilocker verification IDs
+   * @param {string} phoneCountryCode 
+   * @param {string} phoneNumber 
+   */
+  async postDigilockerVerificationIds(phoneCountryCode, phoneNumber) {
+    try {
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+      const response = await apiClient.post(API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS, {
+        phoneCountryCode: phoneCountryCode || "91",
+        phoneNumber: cleanPhoneNumber,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error posting Digilocker verification IDs:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * End verification session
+   * @param {string} bookingId 
+   * @param {string} tenantId
+   * @param {string} propertyId
+   */
+  async endVerification(bookingId, tenantId, propertyId) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.END_VERIFICATION, {
+        bookingId,
+        tenantId: String(tenantId),
+        propertyId: String(propertyId),
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error ending verification:", error);
+      throw error;
+    }
+  },
+  /**
+   * Fetch Aadhaar data
+   * @param {string} verificationId 
+   * @param {string} referenceId 
+   * @param {string} phoneCode 
+   * @param {string} phoneNumber 
+   */
+  async getAadhaarData(verificationId, referenceId, phoneCode, phoneNumber) {
+    try {
+      if (!verificationId) {
+        throw new Error("Verification ID is required");
+      }
+
+      // Ensure 10 digits for phoneNumber
+      let cleanPhoneNumber = phoneNumber || "";
+      if (cleanPhoneNumber.length > 10) {
+        cleanPhoneNumber = cleanPhoneNumber.slice(-10);
+      }
+
+      // 🔹 Build payload (Using exact keys from user snippet)
+      const payload = {
+        verificationId: verificationId,
+        phoneCountryCode: phoneCode || "91",
+        phoneNumber: cleanPhoneNumber,
+      };
+
+      // Include referenceId only if valid
+      if (referenceId && referenceId !== verificationId) {
+        payload.referenceId = referenceId;
+      }
+
+      console.log("🔍 Fetching Aadhaar data...");
+      console.log("📦 Payload:", payload);
+      console.log("📤 Endpoint:", API_ENDPOINTS.GET_AADHAAR_DATA);
+
+      const response = await apiClient.post(API_ENDPOINTS.GET_AADHAAR_DATA, payload);
+      console.log("✅ Aadhaar data received:", response.data);
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ Aadhaar fetch error:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      // 🔹 Error handling
+      if (error.response?.status === 404) {
+        console.warn("⚠️ Aadhaar data not found (404)");
+        return null;
+      }
+
+      if (error.response?.status === 400) {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Invalid parameters";
+        throw new Error(`[400] ${msg}`);
+      }
+
+      if (error.response?.status === 401) {
+        throw new Error("Authentication failed (401)");
+      }
+
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch Aadhaar data",
+      );
+    }
+  },
 };
 
 export default guestDetailsService;

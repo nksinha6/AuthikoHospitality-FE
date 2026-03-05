@@ -31,6 +31,8 @@ import dayjs from "dayjs";
 import { showToast } from "../utility/toast.js";
 import SuccessModal from "../components/SuccessModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
+import { guestDetailsService } from "../services/guestDetailsService";
+import { API_ENDPOINTS } from "../constants/config";
 
 const Checkin = () => {
   const navigate = useNavigate();
@@ -599,11 +601,9 @@ const Checkin = () => {
     setGuests((prev) => {
       const newGuests = [...prev];
       newGuests[index].phoneNumber = value;
-
       if (newGuests[index].isChangingNumber) {
         return newGuests;
       }
-
       if (
         newGuests[index].isTimerActive ||
         newGuests[index].isWaitingForRestart
@@ -619,7 +619,6 @@ const Checkin = () => {
         newGuests[index].isIdVerifying = false;
         newGuests[index].idVerificationTimer = 0;
         newGuests[index].idVerificationComplete = false;
-
         if (pollingIntervals[index]) {
           clearInterval(pollingIntervals[index]);
           setPollingIntervals((prev) => {
@@ -628,7 +627,6 @@ const Checkin = () => {
             return newIntervals;
           });
         }
-
         const restartTimerKey = `restart-${index}`;
         if (checkStatusTimers[restartTimerKey]) {
           clearTimeout(checkStatusTimers[restartTimerKey]);
@@ -639,9 +637,9 @@ const Checkin = () => {
           });
         }
       }
-
       return newGuests;
     });
+
   };
 
   const handleVerificationCodeChange = (index, value) => {
@@ -700,8 +698,8 @@ const Checkin = () => {
           capturedImage: imageSrc,
           showWebcam: false,
           status: "verified",
-          name: "Verified Guest",
-          fullName: "Verified Guest",
+          name: guests[index].firstName || "Verified Guest",
+          fullName: guests[index].fullName || "Verified Guest",
           aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
           faceStatus: VERIFICATION_STATUS.VERIFIED,
           isTimerActive: false,
@@ -710,6 +708,27 @@ const Checkin = () => {
         };
         return newState;
       });
+
+      // Call Aadhaar Data API
+      const fetchAadhaarData = async () => {
+        try {
+          const guest = guests[index];
+          if (guest.verificationId) {
+            const aadhaarData = await guestDetailsService.getAadhaarData(
+              guest.verificationId,
+              guest.referenceId,
+              "91",
+              guest.phoneNumber
+            );
+            console.log("Aadhaar Data fetched:", aadhaarData);
+            // Optionally update guest state with aadhaar data
+          }
+        } catch (error) {
+          console.error("Failed to fetch Aadhaar data during photo capture:", error);
+        }
+      };
+
+      fetchAadhaarData();
 
       const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
       const newVerifiedSet = new Set(verifiedPhoneNumbers);
@@ -842,16 +861,58 @@ const Checkin = () => {
       return;
     }
 
-    if (isPhoneNumberAlreadyUsed(guest.phoneNumber, index)) {
-      const isVerified = isPhoneNumberAlreadyVerified(normalizedNumber);
-      showToast(
-        "error",
-        isVerified
-          ? "This phone number is already verified"
-          : "This phone number is already being used by another guest",
-      );
-      return;
+    // --- NEW: API INTEGRATION ---
+    setIsVerifying(true);
+    try {
+      // 1. Post Digilocker verification IDs
+      await guestDetailsService.postDigilockerVerificationIds("91", normalizedNumber);
+
+      // 2. Call getGuestById with phone number and country code
+      const guestDetail = await guestDetailsService.getGuestById("91", normalizedNumber);
+
+      if (guestDetail && (guestDetail.isVerified || guestDetail.verificationStatus === "verified")) {
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index] = {
+            ...newState[index],
+            status: "verified",
+            name: guestDetail.firstName || "Verified Guest",
+            fullName: guestDetail.fullName || `${guestDetail.firstName || ""} ${guestDetail.lastName || ""}`.trim() || guestDetail.name || "Verified Guest",
+            aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+            faceStatus: VERIFICATION_STATUS.VERIFIED,
+            isTimerActive: false,
+            timerSeconds: 0,
+            verificationId: guestDetail.verificationId,
+            referenceId: guestDetail.referenceId,
+          };
+          return newState;
+        });
+
+        // Add to verified phone numbers set
+        const newVerifiedSet = new Set(verifiedPhoneNumbers);
+        newVerifiedSet.add(normalizedNumber);
+        setVerifiedPhoneNumbers(newVerifiedSet);
+
+        showToast("success", "Guest verified successfully.");
+
+        // Fetch Aadhaar data after verification
+        if (guestDetail.verificationId) {
+          guestDetailsService.getAadhaarData(
+            guestDetail.verificationId,
+            guestDetail.referenceId,
+            "91",
+            normalizedNumber
+          ).then(data => console.log("Aadhaar Data fetched after verification:", data))
+            .catch(err => console.error("Aadhaar fetch error after verification:", err));
+        }
+        return;
+      }
+    } catch (error) {
+      console.warn("Guest not found or verified after Digilocker post. Starting verification flow.");
+    } finally {
+      setIsVerifying(false);
     }
+    // --- END API INTEGRATION ---
 
     // If user is changing number
     if (guest.isChangingNumber) {
@@ -1000,13 +1061,19 @@ const Checkin = () => {
 
     setIsConfirmingCheckin(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Call End Verification API
+      await guestDetailsService.endVerification(
+        bookingInfo.bookingId,
+        userData.tenantId,
+        userData.propertyIds?.[0] || ""
+      );
+
       clearAllVerificationProcesses();
       setShowSuccessModal(true);
       setModalMessage("Check-in completed successfully!");
     } catch (error) {
       console.error("Check-in error:", error);
-      showToast("error", error.message || "Failed to complete check-in");
+      showToast("error", error.message || "Failed to complete check-in. Please try again.");
     } finally {
       setIsConfirmingCheckin(false);
     }
@@ -1051,6 +1118,7 @@ const Checkin = () => {
   // Check if Verify button should be disabled for a specific guest
   const isVerifyButtonDisabled = (guest, index) => {
     if (
+      isVerifying ||
       !isPhoneInputEnabled ||
       guest.status === "verified" ||
       isPhoneNumberAlreadyVerified(guest.phoneNumber) ||
