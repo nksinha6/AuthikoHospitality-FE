@@ -32,6 +32,7 @@ import { showToast } from "../utility/toast.js";
 import SuccessModal from "../components/SuccessModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 import { guestDetailsService } from "../services/guestDetailsService";
+import { verificationService } from "../services/verificationService";
 import { API_ENDPOINTS } from "../constants/config";
 
 const Checkin = () => {
@@ -863,52 +864,64 @@ const Checkin = () => {
 
     // --- NEW: API INTEGRATION ---
     setIsVerifying(true);
+    const countryCode = "91";
     try {
-      // 1. Post Digilocker verification IDs
-      await guestDetailsService.postDigilockerVerificationIds("91", normalizedNumber);
+      // 1. Begin Verification (Matches Image 1)
+      const beginPayload = {
+        bookingId: bookingInfo.bookingId,
+        ota: bookingInfo.bookingSource,
+        phoneCountryCode: countryCode,
+        adultsCount: guests.length,
+        minorsCount: 0, // In this screen, we'll assume primary guests are adults
+        phoneNumber: normalizedNumber,
+      };
 
-      // 2. Call getGuestById with phone number and country code
-      const guestDetail = await guestDetailsService.getGuestById("91", normalizedNumber);
+      try {
+        await verificationService.beginVerification(beginPayload);
+      } catch (error) {
+        // If already verified or other conflict, we can still proceed to ensure check
+        if (error.code !== "ALREADY_VERIFIED") {
+          console.warn("Begin verification error:", error);
+        }
+      }
 
-      if (guestDetail && (guestDetail.isVerified || guestDetail.verificationStatus === "verified")) {
+      // 2. Ensure Verification Status (Matches Image 2)
+      const ensureResponse = await verificationService.ensureVerification(
+        bookingInfo.bookingId,
+        countryCode,
+        normalizedNumber
+      );
+
+      if (ensureResponse && (ensureResponse.verificationStatus === "verified" || ensureResponse.isVerified)) {
+        // 3. Fetch Guest Details (Image 4 flow)
+        const guestDetail = await guestDetailsService.getGuestById(countryCode, normalizedNumber);
+
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
             status: "verified",
-            name: guestDetail.firstName || "Verified Guest",
-            fullName: guestDetail.fullName || `${guestDetail.firstName || ""} ${guestDetail.lastName || ""}`.trim() || guestDetail.name || "Verified Guest",
+            name: guestDetail?.firstName || "Verified Guest",
+            fullName: guestDetail?.fullName || `${guestDetail?.firstName || ""} ${guestDetail?.lastName || ""}`.trim() || guestDetail?.name || "Verified Guest",
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
             faceStatus: VERIFICATION_STATUS.VERIFIED,
             isTimerActive: false,
             timerSeconds: 0,
-            verificationId: guestDetail.verificationId,
-            referenceId: guestDetail.referenceId,
+            verificationId: guestDetail?.verificationId,
+            referenceId: guestDetail?.referenceId,
           };
           return newState;
         });
 
-        // Add to verified phone numbers set
         const newVerifiedSet = new Set(verifiedPhoneNumbers);
         newVerifiedSet.add(normalizedNumber);
         setVerifiedPhoneNumbers(newVerifiedSet);
 
         showToast("success", "Guest verified successfully.");
-
-        // Fetch Aadhaar data after verification
-        if (guestDetail.verificationId) {
-          guestDetailsService.getAadhaarData(
-            guestDetail.verificationId,
-            guestDetail.referenceId,
-            "91",
-            normalizedNumber
-          ).then(data => console.log("Aadhaar Data fetched after verification:", data))
-            .catch(err => console.error("Aadhaar fetch error after verification:", err));
-        }
         return;
       }
     } catch (error) {
-      console.warn("Guest not found or verified after Digilocker post. Starting verification flow.");
+      console.warn("Standard verification flow could not be bypassed:", error.message);
     } finally {
       setIsVerifying(false);
     }
@@ -1061,12 +1074,8 @@ const Checkin = () => {
 
     setIsConfirmingCheckin(true);
     try {
-      // Call End Verification API
-      await guestDetailsService.endVerification(
-        bookingInfo.bookingId,
-        userData.tenantId,
-        userData.propertyIds?.[0] || ""
-      );
+      // Call End Verification API (Matches Image 3)
+      await verificationService.endVerification(bookingInfo.bookingId);
 
       clearAllVerificationProcesses();
       setShowSuccessModal(true);
