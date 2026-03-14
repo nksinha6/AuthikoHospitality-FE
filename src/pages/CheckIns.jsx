@@ -964,9 +964,8 @@ const Checkin = () => {
     const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
     const countryCode = "91";
 
-    // 🔴 FIX: Ensure fullPhoneNumber is 12 digits (CountryCode + 10 digits)
-    const tenDigitNumber = normalizedNumber.slice(-10); // Take last 10 digits if longer
-    const fullPhoneNumber = `${countryCode}${tenDigitNumber}`; // This will be 12 digits (e.g., 919106471172)
+    // Use the 10-digit number for the phoneNumber field as requested
+    const tenDigitNumber = normalizedNumber.slice(-10);
 
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
       showToast("error", "This phone number is already verified");
@@ -976,14 +975,14 @@ const Checkin = () => {
     // --- API INTEGRATION ---
     setIsVerifying(true);
     try {
-      // 1. Begin Verification - use full 12-digit number
+      // 1. Begin Verification - use 10-digit number
       const beginPayload = {
         bookingId: bookingInfo.bookingId,
         ota: bookingInfo.bookingSource,
         phoneCountryCode: countryCode,
         adultsCount: guests.length,
         minorsCount: 0,
-        phoneNumber: fullPhoneNumber, // Now always 12 digits (91 + 10 digits)
+        phoneNumber: tenDigitNumber, // Fixed: removed extra country code prefix
       };
 
       try {
@@ -998,16 +997,16 @@ const Checkin = () => {
         }
       }
 
-      // 2. Ensure Verification Status - use full 12-digit number
+      // 2. Ensure Verification Status - use 10-digit number
       const ensureResponse = await verificationService.ensureVerification(
         bookingInfo.bookingId,
         countryCode,
-        fullPhoneNumber // Use 12 digits
+        tenDigitNumber 
       );
 
       if (ensureResponse && (ensureResponse.verificationStatus === "verified" || ensureResponse.isVerified)) {
-        // 3. Fetch Guest Details - use full 12-digit number
-        const guestDetail = await guestDetailsService.getGuestById(countryCode, fullPhoneNumber); // Use 12 digits
+        // 3. Fetch Guest Details - use 10-digit number
+        const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
 
         // Check if guest is already face verified from previous session
         const isFaceVerified =
