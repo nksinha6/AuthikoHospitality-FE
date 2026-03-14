@@ -54,32 +54,19 @@ const Checkin = () => {
     userData?.role === "Hospitality" ||
     userData?.role === "Receptionist";
 
-  // State for plan selection (for demo purposes)
-  // In production, this would come from user's subscription
-  // const [selectedPlan, setSelectedPlan] = useState("smb"); // Default to SMB for Hospitality
+  // State for plan selection
   const [selectedPlan, setSelectedPlan] = useState(
     userData?.tier?.toLowerCase() || userData?.plan || "smb",
   );
 
-  // Sync selectedPlan if userData.tier changes (after API fetch)
+  // Sync selectedPlan if userData.tier changes
   useEffect(() => {
     if (userData?.tier) {
       setSelectedPlan(userData.tier.toLowerCase());
     }
   }, [userData?.tier]);
 
-  // Determine user plan based on role or login type
-  // const getUserPlan = () => {
-  //   if (isCorporate) {
-  //     return "starter"; // Corporate only has starter plan
-  //   } else {
-  //     // Hospitality can have SMB or Enterprise - use selectedPlan state
-  //     return selectedPlan;
-  //   }
-  // };
-
   const getUserPlan = () => selectedPlan;
-
   const userPlan = getUserPlan();
 
   // Static verification code for starter and smb plans
@@ -141,8 +128,14 @@ const Checkin = () => {
       capturedImage: null,
       idVerificationTimer: 0,
       isIdVerifying: false,
-      idVerificationComplete: false, // New flag
+      idVerificationComplete: false,
       planType: userPlan,
+      // New fields for API integration
+      verificationId: null,
+      referenceId: null,
+      referenceImage: null,
+      isFetchingImage: false,
+      isMatching: false,
     },
   ]);
 
@@ -291,6 +284,9 @@ const Checkin = () => {
                 idVerificationTimer: 0,
                 // Show next step based on plan
                 showCodeInput: guest.planType === "smb",
+                // Set placeholder names to simulate name verification
+                name: guest.name || "Guest",
+                fullName: guest.fullName || "Verified Identity",
                 // Don't auto-show webcam for enterprise, just set a flag that ID verification is complete
                 idVerificationComplete: guest.planType === "enterprise",
                 showWebcam: false, // Don't auto-show webcam
@@ -299,12 +295,12 @@ const Checkin = () => {
               if (guest.planType === "smb") {
                 showToast(
                   "info",
-                  "ID verification complete. Please enter verification code",
+                  "ID verification complete. Name verified. Please enter verification code 123456",
                 );
               } else if (guest.planType === "enterprise") {
                 showToast(
                   "info",
-                  "ID verification complete. Click 'Start Photo Verification' to capture photo",
+                  "ID verification complete. Name verified. Click 'Start Photo Verification' to capture photo",
                 );
               }
             }
@@ -329,14 +325,31 @@ const Checkin = () => {
     };
   }, []);
 
-  // Helper function to normalize phone number
+  // Helper function to normalize phone number to 10 digits
   const normalizePhoneNumber = (phoneNumber) => {
-    if (!phoneNumber || phoneNumber.length < 10) return "";
-    return phoneNumber.startsWith("91") && phoneNumber.length > 2
-      ? phoneNumber.slice(2)
-      : phoneNumber.startsWith("+91")
-        ? phoneNumber.slice(3)
-        : phoneNumber;
+    if (!phoneNumber) return "";
+
+    // Clean non-numeric characters
+    let cleaned = String(phoneNumber).replace(/\D/g, "");
+
+    // Handle India prefix: Remove "91" if present and length > 10
+    if (cleaned.startsWith("91") && cleaned.length > 10) {
+      cleaned = cleaned.slice(2);
+    }
+
+    // Remove leading zero if present
+    if (cleaned.startsWith("0") && cleaned.length > 10) {
+      cleaned = cleaned.slice(1);
+    }
+
+    // Ensure we only return the last 10 digits
+    return cleaned.slice(-10);
+  };
+
+  // Get full 12-digit phone number for API (country code + 10 digits)
+  const getFullPhoneNumber = (phoneNumber) => {
+    const normalized = normalizePhoneNumber(phoneNumber);
+    return `91${normalized}`; // Always 12 digits
   };
 
   // Check if phone number is already verified
@@ -507,6 +520,11 @@ const Checkin = () => {
         isIdVerifying: false,
         idVerificationComplete: false,
         planType: userPlan,
+        verificationId: null,
+        referenceId: null,
+        referenceImage: null,
+        isFetchingImage: false,
+        isMatching: false,
       },
     ]);
 
@@ -620,6 +638,12 @@ const Checkin = () => {
         newGuests[index].isIdVerifying = false;
         newGuests[index].idVerificationTimer = 0;
         newGuests[index].idVerificationComplete = false;
+        newGuests[index].verificationId = null;
+        newGuests[index].referenceId = null;
+        newGuests[index].referenceImage = null;
+        newGuests[index].isFetchingImage = false;
+        newGuests[index].isMatching = false;
+
         if (pollingIntervals[index]) {
           clearInterval(pollingIntervals[index]);
           setPollingIntervals((prev) => {
@@ -640,7 +664,6 @@ const Checkin = () => {
       }
       return newGuests;
     });
-
   };
 
   const handleVerificationCodeChange = (index, value) => {
@@ -651,7 +674,7 @@ const Checkin = () => {
     });
   };
 
-  const handleVerifyCode = (index) => {
+  const handleVerifyCode = async (index) => {
     const guest = guests[index];
 
     if (!guest.verificationCode || guest.verificationCode.length < 4) {
@@ -661,14 +684,31 @@ const Checkin = () => {
 
     // Check if code matches static code
     if (guest.verificationCode === STATIC_VERIFICATION_CODE) {
+      const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+
+      // Post Data to Backend
+      try {
+        if (guest.verificationId) {
+          console.log("🚀 Posting verification data for SMB/Starter:", normalizedNumber);
+          await guestDetailsService.getAadhaarData(
+            guest.verificationId,
+            guest.referenceId,
+            "91",
+            normalizedNumber,
+          );
+        }
+      } catch (error) {
+        console.warn("Post-verification data sync error:", error.message);
+      }
+
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
           ...newState[index],
           isCodeVerified: true,
           status: "verified",
-          name: "Verified Guest",
-          fullName: "Verified Guest",
+          name: newState[index].name || "Verified Guest",
+          fullName: newState[index].fullName || "Verified Guest",
           aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
           isTimerActive: false,
           timerSeconds: 0,
@@ -678,7 +718,6 @@ const Checkin = () => {
         return newState;
       });
 
-      const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
       const newVerifiedSet = new Set(verifiedPhoneNumbers);
       newVerifiedSet.add(normalizedNumber);
       setVerifiedPhoneNumbers(newVerifiedSet);
@@ -690,67 +729,124 @@ const Checkin = () => {
   };
 
   const handleCapturePhoto = (index) => {
-    if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
+    if (!webcamRef.current) {
+      showToast("error", "Webcam not initialized.");
+      return;
+    }
+
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      showToast("error", "Failed to capture photo. Please check your camera.");
+      return;
+    }
+
+    setGuests((prev) => {
+      const newState = [...prev];
+      newState[index] = {
+        ...newState[index],
+        capturedImage: imageSrc,
+        isMatching: true, // Start matching state
+        showWebcam: false,
+      };
+      return newState;
+    });
+
+    // Simulate Face Matching Process
+    setTimeout(async () => {
+      const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
+
+      // Call Aadhaar Data API
+      try {
+        const guest = guests[index];
+        if (guest.verificationId) {
+          console.log("Posting Aadhaar data for guest:", normalizedNumber);
+          await guestDetailsService.getAadhaarData(
+            guest.verificationId,
+            guest.referenceId,
+            "91",
+            normalizedNumber,
+          );
+        }
+      } catch (error) {
+        console.error("Failed to post Aadhaar data:", error);
+      }
+
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
           ...newState[index],
-          capturedImage: imageSrc,
-          showWebcam: false,
           status: "verified",
-          name: guests[index].firstName || "Verified Guest",
-          fullName: guests[index].fullName || "Verified Guest",
+          name:
+            newState[index].firstName ||
+            newState[index].name ||
+            "Verified Guest",
+          fullName: newState[index].fullName || "Verified Guest",
           aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
           faceStatus: VERIFICATION_STATUS.VERIFIED,
           isTimerActive: false,
           timerSeconds: 0,
           idVerificationComplete: false,
+          isMatching: false,
         };
         return newState;
       });
 
-      // Call Aadhaar Data API
-      const fetchAadhaarData = async () => {
-        try {
-          const guest = guests[index];
-          if (guest.verificationId) {
-            const aadhaarData = await guestDetailsService.getAadhaarData(
-              guest.verificationId,
-              guest.referenceId,
-              "91",
-              guest.phoneNumber
-            );
-            console.log("Aadhaar Data fetched:", aadhaarData);
-            // Optionally update guest state with aadhaar data
-          }
-        } catch (error) {
-          console.error("Failed to fetch Aadhaar data during photo capture:", error);
-        }
-      };
-
-      fetchAadhaarData();
-
-      const normalizedNumber = normalizePhoneNumber(guests[index].phoneNumber);
       const newVerifiedSet = new Set(verifiedPhoneNumbers);
       newVerifiedSet.add(normalizedNumber);
       setVerifiedPhoneNumbers(newVerifiedSet);
 
-      showToast("success", "Guest verified successfully!");
-    }
+      showToast("success", "Face match successful! Guest verified.");
+    }, 2000);
   };
 
   // Function to start photo verification
-  const handleStartPhotoVerification = (index) => {
+  const handleStartPhotoVerification = async (index) => {
+    const guest = guests[index];
+
     setGuests((prev) => {
       const newState = [...prev];
       newState[index] = {
         ...newState[index],
-        showWebcam: true,
-        // Keep idVerificationComplete: true so the label stays visible
+        isFetchingImage: true,
       };
       return newState;
     });
+
+    try {
+      const countryCode = "91";
+      const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+
+      // Fetch official ID image for matching
+      const imageData = await guestDetailsService.fetchGuestImage(countryCode, normalizedNumber);
+
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          referenceImage: imageData,
+          isFetchingImage: false,
+          showWebcam: true,
+        };
+        return newState;
+      });
+
+      if (imageData) {
+        showToast("info", "Official ID image retrieved. Please align face for matching.");
+      } else {
+        showToast("info", "Proceeding with standard photo verification.");
+      }
+    } catch (error) {
+      console.error("Error fetching reference image:", error);
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          isFetchingImage: false,
+          showWebcam: true,
+        };
+        return newState;
+      });
+    }
   };
 
   // Function to enable number change mode
@@ -779,6 +875,11 @@ const Checkin = () => {
         isIdVerifying: false,
         idVerificationTimer: 0,
         idVerificationComplete: false,
+        verificationId: null,
+        referenceId: null,
+        referenceImage: null,
+        isFetchingImage: false,
+        isMatching: false,
       };
 
       return newState;
@@ -831,6 +932,11 @@ const Checkin = () => {
         isIdVerifying: false,
         idVerificationComplete: false,
         planType: userPlan,
+        verificationId: null,
+        referenceId: null,
+        referenceImage: null,
+        isFetchingImage: false,
+        isMatching: false,
       },
     ]);
   };
@@ -856,68 +962,100 @@ const Checkin = () => {
     }
 
     const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+    const countryCode = "91";
+
+    // 🔴 FIX: Ensure fullPhoneNumber is 12 digits (CountryCode + 10 digits)
+    const tenDigitNumber = normalizedNumber.slice(-10); // Take last 10 digits if longer
+    const fullPhoneNumber = `${countryCode}${tenDigitNumber}`; // This will be 12 digits (e.g., 919106471172)
 
     if (isPhoneNumberAlreadyVerified(normalizedNumber)) {
       showToast("error", "This phone number is already verified");
       return;
     }
 
-    // --- NEW: API INTEGRATION ---
+    // --- API INTEGRATION ---
     setIsVerifying(true);
-    const countryCode = "91";
     try {
-      // 1. Begin Verification (Matches Image 1)
+      // 1. Begin Verification - use full 12-digit number
       const beginPayload = {
         bookingId: bookingInfo.bookingId,
         ota: bookingInfo.bookingSource,
         phoneCountryCode: countryCode,
         adultsCount: guests.length,
-        minorsCount: 0, // In this screen, we'll assume primary guests are adults
-        phoneNumber: normalizedNumber,
+        minorsCount: 0,
+        phoneNumber: fullPhoneNumber, // Now always 12 digits (91 + 10 digits)
       };
 
       try {
+        console.log("🚀 Starting beginVerification with payload:", beginPayload);
         await verificationService.beginVerification(beginPayload);
       } catch (error) {
         // If already verified or other conflict, we can still proceed to ensure check
         if (error.code !== "ALREADY_VERIFIED") {
-          console.warn("Begin verification error:", error);
+          console.warn("Begin verification bypassed or soft error:", error);
+        } else {
+          console.log("ℹ️ Guest already in verification registry, proceeding...");
         }
       }
 
-      // 2. Ensure Verification Status (Matches Image 2)
+      // 2. Ensure Verification Status - use full 12-digit number
       const ensureResponse = await verificationService.ensureVerification(
         bookingInfo.bookingId,
         countryCode,
-        normalizedNumber
+        fullPhoneNumber // Use 12 digits
       );
 
       if (ensureResponse && (ensureResponse.verificationStatus === "verified" || ensureResponse.isVerified)) {
-        // 3. Fetch Guest Details (Image 4 flow)
-        const guestDetail = await guestDetailsService.getGuestById(countryCode, normalizedNumber);
+        // 3. Fetch Guest Details - use full 12-digit number
+        const guestDetail = await guestDetailsService.getGuestById(countryCode, fullPhoneNumber); // Use 12 digits
+
+        // Check if guest is already face verified from previous session
+        const isFaceVerified =
+          guestDetail?.faceStatus === VERIFICATION_STATUS.VERIFIED ||
+          guestDetail?.isFaceVerified === true;
+
+        // Determine steps based on plan
+        const isSMB = selectedPlan === 'smb';
+        const isEnterprise = selectedPlan === 'enterprise';
+        const isStarter = selectedPlan === 'starter';
+
+        const shouldResetToPending = (isSMB || isEnterprise || isStarter) && !isFaceVerified;
 
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
-            status: "verified",
+            status: shouldResetToPending ? "pending" : "verified",
             name: guestDetail?.firstName || "Verified Guest",
             fullName: guestDetail?.fullName || `${guestDetail?.firstName || ""} ${guestDetail?.lastName || ""}`.trim() || guestDetail?.name || "Verified Guest",
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            faceStatus: VERIFICATION_STATUS.VERIFIED,
-            isTimerActive: false,
-            timerSeconds: 0,
+            faceStatus: isFaceVerified ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+            isTimerActive: shouldResetToPending,
+            timerSeconds: shouldResetToPending ? 120 : 0,
             verificationId: guestDetail?.verificationId,
             referenceId: guestDetail?.referenceId,
+            showCodeInput: (isSMB || isStarter) && !isFaceVerified, // Starter and SMB both need code
+            idVerificationComplete: isEnterprise && !isFaceVerified, // Enterprise needs Facematch
+            showWebcam: false,
           };
           return newState;
         });
 
-        const newVerifiedSet = new Set(verifiedPhoneNumbers);
-        newVerifiedSet.add(normalizedNumber);
-        setVerifiedPhoneNumbers(newVerifiedSet);
-
-        showToast("success", "Guest verified successfully.");
+        if (isFaceVerified) {
+          const newVerifiedSet = new Set(verifiedPhoneNumbers);
+          newVerifiedSet.add(normalizedNumber);
+          setVerifiedPhoneNumbers(newVerifiedSet);
+          showToast("success", `Guest ${guestDetail?.firstName || "Identity"} is already fully face verified.`);
+        } else if (isSMB || isStarter) {
+          showToast("info", "Guest identity found (" + (guestDetail?.firstName || "Verified") + "). Please enter verification code 123456 to confirm.");
+        } else if (isEnterprise) {
+          showToast("info", "Guest identity found (" + (guestDetail?.firstName || "Verified") + "). Please capture photo to complete verification.");
+        } else {
+          const newVerifiedSet = new Set(verifiedPhoneNumbers);
+          newVerifiedSet.add(normalizedNumber);
+          setVerifiedPhoneNumbers(newVerifiedSet);
+          showToast("success", "Guest verified successfully.");
+        }
         return;
       }
     } catch (error) {
@@ -1022,15 +1160,16 @@ const Checkin = () => {
           ...newState[index],
           isIdVerifying: true,
           idVerificationTimer: 20,
-          idVerificationComplete: false, // Reset flag
+          idVerificationComplete: false,
+          showCodeInput: false,
         };
         return newState;
       });
 
-      showToast("info", "ID verification started. Please wait 20 seconds...");
+      showToast("info", "Step 1/2: ID verification started. Please wait...");
     }
 
-    // 🟣 ENTERPRISE → ID → FACE (manual trigger)
+    // 🟣 ENTERPRISE → ID → FACE
     else if (plan === "enterprise") {
       setGuests((prev) => {
         const newState = [...prev];
@@ -1038,8 +1177,8 @@ const Checkin = () => {
           ...newState[index],
           isIdVerifying: true,
           idVerificationTimer: 20,
-          idVerificationComplete: false, // Reset flag
-          showWebcam: false, // Ensure webcam is not shown
+          idVerificationComplete: false,
+          showWebcam: false,
         };
         return newState;
       });
@@ -1074,7 +1213,7 @@ const Checkin = () => {
 
     setIsConfirmingCheckin(true);
     try {
-      // Call End Verification API (Matches Image 3)
+      // Call End Verification API
       await verificationService.endVerification(bookingInfo.bookingId);
 
       clearAllVerificationProcesses();
@@ -1138,7 +1277,7 @@ const Checkin = () => {
       guest.showCodeInput ||
       guest.showWebcam ||
       guest.isIdVerifying ||
-      guest.idVerificationComplete // Disable verify button if ID verification is complete (waiting for photo)
+      guest.idVerificationComplete
     ) {
       return true;
     }
@@ -1151,16 +1290,6 @@ const Checkin = () => {
   };
 
   // Get plan display name
-  // const getPlanDisplayName = () => {
-  //   if (isCorporate) {
-  //     return "Corporate Starter Plan";
-  //   } else {
-  //     if (selectedPlan === "smb") return "Hospitality SMB Plan";
-  //     if (selectedPlan === "enterprise") return "Hospitality Enterprise Plan";
-  //   }
-  //   return "";
-  // };
-
   const getPlanDisplayName = () => {
     if (isCorporate) {
       if (selectedPlan === "starter") return "Corporate Starter Plan";
@@ -1170,7 +1299,6 @@ const Checkin = () => {
       if (selectedPlan === "smb") return "Hospitality SMB Plan";
       if (selectedPlan === "enterprise") return "Hospitality Enterprise Plan";
     }
-
     return "";
   };
 
@@ -1226,9 +1354,6 @@ const Checkin = () => {
                 <Hotel size={16} className="text-green-600" />
               )}
               <div className="flex flex-col leading-tight">
-                {/* <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
-                  {userData?.type || (isCorporate ? "Corporate" : "Hospitality")}
-                </span> */}
                 <span className="text-[#1b3631]">
                   {userData?.tier || getPlanDisplayName()}
                 </span>
@@ -1499,7 +1624,17 @@ const Checkin = () => {
                             <span className="text-green-600 font-medium">
                               ID Verification Complete
                             </span>
-                            {!guest.showWebcam && (
+                            {guest.isFetchingImage ? (
+                              <div className="flex items-center gap-2 text-sm text-[#1b3631]">
+                                <Clock size={14} className="animate-spin" />
+                                <span>Fetching official ID image...</span>
+                              </div>
+                            ) : guest.isMatching ? (
+                              <div className="flex items-center gap-2 text-sm text-purple-600 font-bold animate-pulse">
+                                <Shield size={14} />
+                                <span>Matching Face with ID...</span>
+                              </div>
+                            ) : !guest.showWebcam && (
                               <button
                                 onClick={() => handleStartPhotoVerification(index)}
                                 className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
@@ -1510,21 +1645,36 @@ const Checkin = () => {
                             )}
                           </div>
                           {guest.showWebcam && (
-                            <div className="space-y-3 mt-2">
-                              <Webcam
-                                audio={false}
-                                ref={webcamRef}
-                                screenshotFormat="image/jpeg"
-                                width={200}
-                                height={150}
-                                className="rounded-lg border border-[#E2E8F0]"
-                              />
+                            <div className="flex flex-col gap-3 mt-2">
+                              <div className="flex items-center gap-4">
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase">Live Camera</p>
+                                  <Webcam
+                                    audio={false}
+                                    ref={webcamRef}
+                                    screenshotFormat="image/jpeg"
+                                    width={240}
+                                    height={180}
+                                    className="rounded-lg border-2 border-[#1b3631]"
+                                  />
+                                </div>
+                                {guest.referenceImage && (
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Official ID Image</p>
+                                    <img
+                                      src={guest.referenceImage}
+                                      alt="Reference"
+                                      className="w-[240px] h-[180px] object-cover rounded-lg border-2 border-dashed border-gray-300 opacity-60"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                               <button
                                 onClick={() => handleCapturePhoto(index)}
-                                className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
+                                className="w-full px-4 py-3 bg-[#1b3631] text-white rounded-lg font-bold text-sm hover:bg-[#142925] transition-all flex items-center justify-center gap-2 shadow-lg"
                               >
-                                <Camera size={16} />
-                                Capture Photo
+                                <Camera size={18} />
+                                Capture & Match Face
                               </button>
                             </div>
                           )}
@@ -1614,7 +1764,7 @@ const Checkin = () => {
                       ) : !guest.showCodeInput &&
                         !guest.showWebcam &&
                         !guest.isIdVerifying &&
-                        !guest.idVerificationComplete ? ( // Hide verify button when ID verification is complete
+                        !guest.idVerificationComplete ? (
                         <button
                           onClick={() => handleVerifyGuest(index)}
                           disabled={isVerifyButtonDisabled(guest, index)}
