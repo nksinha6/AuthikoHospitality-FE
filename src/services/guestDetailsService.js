@@ -301,6 +301,31 @@ export const guestDetailsService = {
       );
     }
   },
+
+  /**
+   * Persist guest verification status
+   * @param {string} phoneCountryCode 
+   * @param {string} phoneNumber 
+   * @param {string} verificationStatus - e.g., "face_verified"
+   */
+  async persistGuestStatus(phoneCountryCode, phoneNumber, verificationStatus) {
+    try {
+      let cleanPhoneNumber = phoneNumber || "";
+      if (cleanPhoneNumber.length > 10) {
+        cleanPhoneNumber = cleanPhoneNumber.slice(-10);
+      }
+
+      const response = await apiClient.put(API_ENDPOINTS.PERSIST_GUEST_STATUS, {
+        phoneCountryCode: phoneCountryCode || "91",
+        phoneNumber: cleanPhoneNumber,
+        verificationStatus: verificationStatus,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error persisting guest status:", error);
+      throw error;
+    }
+  },
 };
 
 export default guestDetailsService;

@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   TENANT_BY_ID: "/HotelPropertyRead/tenant_by_id",
   DIGILOCKER_VERIFICATION_IDS: "HotelGuestRead/digilocker_verification_ids",
   GET_AADHAAR_DATA: "HotelGuestRead/digilocker/aadhaar",
+  PERSIST_GUEST_STATUS: "guest/persist/status",
 };
 
 // Storage Keys
@@ -62,7 +63,7 @@ export const GUEST_VERIFICATION = {
   FACE_PROCESSING_DELAY: 7000,
   SUCCESS_MODAL_DELAY: 1500,
   POLL_INITIAL_DELAY: 30000,
-  POLL_INTERVAL: 10000,
+  POLL_INTERVAL: 5000,
   MAX_RETRY_ATTEMPTS: 2,
   ID_VERIFICATION_TIMEOUT: 120000,
   FACE_VERIFICATION_TIMEOUT: 30000,

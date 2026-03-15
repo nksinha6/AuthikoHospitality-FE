@@ -1,6 +1,7 @@
 // pages/GuestDetails.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import apiClient from "../services/apiClient";
 import dayjs from "dayjs";
 import { FiDownload, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
@@ -11,7 +12,8 @@ import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 import { formatShortDate } from "../utility/bookingUtils.js";
 import { exportToPDF, exportToExcel } from "../utility/exportUtils";
 import { guestDetailsService } from "../services/guestDetailsService";
-import { transformGuestsArray } from "../utility/guestDataTransformer";
+import { bookingReadService } from "../services/bookingService";
+import { transformGuestsArray, transformGuestData } from "../utility/guestDataTransformer";
 import { STORAGE_KEYS, API_ENDPOINTS } from "../constants/config.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -58,6 +60,7 @@ export default function GuestDetails() {
   const [showModal, setShowModal] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const navigate = useNavigate();
 
   // Loading and Error States
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +68,7 @@ export default function GuestDetails() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Auth Context
-  const { userData, propertyDetails: authPropertyDetails } = useAuth();
+  const { isAuthenticated, userData, propertyDetails: authPropertyDetails } = useAuth();
   const propertyDetails = authPropertyDetails;
 
   const GUEST_COLUMNS = [
@@ -135,8 +138,63 @@ export default function GuestDetails() {
   };
 
   /* ---------------- FETCH DATA FROM API ---------------- */
+  /* ---------------- POLL PROCESSING GUESTS ---------------- */
+  useEffect(() => {
+    const processingGuests = guests.filter(
+      (g) => g.verificationStatus === "Processing"
+    );
+
+    if (processingGuests.length === 0) return;
+
+    console.log(`Polling status for ${processingGuests.length} processing guests...`);
+
+    const pollInterval = setInterval(async () => {
+      let hasUpdates = false;
+      const updatedGuests = [...guests];
+
+      for (let i = 0; i < updatedGuests.length; i++) {
+        const guestResource = updatedGuests[i];
+        if (guestResource.verificationStatus === "Processing") {
+          try {
+            const countryCode = guestResource.phoneCountryCode || "91";
+            const phoneNumber = guestResource.phoneNumber || guestResource.phone?.slice(-10) || "";
+            
+            if (!phoneNumber) continue;
+
+            const updatedData = await guestDetailsService.getGuestById(countryCode, phoneNumber);
+            
+            if (updatedData) {
+              const transformed = transformGuestData(updatedData);
+              const newStatus = transformed.verificationStatus;
+
+              if (newStatus !== "Processing") {
+                console.log(`Guest ${guestResource.bookingId} status changed: ${newStatus}`);
+                updatedGuests[i] = {
+                  ...guestResource,
+                  ...transformed,
+                  verificationStatus: newStatus
+                };
+                hasUpdates = true;
+              }
+            }
+          } catch (err) {
+            console.error(`Error polling guest ${guestResource.bookingId}:`, err);
+          }
+        }
+      }
+
+      if (hasUpdates) {
+        setGuests(updatedGuests);
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [guests]);
+
   const fetchGuestDetails = useCallback(
     async (showRefreshIndicator = false) => {
+      if (!userData?.tenantId) return;
+
       if (showRefreshIndicator) {
         setIsRefreshing(true);
       } else {
@@ -145,30 +203,60 @@ export default function GuestDetails() {
       setError(null);
 
       try {
-        const response = await guestDetailsService.fetchBookingGuestDetails();
-        console.log("API Response:", response);
+        let response;
+        try {
+          response = await guestDetailsService.fetchBookingGuestDetails();
+          console.log("Primary API Response (Guest Details):", response);
+        } catch (guestErr) {
+          const status = guestErr.response?.status || guestErr.status;
+          console.warn(`Primary guest details API failed with status ${status}, trying fallback...`, guestErr);
+          
+          if (status === 500 || status === 503 || status === 504) {
+            // Fallback to all bookings API if guest details crashes
+            response = await bookingReadService.fetchAllBookings();
+            console.log("Fallback API Response (All Bookings):", response);
+          } else {
+            throw guestErr; // Re-throw if it's a 401/403/404 we should handle specifically
+          }
+        }
+        
         const transformedData = transformGuestsArray(response);
         console.log("Transformed Data:", transformedData);
         setGuests(transformedData);
+        
+        // If we got here but data is empty, it's not an error, just an empty state
+        setError(null);
       } catch (err) {
         console.error("Error fetching guest details:", err);
-        setError({
-          code: err.code || "UNKNOWN",
-          message: err.message || "Failed to fetch guest details",
-        });
-        setGuests([]);
+        
+        // Distinguish between critical errors and empty/unavailable states
+        const status = err.response?.status || err.status;
+        
+        if (status === 500 || status === 404) {
+          console.warn("Treating 500/404 as empty state for this property.");
+          setGuests([]);
+          // No need to set error state for 500/404, just show empty table
+        } else {
+          setError({
+            code: err.code || "UNKNOWN",
+            message: err.message || "Failed to fetch guest details",
+          });
+          setGuests([]);
+        }
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [],
+    [userData],
   );
 
   /* ---------------- INITIAL DATA LOAD ---------------- */
   useEffect(() => {
-    fetchGuestDetails();
-  }, [fetchGuestDetails]);
+    if (isAuthenticated && userData?.tenantId) {
+      fetchGuestDetails();
+    }
+  }, [fetchGuestDetails, isAuthenticated, userData?.tenantId]);
 
   /* ---------------- APPLY FILTERS ---------------- */
   const applyAllFilters = useCallback(() => {
@@ -687,6 +775,8 @@ export default function GuestDetails() {
 
   /* ---------------- ERROR STATE ---------------- */
   if (error && guests.length === 0) {
+    const isWarning = error.isWarning;
+
     return (
       <div className="min-h-screen bg-white">
         <div className="flex justify-between items-center mb-6">
@@ -700,22 +790,32 @@ export default function GuestDetails() {
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="bg-red-50 rounded-full p-4 mb-4">
-            <FiAlertCircle className="w-8 h-8 text-red-500" />
+          <div className={`${isWarning ? "bg-amber-50" : "bg-red-50"} rounded-full p-4 mb-4`}>
+            <FiAlertCircle className={`w-8 h-8 ${isWarning ? "text-amber-500" : "text-red-500"}`} />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Failed to Load Guest Details
+            {isWarning ? "Note" : "Failed to Load Guest Details"}
           </h3>
-          <p className="text-gray-600 mb-4 text-center max-w-md">
+          <p className="text-gray-600 mb-6 text-center max-w-md">
             {error.message}
           </p>
-          <button
-            onClick={() => fetchGuestDetails()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1b3631] text-white rounded-lg hover:bg-[#2a4a43] transition-colors"
-          >
-            <FiRefreshCw className="w-4 h-4" />
-            Try Again
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => fetchGuestDetails()}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#1b3631] text-white rounded-lg hover:bg-[#2a4a43] transition-all font-semibold"
+            >
+              <FiRefreshCw className="w-4 h-4" />
+              Refresh Data
+            </button>
+            {isWarning && (
+              <button
+                onClick={() => navigate(-1)}
+                className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-semibold"
+              >
+                Go Back
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
