@@ -472,16 +472,45 @@ const Checkin = () => {
           const response = await guestDetailsService.getGuestById(countryCode, normalized);
           
           if (response) {
+            const resName = response.firstName || "";
+            const resFullName = response.fullName || (response.firstName ? `${response.firstName} ${response.lastName || ""}`.trim() : null) || response.name || "";
+            const statusFromServer = (response.verificationStatus || "").toLowerCase();
+            const plan = (selectedPlan || "").toLowerCase();
+            const isCorp = isCorporate;
+            
+            let isAlreadyTargetReached = false;
+            if (isCorp && plan === "starter") {
+              isAlreadyTargetReached = statusFromServer === "registered" || statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
+            } else if (plan === "smb") {
+              isAlreadyTargetReached = statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
+            } else if (plan === "enterprise") {
+              isAlreadyTargetReached = statusFromServer === "face_verified" || statusFromServer === "verified";
+            } else {
+              isAlreadyTargetReached = statusFromServer === "verified";
+            }
+
             setGuests(prev => {
               const newState = [...prev];
-              if (normalizePhoneNumber(newState[index].phoneNumber) === normalized) {
-                newState[index] = {
-                  ...newState[index],
-                  name: response.firstName || newState[index].name,
-                  fullName: response.fullName || (response.firstName ? `${response.firstName} ${response.lastName || ""}`.trim() : null) || response.name || newState[index].fullName,
-                  verificationId: response.verificationId || newState[index].verificationId,
-                  referenceId: response.referenceId || newState[index].referenceId,
+              const guestIdx = newState.findIndex(g => normalizePhoneNumber(g.phoneNumber) === normalized);
+              if (guestIdx !== -1) {
+                const isCorpSMB = isCorp && plan === "smb";
+                
+                newState[guestIdx] = {
+                  ...newState[guestIdx],
+                  name: resName || newState[guestIdx].name,
+                  fullName: resFullName || newState[guestIdx].fullName,
+                  verificationId: response.verificationId || newState[guestIdx].verificationId,
+                  referenceId: response.referenceId || newState[guestIdx].referenceId,
+                  status: isAlreadyTargetReached && !isCorpSMB ? "verified" : newState[guestIdx].status,
+                  aadhaarStatus: isAlreadyTargetReached ? VERIFICATION_STATUS.VERIFIED : newState[guestIdx].aadhaarStatus,
+                  faceStatus: (isAlreadyTargetReached && (plan === "enterprise" || statusFromServer === "face_verified")) ? VERIFICATION_STATUS.VERIFIED : newState[guestIdx].faceStatus,
                 };
+
+                if (isAlreadyTargetReached && !isCorpSMB) {
+                  const newVerifiedSet = new Set(verifiedPhoneNumbers);
+                  newVerifiedSet.add(normalized);
+                  setVerifiedPhoneNumbers(newVerifiedSet);
+                }
               }
               return newState;
             });
@@ -1192,7 +1221,59 @@ const Checkin = () => {
         console.log("✅ [GET_GUEST_BY_ID] Found details:", guestDetailResponse);
         const resName = guestDetailResponse.firstName || (guestDetailResponse.fullName ? guestDetailResponse.fullName.split(' ')[0] : null) || "Verified Guest";
         const resFullName = guestDetailResponse.fullName || (guestDetailResponse.firstName ? `${guestDetailResponse.firstName} ${guestDetailResponse.lastName || ""}`.trim() : null) || "Verified Guest";
+        const statusFromServer = (guestDetailResponse.verificationStatus || "").toLowerCase();
+        
+        // Determine if already fully verified based on plan
+        const plan = (guest.planType || selectedPlan || "").toLowerCase();
+        const isCorp = isCorporate;
+        let isAlreadyTargetReached = false;
 
+        if (isCorp && plan === "starter") {
+          isAlreadyTargetReached = statusFromServer === "registered" || statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
+        } else if (plan === "smb") {
+          isAlreadyTargetReached = statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
+        } else if (plan === "enterprise") {
+          isAlreadyTargetReached = statusFromServer === "face_verified" || statusFromServer === "verified";
+        } else {
+          isAlreadyTargetReached = statusFromServer === "verified";
+        }
+
+        // Short-circuit if already verified
+        if (isAlreadyTargetReached) {
+          const isCorpSMB = isCorp && plan === "smb";
+          
+          setGuests(prev => {
+            const newState = [...prev];
+            newState[index] = {
+              ...newState[index],
+              status: isCorpSMB ? "pending" : "verified",
+              name: resName,
+              fullName: resFullName,
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+              faceStatus: (plan === "enterprise" || statusFromServer === "face_verified") ? VERIFICATION_STATUS.VERIFIED : newState[index].faceStatus,
+              verificationId: guestDetailResponse.verificationId || newState[index].verificationId,
+              referenceId: guestDetailResponse.referenceId || newState[index].referenceId,
+              isIdVerifying: false,
+              isMatching: false,
+              isTimerActive: isCorpSMB,
+              timerSeconds: isCorpSMB ? 120 : 0,
+              showCodeInput: isCorpSMB,
+              idVerificationComplete: false,
+              showWebcam: false
+            };
+            return newState;
+          });
+
+          const newVerifiedSet = new Set(verifiedPhoneNumbers);
+          newVerifiedSet.add(normalizedNumber);
+          setVerifiedPhoneNumbers(newVerifiedSet);
+
+          showToast("success", `Guest ${resName} is already ${statusFromServer}.`);
+          setIsVerifying(false);
+          return; // STOP HERE
+        }
+
+        // Otherwise just update name/details and continue
         setGuests(prev => {
           const newState = [...prev];
           newState[index] = {
