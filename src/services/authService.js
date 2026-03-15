@@ -17,6 +17,7 @@ export const authService = {
       const response = await apiClient.post(API_ENDPOINTS.LOGIN, {
         userId: credentials.userId,
         password: credentials.password,
+        loginType: credentials.loginType,
       });
 
       return {

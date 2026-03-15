@@ -8,7 +8,9 @@ import {
   VERIFICATION_STATUS,
   GUEST_VERIFICATION,
 } from "../constants/config.js";
+import { guestDetailsService } from "../services/guestDetailsService.js";
 import { verificationService } from "../services/verificationService.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import SuuccessModal from "../components/SuccessModal.jsx";
 import GuestDetailsModal from "../components/GuestDetailsModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
@@ -38,6 +40,21 @@ export default function GuestVerification() {
   const [showForceVerifyModal, setShowForceVerifyModal] = useState(false);
   const [isConfirmingCheckin, setIsConfirmingCheckin] = useState(false);
 
+  const { userData } = useAuth();
+  const currentTier = (userData?.tier || userData?.plan || "").toLowerCase();
+  const isCorporate =
+    userData?.type === "Corporate" ||
+    userData?.loginType === "Corporate" ||
+    userData?.role === "Corporate";
+
+  const isHospitality =
+    userData?.type === "Hospitality" ||
+    userData?.loginType === "Hospitality" ||
+    userData?.role === "Hospitality" ||
+    userData?.role === "Receptionist";
+
+  const selectedPlan = currentTier || "smb";
+
   // Polling and retry state
   const [pollingIntervals, setPollingIntervals] = useState({});
   const [retryAttempts, setRetryAttempts] = useState({});
@@ -63,6 +80,7 @@ export default function GuestVerification() {
             aadhaarStatus: VERIFICATION_STATUS.PENDING,
             faceStatus: VERIFICATION_STATUS.PENDING,
             timestamp: null,
+            verificationName: null,
             minors: [],
           };
         }
@@ -72,6 +90,7 @@ export default function GuestVerification() {
           aadhaarStatus: VERIFICATION_STATUS.PENDING,
           faceStatus: VERIFICATION_STATUS.PENDING,
           timestamp: null,
+          verificationName: null,
           minors: [],
         };
       });
@@ -129,6 +148,54 @@ export default function GuestVerification() {
     return phoneNumber && phoneNumber.length >= 10;
   };
 
+  const isPlanTargetMet = (rawStatus) => {
+    const target = rawStatus?.toLowerCase?.() || "";
+
+    if ((isCorporate || isHospitality) && selectedPlan === "starter") {
+      return ["registered", "identity_verified", "face_verified", "verified"].includes(target);
+    }
+    if ((isCorporate || isHospitality) && selectedPlan === "smb") {
+      return ["identity_verified", "face_verified", "verified"].includes(target);
+    }
+    if ((isCorporate || isHospitality) && selectedPlan === "enterprise") {
+      return ["face_verified", "verified"].includes(target);
+    }
+    return ["verified"].includes(target);
+  };
+
+  const updateGuestVerificationFromResponse = (index, response) => {
+    if (!response) return;
+    const rawStatus = (response.verificationStatus || "").toLowerCase();
+    const hasIdentity = ["identity_verified", "face_verified", "verified"].includes(rawStatus);
+    const hasFace = ["face_verified", "verified"].includes(rawStatus);
+
+    setGuests((prev) => {
+      const newState = [...prev];
+      if (isCorporate && selectedPlan === "starter") {
+        if (rawStatus === "registered" || hasIdentity) {
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+        }
+      } else if (selectedPlan === "smb") {
+        if (hasIdentity) {
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+        }
+      } else if (selectedPlan === "enterprise") {
+        if (hasFace) {
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          newState[index].faceStatus = VERIFICATION_STATUS.VERIFIED;
+        }
+      } else {
+        if (response.aadhaar_verified || response.verificationStatus === "verified") {
+          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+          newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+        }
+      }
+      return newState;
+    });
+  };
+
   const handleVerifyGuest = async (index) => {
     const guest = guests[index];
 
@@ -159,11 +226,34 @@ export default function GuestVerification() {
     setGuests(updatedGuests);
 
     try {
+      // Start verification sequence: call GET_GUEST_BY_ID right away (required for receptionist flow)
+      try {
+        const initialStatus = await guestDetailsService.getGuestById(
+          phoneCountryCode,
+          phoneno,
+        );
+        updateGuestVerificationFromResponse(index, initialStatus);
+      } catch (initialErr) {
+        console.warn("👀 Initial GET_GUEST_BY_ID call failed", initialErr);
+      }
+
+      // For Enterprise plan (corp/hosp), post Digilocker verification IDs (best effort)
+      if (selectedPlan === "enterprise") {
+        try {
+          await guestDetailsService.postDigilockerVerificationIds(
+            phoneCountryCode,
+            phoneno,
+          );
+        } catch (digiErr) {
+          console.warn("⚠️ Digilocker step failed", digiErr);
+        }
+      }
+
       // Call ensure verification API
       const ensureResponse = await verificationService.ensureVerification(
         bookingId,
         phoneCountryCode,
-        phoneno
+        phoneno,
       );
 
       // Case 1: Verified 1Pass user exists
@@ -173,6 +263,7 @@ export default function GuestVerification() {
           newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
           // Face status remains pending until manually initiated
           newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+          newState[index].verificationName = ensureResponse.verificationName;
           return newState;
         });
         // Stop polling for face match status (Wait for manual trigger)
@@ -225,28 +316,53 @@ export default function GuestVerification() {
   };
 
   const startIdVerificationPolling = (index, phoneCountryCode, phoneno) => {
-    // Prevent starting polling if already active for this guest
     if (pollingIntervals[index]) {
       return;
     }
 
     const poll = async () => {
       try {
-        const guestResponse = await verificationService.getGuestById(
+        const guestResponse = await guestDetailsService.getGuestById(
           phoneCountryCode,
-          phoneno
+          phoneno,
         );
-        if (guestResponse.verificationStatus === "verified" || guestResponse.aadhaar_verified) {
-          // ID verification successful
+
+        if (!guestResponse) {
+          return;
+        }
+
+        const rawStatus = (guestResponse.verificationStatus || "").toLowerCase();
+
+        updateGuestVerificationFromResponse(index, guestResponse);
+
+        if (isPlanTargetMet(rawStatus)) {
+          // Achievement of plan-specific status - finalize in UI
           setGuests((prev) => {
             const newState = [...prev];
-            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-            // Face status remains pending until manually initiated which we do right after
-            newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+
+            if (isCorporate && selectedPlan === "starter") {
+              newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+            } else if (selectedPlan === "smb") {
+              newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].faceStatus = VERIFICATION_STATUS.PENDING;
+            } else if (selectedPlan === "enterprise") {
+              newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].faceStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].isVerified = true;
+            }
+
+            if (rawStatus === "verified") {
+              newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].faceStatus = VERIFICATION_STATUS.VERIFIED;
+              newState[index].isVerified = true;
+            }
+
+            newState[index].verificationName = guestResponse.verificationName;
+
             return newState;
           });
 
-          // Clear polling interval
           clearInterval(pollingIntervals[index]);
           setPollingIntervals((prev) => {
             const newIntervals = { ...prev };
@@ -254,12 +370,16 @@ export default function GuestVerification() {
             return newIntervals;
           });
 
-          // Auto-initiate Face Match
-          handleInitiateFaceMatch(index);
+          if (selectedPlan !== "enterprise") {
+            // For starter + smb path, if not face verified after plan target, initiate face match flow
+            if (!["face_verified", "verified"].includes(rawStatus)) {
+              handleInitiateFaceMatch(index);
+            }
+          }
+
+          showToast("success", `Verification status updated to ${rawStatus}`);
         }
-        // Continue polling if not verified
       } catch (error) {
-        // Stop polling on 4XX client errors (permanent failures)
         if (error.status && error.status >= 400 && error.status < 500) {
           clearInterval(pollingIntervals[index]);
           setPollingIntervals((prev) => {
@@ -267,7 +387,6 @@ export default function GuestVerification() {
             delete newIntervals[index];
             return newIntervals;
           });
-          // Update status to pending to indicate error
           setGuests((prev) => {
             const newState = [...prev];
             newState[index].aadhaarStatus = VERIFICATION_STATUS.PENDING;
@@ -275,11 +394,9 @@ export default function GuestVerification() {
           });
           return;
         }
-        // Continue polling on other errors (5XX, network issues, etc.)
       }
     };
 
-    // Start polling every 10 seconds
     const intervalId = setInterval(poll, GUEST_VERIFICATION.POLL_INTERVAL);
     setPollingIntervals((prev) => ({ ...prev, [index]: intervalId }));
 
@@ -469,28 +586,43 @@ export default function GuestVerification() {
     );
 
     try {
-      const guestResponse = await verificationService.getGuestById(
+      const guestResponse = await guestDetailsService.getGuestById(
         phoneCountryCode,
-        phoneno
+        phoneno,
       );
 
-      if (guestResponse.verificationStatus === "verified" || guestResponse.aadhaar_verified) {
+      if (!guestResponse) {
+        throw new Error("Guest not found");
+      }
+
+      updateGuestVerificationFromResponse(index, guestResponse);
+      const rawStatus = (guestResponse.verificationStatus || "").toLowerCase();
+
+      if (isPlanTargetMet(rawStatus)) {
         setGuests((prev) => {
           const newState = [...prev];
-          newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
-          // Logic for face status: if verified, set verified. If aadhaar verified but face not, set pending (waiting for init).
-          newState[index].faceStatus = guestResponse.face_verified
-            ? VERIFICATION_STATUS.VERIFIED
-            : VERIFICATION_STATUS.PENDING;
+          if (selectedPlan === "enterprise") {
+            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+            newState[index].faceStatus = VERIFICATION_STATUS.VERIFIED;
+            newState[index].isVerified = true;
+          } else {
+            newState[index].aadhaarStatus = VERIFICATION_STATUS.VERIFIED;
+            newState[index].faceStatus = guestResponse.face_verified
+              ? VERIFICATION_STATUS.VERIFIED
+              : VERIFICATION_STATUS.PENDING;
+          }
           return newState;
         });
+
         setManualVerificationGuestIndex(null);
-        handleInitiateFaceMatch(index);
+
+        if (selectedPlan !== "enterprise" && !["face_verified", "verified"].includes(rawStatus)) {
+          handleInitiateFaceMatch(index);
+        }
       } else {
-        // If not verified yet, restart polling
+        // If not yet at target status, restart polling
         showToast("info", "Verification still pending. Resuming automatic checks...");
         setManualVerificationGuestIndex(null);
-        // Reset status to processing to indicate polling is back on
         setGuests((prev) => {
           const newState = [...prev];
           newState[index].aadhaarStatus = VERIFICATION_STATUS.PROCESSING;
@@ -498,7 +630,7 @@ export default function GuestVerification() {
         });
         startIdVerificationPolling(index, phoneCountryCode, phoneno);
       }
-    } catch (error) {
+    } catch {
       // On error, also restart polling (retry)
       showToast("info", "Verification check failed. Resuming automatic checks...");
       setManualVerificationGuestIndex(null);
@@ -565,7 +697,7 @@ export default function GuestVerification() {
         });
         startFaceMatchPolling(index, phoneCountryCode, phoneno);
       }
-    } catch (error) {
+    } catch {
       // On error, also restart polling
       showToast("info", "Status check failed. Resuming automatic checks...");
       setManualVerificationGuestIndex(null);

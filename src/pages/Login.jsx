@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Building2,
+  Hotel,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useForm } from "../hooks/useForm.js";
 import { authService } from "../services/authService.js";
@@ -55,7 +63,7 @@ export default function Login() {
       if (rememberMe) {
         localStorage.setItem(
           STORAGE_KEYS.SAVED_EMAIL,
-          values[FORM_FIELDS.USER_ID]
+          values[FORM_FIELDS.USER_ID],
         );
         localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, "true");
       } else {

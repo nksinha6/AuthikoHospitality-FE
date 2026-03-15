@@ -12,6 +12,9 @@ export const VERIFICATION_STATUS_MAP = {
 
 // Verification Status String Mapping (lowercase to proper case)
 export const VERIFICATION_STATUS_STRING_MAP = {
+  registered: "Registered",
+  identity_verified: "Identity Verified",
+  face_verified: "Face Verified",
   verified: "Verified",
   pending: "Pending",
   failed: "Failed",
