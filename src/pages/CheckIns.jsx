@@ -261,10 +261,37 @@ const Checkin = () => {
     }
   }, [bookingInfo.bookingSource]);
 
-  // Verification Polling for ID, Face Match, and Pending scenarios
+  // Identity Verification Countdown Timer (1s interval for UI smoothness)
+  useEffect(() => {
+    const activeVerifyingGuests = guests.filter(g => g.isIdVerifying && g.idVerificationTimer > 0);
+    if (activeVerifyingGuests.length === 0) return;
+
+    const timer = setInterval(() => {
+      setGuests(prev => {
+        let anyChanges = false;
+        const newState = prev.map(guest => {
+          if (guest.isIdVerifying && guest.idVerificationTimer > 0) {
+            anyChanges = true;
+            const newTime = guest.idVerificationTimer - 1;
+            if (newTime === 0) {
+              showToast("error", "Identity verification timed out. Please try again.");
+              return { ...guest, idVerificationTimer: 0, isIdVerifying: false };
+            }
+            return { ...guest, idVerificationTimer: newTime };
+          }
+          return guest;
+        });
+        return anyChanges ? newState : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [guests.some(g => g.isIdVerifying && g.idVerificationTimer > 0)]);
+
+  // Identity Status Polling (5s interval)
   useEffect(() => {
     const processingGuests = guests.filter((g) => 
-      g.isIdVerifying || g.isMatching || g.status === "pending"
+      (g.isIdVerifying || g.isMatching || g.status === "pending") && !g.showCodeInput && !g.showWebcam
     );
     if (processingGuests.length === 0) return;
 
@@ -274,82 +301,67 @@ const Checkin = () => {
 
       for (let i = 0; i < updatedGuests.length; i++) {
         const guest = updatedGuests[i];
-        if ((guest.isIdVerifying || guest.isMatching || guest.status === "pending") && !guest.showWebcam) {
+        if ((guest.isIdVerifying || guest.isMatching || guest.status === "pending") && !guest.showCodeInput && !guest.showWebcam) {
           try {
             const countryCode = "91";
             const tenDigitNumber = normalizePhoneNumber(guest.phoneNumber);
             
-            // Call GET_GUEST_BY_ID API every 5 seconds for all tiers
             const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
             
             const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
             const plan = (guest.planType || selectedPlan || "").toLowerCase();
-            const isCorp = isCorporate;
 
-            // Define status targets based on Tier and Plan
-            let isTargetMatched = false;
-            if (isCorp && plan === "starter") {
-              isTargetMatched = rawStatus === "registered" || rawStatus === "identity_verified" || rawStatus === "face_verified" || rawStatus === "verified";
-            } else if (plan === "smb") {
-              isTargetMatched = rawStatus === "identity_verified" || rawStatus === "face_verified" || rawStatus === "verified";
-            } else if (plan === "enterprise") {
-              isTargetMatched = rawStatus === "face_verified" || rawStatus === "verified";
-            } else {
-              isTargetMatched = rawStatus === "verified";
-            }
+            // Check if identity is verified
+            // For Enterprise: 'registered' is also considered completion of the identity phase as requested.
+            const isIdentityVerified = (plan === "enterprise" && rawStatus === "registered") || 
+                                        rawStatus === "identity_verified" || 
+                                        rawStatus === "face_verified" || 
+                                        rawStatus === "verified";
 
-            if (isTargetMatched) {
-              console.log(`✅ ${plan} target status matched: ${rawStatus}`);
-              const guestResName = guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || "Verified Guest";
-              const guestResFullName = guestDetail?.fullName || (guestDetail?.firstName ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim() : null) || "Verified Guest";
-
+            if (isIdentityVerified && !guest.isMatching) {
+              console.log(`✅ Identity verified for ${tenDigitNumber}: ${rawStatus}`);
+              
               if (plan === "enterprise") {
-                updatedGuests[i] = {
-                  ...guest,
-                  status: "verified",
-                  isMatching: false,
-                  isTimerActive: false,
-                  name: guestResName,
-                  fullName: guestResFullName,
-                  faceStatus: VERIFICATION_STATUS.VERIFIED,
-                  aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                  idVerificationComplete: false,
-                  showWebcam: false,
-                };
+                // Enterprise proceeds to face match if not already face_verified
+                if (rawStatus === "face_verified" || rawStatus === "verified") {
+                  updatedGuests[i] = {
+                    ...guest,
+                    status: "verified",
+                    isIdVerifying: false,
+                    isMatching: false,
+                    isTimerActive: false,
+                    faceStatus: VERIFICATION_STATUS.VERIFIED,
+                    aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+                    name: guestDetail?.firstName || guest.name,
+                    fullName: guestDetail?.fullName || guest.fullName,
+                  };
+                } else {
+                  updatedGuests[i] = {
+                    ...guest,
+                    isIdVerifying: false,
+                    idVerificationComplete: true,
+                    name: guestDetail?.firstName || guest.name,
+                    fullName: guestDetail?.fullName || guest.fullName,
+                  };
+                  handleStartPhotoVerification(i);
+                }
               } else {
-                const isCorpSMB = isCorp && plan === "smb";
+                // Starter/SMB proceeds to CODE INPUT as requested
                 updatedGuests[i] = {
                   ...guest,
-                  status: isCorpSMB ? "pending" : "verified", 
+                  status: "pending", 
                   isIdVerifying: false,
-                  showCodeInput: isCorpSMB,
-                  name: guestResName,
-                  fullName: guestResFullName,
+                  showCodeInput: true,
                   aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                  verificationId: guestDetail?.verificationId || guest.verificationId,
-                  referenceId: guestDetail?.referenceId || guest.referenceId,
+                  name: guestDetail?.firstName || guest.name,
+                  fullName: guestDetail?.fullName || guest.fullName,
                 };
+                showToast("success", "Identity verified. Please enter the verification code.");
               }
               anyChanges = true;
-              showToast("success", `Guest ${guestResName} reached ${rawStatus}.`);
-            } else if (plan === "enterprise" && rawStatus === "identity_verified" && !guest.idVerificationComplete && !guest.showWebcam && !guest.isMatching && !guest.isFetchingImage) {
-              // Transition to Photo Capture for Enterprise
-              updatedGuests[i] = {
-                ...guest,
-                isIdVerifying: false,
-                idVerificationComplete: true,
-                name: guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || guest.name,
-                fullName: guestDetail?.fullName || (guestDetail?.firstName ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim() : null) || guest.fullName,
-              };
-              handleStartPhotoVerification(i);
-              anyChanges = true;
-              showToast("info", "Identity verified automatically. Redirecting to photo capture...");
             } else if (guest.idVerificationTimer > 0) {
-              updatedGuests[i] = {
-                ...guest,
-                idVerificationTimer: Math.max(0, guest.idVerificationTimer - 5),
-              };
-              anyChanges = true;
+              // Timer is now handled by the 1s interval useEffect
+              anyChanges = false;
             }
           } catch (error) {
             console.error("Error in 5s polling:", error);
@@ -363,7 +375,7 @@ const Checkin = () => {
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [guests.some(g => (g.isIdVerifying || g.isMatching || g.status === "pending") && !g.showWebcam)]);
+  }, [guests.some(g => (g.isIdVerifying || g.isMatching || g.status === "pending") && !g.showCodeInput && !g.showWebcam)]);
 
   // Handle Face Matching Simulation and Persistence
   const matchingRef = useRef(new Set());
@@ -452,86 +464,7 @@ const Checkin = () => {
     });
   }, [guests.map(g => g.isMatching).join(",")]);
 
-  const lastFetchedNumbers = useRef(new Map());
 
-  // Proactive guest details fetching after entering phone number
-  useEffect(() => {
-    const fetchGuestData = async (index, phoneNumber) => {
-      const normalized = normalizePhoneNumber(phoneNumber);
-      
-      // Prevent duplicate fetches for the same number
-      if (lastFetchedNumbers.current.get(index) === normalized) return;
-      lastFetchedNumbers.current.set(index, normalized);
-
-      if (normalized.length === 10) {
-        try {
-          const countryCode = "91";
-          console.log(`🔍 [GET_GUEST_BY_ID] Proactively checking status for ${normalized}...`);
-          
-          // Call GET_GUEST_BY_ID directly
-          const response = await guestDetailsService.getGuestById(countryCode, normalized);
-          
-          if (response) {
-            const resName = response.firstName || "";
-            const resFullName = response.fullName || (response.firstName ? `${response.firstName} ${response.lastName || ""}`.trim() : null) || response.name || "";
-            const statusFromServer = (response.verificationStatus || "").toLowerCase();
-            const plan = (selectedPlan || "").toLowerCase();
-            const isCorp = isCorporate;
-            
-            let isAlreadyTargetReached = false;
-            if (isCorp && plan === "starter") {
-              isAlreadyTargetReached = statusFromServer === "registered" || statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
-            } else if (plan === "smb") {
-              isAlreadyTargetReached = statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
-            } else if (plan === "enterprise") {
-              isAlreadyTargetReached = statusFromServer === "face_verified" || statusFromServer === "verified";
-            } else {
-              isAlreadyTargetReached = statusFromServer === "verified";
-            }
-
-            setGuests(prev => {
-              const newState = [...prev];
-              const guestIdx = newState.findIndex(g => normalizePhoneNumber(g.phoneNumber) === normalized);
-              if (guestIdx !== -1) {
-                const isCorpSMB = isCorp && plan === "smb";
-                
-                newState[guestIdx] = {
-                  ...newState[guestIdx],
-                  name: resName || newState[guestIdx].name,
-                  fullName: resFullName || newState[guestIdx].fullName,
-                  verificationId: response.verificationId || newState[guestIdx].verificationId,
-                  referenceId: response.referenceId || newState[guestIdx].referenceId,
-                  status: isAlreadyTargetReached && !isCorpSMB ? "verified" : newState[guestIdx].status,
-                  aadhaarStatus: isAlreadyTargetReached ? VERIFICATION_STATUS.VERIFIED : newState[guestIdx].aadhaarStatus,
-                  faceStatus: (isAlreadyTargetReached && (plan === "enterprise" || statusFromServer === "face_verified")) ? VERIFICATION_STATUS.VERIFIED : newState[guestIdx].faceStatus,
-                };
-
-                if (isAlreadyTargetReached && !isCorpSMB) {
-                  const newVerifiedSet = new Set(verifiedPhoneNumbers);
-                  newVerifiedSet.add(normalized);
-                  setVerifiedPhoneNumbers(newVerifiedSet);
-                }
-              }
-              return newState;
-            });
-          }
-        } catch (error) {
-          // Silent fail for proactive checks
-        }
-      }
-    };
-
-    // Check all guests for completed phone numbers
-    guests.forEach((guest, index) => {
-      const normalized = normalizePhoneNumber(guest.phoneNumber);
-      if (normalized.length === 10 && guest.status === "idle") {
-        fetchGuestData(index, guest.phoneNumber);
-      } else if (normalized.length < 10) {
-        // Clear tracking if number is cleared/changed
-        lastFetchedNumbers.current.delete(index);
-      }
-    });
-  }, [guests.map(g => g.phoneNumber).join(",")]);
 
   // Update phone input enabled status based on Booking ID
   const isPhoneInputEnabled =
@@ -909,20 +842,9 @@ const Checkin = () => {
       const countryCode = "91";
       const tenDigitNumber = normalizedNumber.slice(-10);
       try {
-        // Fetch official details - Call both Ensure API and GET_GUEST_BY_ID
-        const ensureResponse = await verificationService.ensureVerification(
-          bookingInfo.bookingId,
-          countryCode,
-          tenDigitNumber
-        );
+        // Fetch official details - GET_GUEST_BY_ID
+        const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
         
-        guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
-        
-        // Extract name from ensureResponse as prioritized source
-        const ensureName = ensureResponse?.firstName || ensureResponse?.name;
-        const ensureFullName = ensureResponse?.fullName || 
-                               (ensureResponse?.firstName ? `${ensureResponse.firstName} ${ensureResponse.lastName || ""}`.trim() : null);
-
         if (guest.verificationId) {
           console.log("🚀 Posting verification data for SMB/Starter:", normalizedNumber);
           await guestDetailsService.getAadhaarData(
@@ -933,10 +855,10 @@ const Checkin = () => {
           );
         }
 
-        const combinedName = ensureName || guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || newState[index].name || "Verified Guest";
-        const combinedFullName = ensureFullName || guestDetail?.fullName || 
+        const combinedName = guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || guest.name || "Verified Guest";
+        const combinedFullName = guestDetail?.fullName || 
                                 (guestDetail?.firstName ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim() : null) || 
-                                newState[index].fullName || "Verified Guest";
+                                guest.fullName || "Verified Guest";
 
         setGuests((prev) => {
           const newState = [...prev];
@@ -1187,7 +1109,6 @@ const Checkin = () => {
     // --- API INTEGRATION ---
     setIsVerifying(true);
     try {
-      // Define payload for beginVerification
       const beginPayload = {
         bookingId: bookingInfo.bookingId,
         ota: bookingInfo.bookingSource,
@@ -1197,179 +1118,66 @@ const Checkin = () => {
         phoneNumber: tenDigitNumber,
       };
 
-      console.log(`📡 [TRIPLE_SCAN] Triggering APIs for ${tenDigitNumber}...`);
+      console.log(`📡 [VERIFY_FLOW] Checking initial status for ${tenDigitNumber}...`);
       
-      // 1 & 2. Execute GET_GUEST_BY_ID and beginVerification concurrently
-      const [guestDetailResponse] = await Promise.all([
-        verificationService.getGuestById(countryCode, tenDigitNumber).catch(err => {
-          console.warn("⚠️ [GET_GUEST_BY_ID] Failed:", err);
-          return null;
-        }),
-        verificationService.beginVerification(beginPayload).catch(err => {
-          if (err.code !== "ALREADY_VERIFIED") {
-            console.warn("⚠️ [beginVerification] Soft error:", err);
-          }
-          return null;
-        }),
-        // Optional: Post Digilocker if Enterprise
-        selectedPlan === "enterprise" 
-          ? guestDetailsService.postDigilockerVerificationIds(countryCode, tenDigitNumber).catch(() => null)
-          : Promise.resolve(null)
-      ]);
+      // 1. Begin & Ensure (Standard initiation)
+      await verificationService.beginVerification(beginPayload).catch(() => null);
+      await verificationService.ensureVerification(bookingInfo.bookingId, countryCode, tenDigitNumber).catch(() => null);
 
-      if (guestDetailResponse) {
-        console.log("✅ [GET_GUEST_BY_ID] Found details:", guestDetailResponse);
-        const resName = guestDetailResponse.firstName || (guestDetailResponse.fullName ? guestDetailResponse.fullName.split(' ')[0] : null) || "Verified Guest";
-        const resFullName = guestDetailResponse.fullName || (guestDetailResponse.firstName ? `${guestDetailResponse.firstName} ${guestDetailResponse.lastName || ""}`.trim() : null) || "Verified Guest";
-        const statusFromServer = (guestDetailResponse.verificationStatus || "").toLowerCase();
-        
-        // Determine if already fully verified based on plan
-        const plan = (guest.planType || selectedPlan || "").toLowerCase();
-        const isCorp = isCorporate;
-        let isAlreadyTargetReached = false;
+      // 2. Immediate check to see if we can skip polling
+      const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
+      const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
+      const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
-        if (isCorp && plan === "starter") {
-          isAlreadyTargetReached = statusFromServer === "registered" || statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
-        } else if (plan === "smb") {
-          isAlreadyTargetReached = statusFromServer === "identity_verified" || statusFromServer === "face_verified" || statusFromServer === "verified";
-        } else if (plan === "enterprise") {
-          isAlreadyTargetReached = statusFromServer === "face_verified" || statusFromServer === "verified";
-        } else {
-          isAlreadyTargetReached = statusFromServer === "verified";
-        }
+      // For Enterprise: Registered or Identity Verified is enough to start face match
+      const isEntReady = plan === "enterprise" && (rawStatus === "registered" || rawStatus === "identity_verified" || rawStatus === "face_verified" || rawStatus === "verified");
 
-        // Short-circuit if already verified
-        if (isAlreadyTargetReached) {
-          const isCorpSMB = isCorp && plan === "smb";
-          
-          setGuests(prev => {
-            const newState = [...prev];
-            newState[index] = {
-              ...newState[index],
-              status: isCorpSMB ? "pending" : "verified",
-              name: resName,
-              fullName: resFullName,
-              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-              faceStatus: (plan === "enterprise" || statusFromServer === "face_verified") ? VERIFICATION_STATUS.VERIFIED : newState[index].faceStatus,
-              verificationId: guestDetailResponse.verificationId || newState[index].verificationId,
-              referenceId: guestDetailResponse.referenceId || newState[index].referenceId,
-              isIdVerifying: false,
-              isMatching: false,
-              isTimerActive: isCorpSMB,
-              timerSeconds: isCorpSMB ? 120 : 0,
-              showCodeInput: isCorpSMB,
-              idVerificationComplete: false,
-              showWebcam: false
-            };
-            return newState;
-          });
-
-          const newVerifiedSet = new Set(verifiedPhoneNumbers);
-          newVerifiedSet.add(normalizedNumber);
-          setVerifiedPhoneNumbers(newVerifiedSet);
-
-          showToast("success", `Guest ${resName} is already ${statusFromServer}.`);
-          setIsVerifying(false);
-          return; // STOP HERE
-        }
-
-        // Otherwise just update name/details and continue
-        setGuests(prev => {
-          const newState = [...prev];
-          newState[index] = {
-            ...newState[index],
-            name: resName,
-            fullName: resFullName,
-            verificationId: guestDetailResponse.verificationId || newState[index].verificationId,
-            referenceId: guestDetailResponse.referenceId || newState[index].referenceId,
-          };
-          return newState;
-        });
-      }
-
-      // 3. Ensure Verification Status
-      const ensureResponse = await verificationService.ensureVerification(
-        bookingInfo.bookingId,
-        countryCode,
-        tenDigitNumber 
-      );
-
-      const normalizedEnsureStatus = (ensureResponse?.verificationStatus || "").toLowerCase();
-      const ensureIsVerified =
-        ensureResponse &&
-        (ensureResponse.isVerified ||
-          normalizedEnsureStatus === "verified" ||
-          normalizedEnsureStatus === "registered" ||
-          normalizedEnsureStatus === "identity_verified");
-
-      if (ensureIsVerified) {
-        // 3. Fetch Guest Details - use 10-digit number
-        const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
-
-        // Check if guest is already face verified from previous session
-        const isFaceVerified =
-          guestDetail?.faceStatus === VERIFICATION_STATUS.VERIFIED ||
-          guestDetail?.isFaceVerified === true;
-
-        // Determine steps based on plan
-        const isSMB = selectedPlan === 'smb';
-        const isEnterprise = selectedPlan === 'enterprise';
-        const isStarter = selectedPlan === 'starter';
-
-        // Extract name and fullName
-        const finalName = guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || "Verified Guest";
-        const finalFullName = guestDetail?.fullName || (guestDetail?.firstName ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim() : null) || "Verified Guest";
-
-        // If target status is already reached, mark as verified immediately
-        const statusFromServer = (guestDetail?.verificationStatus || "").toLowerCase();
-        const isCorpSMB = isCorporate && isSMB;
-        const isFullyVerifiedNow = (isSMB && (statusFromServer === 'identity_verified' || statusFromServer === 'verified')) ||
-                                  (isStarter && (statusFromServer === 'registered' || statusFromServer === 'verified')) ||
-                                  (isEnterprise && (statusFromServer === 'face_verified' || statusFromServer === 'verified'));
-
-        // Corporate SMB requires code even if already identity verified
-        const needsCodeInput = (!isFullyVerifiedNow && (isSMB || isStarter)) || (isCorpSMB && isFullyVerifiedNow);
-        const shouldResetToPending = needsCodeInput || (!isFullyVerifiedNow && (isSMB || isEnterprise || isStarter) && !isFaceVerified);
-
+      if (isEntReady) {
+        console.log(`✅ [ENT_FLOW] Guest is ${rawStatus}. Starting face match immediately.`);
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
-            status: (isFullyVerifiedNow && !isCorpSMB) ? "verified" : (shouldResetToPending ? "pending" : "verified"),
-            name: finalName,
-            fullName: finalFullName,
+            status: (rawStatus === "face_verified" || rawStatus === "verified") ? "verified" : "pending",
+            isIdVerifying: false,
+            idVerificationComplete: true,
+            name: guestDetail?.firstName || newState[index].name,
+            fullName: guestDetail?.fullName || newState[index].fullName,
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            faceStatus: (isFaceVerified || (isEnterprise && isFullyVerifiedNow)) ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
-            isTimerActive: shouldResetToPending,
-            timerSeconds: shouldResetToPending ? 120 : 0,
-            verificationId: guestDetail?.verificationId,
-            referenceId: guestDetail?.referenceId,
-            showCodeInput: needsCodeInput,
-            idVerificationComplete: isEnterprise && !isFullyVerifiedNow && !isFaceVerified,
-            showWebcam: false,
+            faceStatus: (rawStatus === "face_verified" || rawStatus === "verified") ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
           };
           return newState;
         });
 
-        if (isFaceVerified) {
-          const newVerifiedSet = new Set(verifiedPhoneNumbers);
-          newVerifiedSet.add(normalizedNumber);
-          setVerifiedPhoneNumbers(newVerifiedSet);
-          showToast("success", `Guest ${guestDetail?.firstName || "Identity"} is already fully face verified.`);
-        } else if (isSMB || isStarter) {
-          showToast("info", "Guest identity found (" + (guestDetail?.firstName || "Verified") + "). Please enter verification code 123456 to confirm.");
-        } else if (isEnterprise) {
-          showToast("info", "Guest identity found (" + (guestDetail?.firstName || "Verified") + "). Please capture photo to complete verification.");
+        if (rawStatus !== "face_verified" && rawStatus !== "verified") {
+          handleStartPhotoVerification(index);
         } else {
-          const newVerifiedSet = new Set(verifiedPhoneNumbers);
-          newVerifiedSet.add(normalizedNumber);
-          setVerifiedPhoneNumbers(newVerifiedSet);
-          showToast("success", "Guest verified successfully.");
+           showToast("success", "Guest is already fully verified.");
         }
-        return;
+        setIsVerifying(false);
+        return; // Skip polling
       }
+
+      // 3. Start Polling with 30s timer for others or if not immediate match
+      setGuests((prev) => {
+        const newState = [...prev];
+        newState[index] = {
+          ...newState[index],
+          status: "pending",
+          isIdVerifying: true,
+          idVerificationTimer: 30,
+          idVerificationComplete: false,
+          showCodeInput: false,
+          isTimerActive: true,
+          timerSeconds: 120,
+        };
+        return newState;
+      });
+
+      showToast("info", "Verification started. Checking identity status...");
+
     } catch (error) {
-      console.warn("Standard verification flow could not be bypassed:", error.message);
+      console.warn("Verification initiation error:", error.message);
     } finally {
       setIsVerifying(false);
     }
@@ -1619,7 +1427,7 @@ const Checkin = () => {
     if (guest.showWebcam) return "Capture Photo";
 
     if (isCorporate) {
-      return "Get Code";
+      return "Verify";
     } else {
       if (selectedPlan === "smb") return "Verify";
       if (selectedPlan === "enterprise") return "Start Verification";
@@ -2006,7 +1814,7 @@ const Checkin = () => {
                             onClick={() => handleVerifyCode(index)}
                             className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all"
                           >
-                            Verify Code
+                            Verify
                           </button>
                         </div>
                       ) : guest.status === "pending" ? (

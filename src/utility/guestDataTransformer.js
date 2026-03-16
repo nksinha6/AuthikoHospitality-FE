@@ -198,7 +198,7 @@ export const getVerificationStatusLabel = (status) => {
     }
 
     // If it's already properly capitalized and valid, return as-is
-    const validStatuses = ["Verified", "Pending", "Failed", "Processing"];
+    const validStatuses = ["Verified", "Pending", "Failed", "Processing", "Identity Verified", "Face Verified", "Registered"];
     if (validStatuses.includes(status)) {
       return status;
     }

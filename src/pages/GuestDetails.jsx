@@ -348,6 +348,9 @@ export default function GuestDetails() {
 
     const statusStyles = {
       Verified: "bg-green-100 text-green-700 border border-green-200",
+      "Face Verified": "bg-emerald-100 text-emerald-700 border border-emerald-200",
+      "Identity Verified": "bg-cyan-100 text-cyan-700 border border-cyan-200",
+      Registered: "bg-indigo-100 text-indigo-700 border border-indigo-200",
       Pending: "bg-yellow-100 text-yellow-700 border border-yellow-200",
       Failed: "bg-red-100 text-red-700 border border-red-200",
       Processing: "bg-blue-100 text-blue-700 border border-blue-200",
@@ -357,7 +360,7 @@ export default function GuestDetails() {
     const style = statusStyles[normalizedStatus] || statusStyles.Unknown;
     const displayStatus = statusStyles[normalizedStatus]
       ? normalizedStatus
-      : "Unknown";
+      : normalizedStatus; // Return the raw status if no match, instead of "Unknown"
 
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${style}`}>
