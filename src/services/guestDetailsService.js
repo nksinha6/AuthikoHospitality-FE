@@ -138,26 +138,26 @@ export const guestDetailsService = {
    * @param {string} phoneCountryCode 
    * @param {string} phoneNumber 
    */
-  async ensureVerification(phoneCountryCode, phoneNumber) {
-    try {
-      // API expects phoneno without country code
-      let cleanPhoneNumber = phoneNumber;
-      if (phoneNumber && phoneNumber.length > 10) {
-        cleanPhoneNumber = phoneNumber.slice(-10);
-      }
+  // async ensureVerification(phoneCountryCode, phoneNumber) {
+  //   try {
+  //     // API expects phoneno without country code
+  //     let cleanPhoneNumber = phoneNumber;
+  //     if (phoneNumber && phoneNumber.length > 10) {
+  //       cleanPhoneNumber = phoneNumber.slice(-10);
+  //     }
 
-      const response = await apiClient.get(API_ENDPOINTS.ENSURE_VERIFICATION, {
-        params: {
-          phoneCountryCode: phoneCountryCode || "91",
-          phoneno: cleanPhoneNumber,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error ensuring verification:", error);
-      throw error;
-    }
-  },
+  //     const response = await apiClient.get(API_ENDPOINTS.ENSURE_VERIFICATION, {
+  //       params: {
+  //         phoneCountryCode: phoneCountryCode || "91",
+  //         phoneno: cleanPhoneNumber,
+  //       },
+  //     });
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error ensuring verification:", error);
+  //     throw error;
+  //   }
+  // },
 
   /**
    * Get guest details by ID

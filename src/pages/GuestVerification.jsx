@@ -256,6 +256,7 @@ export default function GuestVerification() {
         phoneno,
       );
 
+      console.log("Ensure called from Checkin at line no 259", ensureResponse);
       // Case 1: Verified 1Pass user exists
       if (ensureResponse.verificationStatus === "verified") {
         setGuests((prev) => {

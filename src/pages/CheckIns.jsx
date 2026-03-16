@@ -621,8 +621,8 @@ const Checkin = () => {
                     : newState[guestIdx].aadhaarStatus,
                   faceStatus:
                     isAlreadyTargetReached &&
-                    (plan === "enterprise" ||
-                      statusFromServer === "face_verified")
+                      (plan === "enterprise" ||
+                        statusFromServer === "face_verified")
                       ? VERIFICATION_STATUS.VERIFIED
                       : newState[guestIdx].faceStatus,
                 };
@@ -1037,6 +1037,8 @@ const Checkin = () => {
           tenDigitNumber,
         );
 
+        console.log("Ensure called from Checkin at line no 1040", ensureResponse);
+
         guestDetail = await guestDetailsService.getGuestById(
           countryCode,
           tenDigitNumber,
@@ -1364,8 +1366,8 @@ const Checkin = () => {
         // Optional: Post Digilocker if Enterprise
         selectedPlan === "enterprise"
           ? guestDetailsService
-              .postDigilockerVerificationIds(countryCode, tenDigitNumber)
-              .catch(() => null)
+            .postDigilockerVerificationIds(countryCode, tenDigitNumber)
+            .catch(() => null)
           : Promise.resolve(null),
       ]);
 
@@ -1479,6 +1481,8 @@ const Checkin = () => {
         tenDigitNumber,
       );
 
+      console.log("Ensure called from Checkin at line no 1484", ensureResponse);
+
       const normalizedEnsureStatus = (
         ensureResponse?.verificationStatus || ""
       ).toLowerCase();
@@ -1585,15 +1589,15 @@ const Checkin = () => {
           showToast(
             "info",
             "Guest identity found (" +
-              (guestDetail?.firstName || "Verified") +
-              "). Please enter verification code 123456 to confirm.",
+            (guestDetail?.firstName || "Verified") +
+            "). Please enter verification code 123456 to confirm.",
           );
         } else if (isEnterprise) {
           showToast(
             "info",
             "Guest identity found (" +
-              (guestDetail?.firstName || "Verified") +
-              "). Please capture photo to complete verification.",
+            (guestDetail?.firstName || "Verified") +
+            "). Please capture photo to complete verification.",
           );
         } else {
           const newVerifiedSet = new Set(verifiedPhoneNumbers);
@@ -2023,15 +2027,13 @@ const Checkin = () => {
                         ? "Enter Email ID*"
                         : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
               </div>
               {isWalkIn ? (
@@ -2096,16 +2098,14 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
