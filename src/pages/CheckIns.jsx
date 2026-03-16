@@ -278,7 +278,9 @@ const Checkin = () => {
           (guest.isIdVerifying ||
             guest.isMatching ||
             guest.status === "pending") &&
-          !guest.showWebcam
+          !guest.showWebcam &&
+          !guest.showCodeInput &&
+          guest.status !== "verified"
         ) {
           try {
             const countryCode = "91";
@@ -293,6 +295,39 @@ const Checkin = () => {
             const rawStatus = (
               guestDetail?.verificationStatus || ""
             ).toLowerCase();
+
+            if (rawStatus === "identity_verified") {
+              console.log("🛑 Identity verified — stopping polling");
+
+              const guestResName =
+                guestDetail?.firstName ||
+                (guestDetail?.fullName
+                  ? guestDetail.fullName.split(" ")[0]
+                  : null) ||
+                "Verified Guest";
+
+              const guestResFullName =
+                guestDetail?.fullName ||
+                (guestDetail?.firstName
+                  ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim()
+                  : null) ||
+                "Verified Guest";
+
+              updatedGuests[i] = {
+                ...guest,
+                isIdVerifying: false,
+                status: "pending",
+                showCodeInput: true,
+                idVerificationTimer: 0,
+                verificationCode: guest.verificationCode || "",
+                name: guestResName,
+                fullName: guestResFullName,
+              };
+
+              anyChanges = true;
+              continue; // ⬅️ skip rest of polling logic
+            }
+
             const plan = (guest.planType || selectedPlan || "").toLowerCase();
             const isCorp = isCorporate;
 
@@ -419,7 +454,9 @@ const Checkin = () => {
     guests.some(
       (g) =>
         (g.isIdVerifying || g.isMatching || g.status === "pending") &&
-        !g.showWebcam,
+        !g.showWebcam &&
+        !g.showCodeInput &&
+        g.status !== "verified",
     ),
   ]);
 
@@ -621,8 +658,8 @@ const Checkin = () => {
                     : newState[guestIdx].aadhaarStatus,
                   faceStatus:
                     isAlreadyTargetReached &&
-                      (plan === "enterprise" ||
-                        statusFromServer === "face_verified")
+                    (plan === "enterprise" ||
+                      statusFromServer === "face_verified")
                       ? VERIFICATION_STATUS.VERIFIED
                       : newState[guestIdx].faceStatus,
                 };
@@ -663,6 +700,33 @@ const Checkin = () => {
     return () => {
       clearAllVerificationProcesses();
     };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGuests((prevGuests) =>
+        prevGuests.map((guest) => {
+          if (guest.isTimerActive && guest.timerSeconds > 0) {
+            return {
+              ...guest,
+              timerSeconds: guest.timerSeconds - 1,
+            };
+          }
+
+          if (guest.isTimerActive && guest.timerSeconds === 0) {
+            return {
+              ...guest,
+              isTimerActive: false,
+              isWaitingForRestart: true,
+            };
+          }
+
+          return guest;
+        }),
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Helper function to normalize phone number to 10 digits
@@ -1031,13 +1095,6 @@ const Checkin = () => {
       const tenDigitNumber = normalizedNumber.slice(-10);
       try {
         // Fetch official details - Call both Ensure API and GET_GUEST_BY_ID
-        const ensureResponse = await verificationService.ensureVerification(
-          bookingInfo.bookingId,
-          countryCode,
-          tenDigitNumber,
-        );
-
-        console.log("Ensure called from Checkin at line no 1040", ensureResponse);
 
         guestDetail = await guestDetailsService.getGuestById(
           countryCode,
@@ -1347,29 +1404,58 @@ const Checkin = () => {
         phoneNumber: tenDigitNumber,
       };
 
-      console.log(`📡 [TRIPLE_SCAN] Triggering APIs for ${tenDigitNumber}...`);
+      console.log(
+        `📡 [VERIFICATION_FLOW] Starting verification for ${tenDigitNumber}...`,
+      );
 
-      // 1 & 2. Execute GET_GUEST_BY_ID and beginVerification concurrently
-      const [guestDetailResponse] = await Promise.all([
-        verificationService
+      let guestDetailResponse = null;
+
+      try {
+        // 1️⃣ Begin Verification
+        await verificationService.beginVerification(beginPayload);
+        console.log("✅ beginVerification completed");
+      } catch (err) {
+        if (err.code !== "ALREADY_VERIFIED") {
+          console.warn("⚠️ [beginVerification] Soft error:", err);
+        }
+      }
+
+      try {
+        // 2️⃣ Ensure Verification
+        const ensureResponse = await verificationService.ensureVerification(
+          bookingInfo.bookingId,
+          countryCode,
+          tenDigitNumber,
+        );
+
+        console.log("✅ ensureVerification response:", ensureResponse);
+      } catch (err) {
+        console.warn("⚠️ [ensureVerification] Soft error:", err);
+      }
+
+      try {
+        // 3️⃣ Fetch Guest Details
+        guestDetailResponse = await verificationService
           .getGuestById(countryCode, tenDigitNumber)
           .catch((err) => {
             console.warn("⚠️ [GET_GUEST_BY_ID] Failed:", err);
             return null;
-          }),
-        verificationService.beginVerification(beginPayload).catch((err) => {
-          if (err.code !== "ALREADY_VERIFIED") {
-            console.warn("⚠️ [beginVerification] Soft error:", err);
-          }
-          return null;
-        }),
-        // Optional: Post Digilocker if Enterprise
-        selectedPlan === "enterprise"
-          ? guestDetailsService
-            .postDigilockerVerificationIds(countryCode, tenDigitNumber)
-            .catch(() => null)
-          : Promise.resolve(null),
-      ]);
+          });
+      } catch (err) {
+        console.warn("⚠️ [guest fetch error]", err);
+      }
+
+      // Optional: Enterprise DigiLocker
+      if (selectedPlan === "enterprise") {
+        try {
+          await guestDetailsService.postDigilockerVerificationIds(
+            countryCode,
+            tenDigitNumber,
+          );
+        } catch {
+          console.warn("⚠️ DigiLocker posting skipped");
+        }
+      }
 
       if (guestDetailResponse) {
         console.log("✅ [GET_GUEST_BY_ID] Found details:", guestDetailResponse);
@@ -1475,13 +1561,6 @@ const Checkin = () => {
       }
 
       // 3. Ensure Verification Status
-      const ensureResponse = await verificationService.ensureVerification(
-        bookingInfo.bookingId,
-        countryCode,
-        tenDigitNumber,
-      );
-
-      console.log("Ensure called from Checkin at line no 1484", ensureResponse);
 
       const normalizedEnsureStatus = (
         ensureResponse?.verificationStatus || ""
@@ -1569,7 +1648,8 @@ const Checkin = () => {
             timerSeconds: shouldResetToPending ? 120 : 0,
             verificationId: guestDetail?.verificationId,
             referenceId: guestDetail?.referenceId,
-            showCodeInput: needsCodeInput,
+            // showCodeInput: needsCodeInput,
+            showCodeInput: false,
             idVerificationComplete:
               isEnterprise && !isFullyVerifiedNow && !isFaceVerified,
             showWebcam: false,
@@ -1589,15 +1669,15 @@ const Checkin = () => {
           showToast(
             "info",
             "Guest identity found (" +
-            (guestDetail?.firstName || "Verified") +
-            "). Please enter verification code 123456 to confirm.",
+              (guestDetail?.firstName || "Verified") +
+              "). Please enter verification code 123456 to confirm.",
           );
         } else if (isEnterprise) {
           showToast(
             "info",
             "Guest identity found (" +
-            (guestDetail?.firstName || "Verified") +
-            "). Please capture photo to complete verification.",
+              (guestDetail?.firstName || "Verified") +
+              "). Please capture photo to complete verification.",
           );
         } else {
           const newVerifiedSet = new Set(verifiedPhoneNumbers);
@@ -2027,13 +2107,15 @@ const Checkin = () => {
                         ? "Enter Email ID*"
                         : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
-                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                    : !isBookingIdEnabled
-                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                      : "border-[#E2E8F0] text-gray-700"
-                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
-                    }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
+                    isWalkIn
+                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                      : !isBookingIdEnabled
+                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                        : "border-[#E2E8F0] text-gray-700"
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
+                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
               {isWalkIn ? (
@@ -2098,14 +2180,16 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
-                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                            : guest.isChangingNumber
-                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                              : "!bg-white !text-gray-700"
-                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                            } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
+                            !isPhoneInputEnabled
+                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                              : guest.isChangingNumber
+                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                                : "!bg-white !text-gray-700"
+                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
+                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                          } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
