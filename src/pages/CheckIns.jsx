@@ -1129,6 +1129,27 @@ const Checkin = () => {
       const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
+      // STARTER: Show code input immediately after initial checks
+      if (plan === "starter") {
+        console.log(`✅ [STARTER_FLOW] Skipping countdown, showing code input.`);
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index] = {
+            ...newState[index],
+            status: "pending",
+            isIdVerifying: false,
+            showCodeInput: true,
+            name: guestDetail?.firstName || newState[index].name,
+            fullName: guestDetail?.fullName || newState[index].fullName,
+            isTimerActive: true,
+            timerSeconds: 120, // Final verification timer
+          };
+          return newState;
+        });
+        setIsVerifying(false);
+        return;
+      }
+
       // For Enterprise: Registered or Identity Verified is enough to start face match
       const isEntReady = plan === "enterprise" && (rawStatus === "registered" || rawStatus === "identity_verified" || rawStatus === "face_verified" || rawStatus === "verified");
 
@@ -1158,7 +1179,7 @@ const Checkin = () => {
         return; // Skip polling
       }
 
-      // 3. Start Polling with 30s timer for others or if not immediate match
+      // 3. Start Polling with 30s timer for SMB and others
       setGuests((prev) => {
         const newState = [...prev];
         newState[index] = {
