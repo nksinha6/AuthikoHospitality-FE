@@ -146,6 +146,11 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     }
   };
 
+  const extractPurposeId = (value) => {
+    if (!value) return "N/A";
+    return value.split("-##-")[0];
+  };
+
   // Guest data with proper fallbacks
   const guestData = {
     fullName:
@@ -176,7 +181,7 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
     city: guest.city || "N/A",
     state: guest.state || "N/A",
     pinCode: guest.pinCode || "N/A",
-    bookingId: guest.bookingId || "N/A",
+    bookingId: extractPurposeId(guest.bookingId) || "N/A",
     bookingSource: guest.bookingSource || "N/A",
     checkInDateTime:
       formatDateTime(guest.checkInDateTime) ||

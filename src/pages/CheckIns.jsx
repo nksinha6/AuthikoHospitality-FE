@@ -20,6 +20,7 @@ import {
   Shield,
   Building2,
   Hotel,
+  Bus,
 } from "lucide-react";
 import {
   GUEST_VERIFICATION,
@@ -42,6 +43,16 @@ const Checkin = () => {
   console.log("userData:", userData);
   console.log("loginType:", userData?.loginType);
   console.log("plan:", userData?.plan);
+
+  useEffect(() => {
+    if (userData) {
+      console.log("💾 Storing userData in sessionStorage:", userData);
+
+      sessionStorage.setItem("userData", JSON.stringify(userData));
+    }
+  }, [userData]);
+  const storedUserData = JSON.parse(sessionStorage.getItem("userData"));
+  console.log("📦 Retrieved userData:", storedUserData);
 
   const isCorporate =
     userData?.type === "Corporate" ||
@@ -263,18 +274,23 @@ const Checkin = () => {
 
   // Identity Verification Countdown Timer (1s interval for UI smoothness)
   useEffect(() => {
-    const activeVerifyingGuests = guests.filter(g => g.isIdVerifying && g.idVerificationTimer > 0);
+    const activeVerifyingGuests = guests.filter(
+      (g) => g.isIdVerifying && g.idVerificationTimer > 0,
+    );
     if (activeVerifyingGuests.length === 0) return;
 
     const timer = setInterval(() => {
-      setGuests(prev => {
+      setGuests((prev) => {
         let anyChanges = false;
-        const newState = prev.map(guest => {
+        const newState = prev.map((guest) => {
           if (guest.isIdVerifying && guest.idVerificationTimer > 0) {
             anyChanges = true;
             const newTime = guest.idVerificationTimer - 1;
             if (newTime === 0) {
-              showToast("error", "Identity verification timed out. Please try again.");
+              showToast(
+                "error",
+                "Identity verification timed out. Please try again.",
+              );
               return { ...guest, idVerificationTimer: 0, isIdVerifying: false };
             }
             return { ...guest, idVerificationTimer: newTime };
@@ -286,12 +302,15 @@ const Checkin = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [guests.some(g => g.isIdVerifying && g.idVerificationTimer > 0)]);
+  }, [guests.some((g) => g.isIdVerifying && g.idVerificationTimer > 0)]);
 
   // Identity Status Polling (5s interval)
   useEffect(() => {
-    const processingGuests = guests.filter((g) =>
-      (g.isIdVerifying || g.isMatching || g.status === "pending") && !g.showCodeInput && !g.showWebcam
+    const processingGuests = guests.filter(
+      (g) =>
+        (g.isIdVerifying || g.isMatching || g.status === "pending") &&
+        !g.showCodeInput &&
+        !g.showWebcam,
     );
     if (processingGuests.length === 0) return;
 
@@ -301,25 +320,39 @@ const Checkin = () => {
 
       for (let i = 0; i < updatedGuests.length; i++) {
         const guest = updatedGuests[i];
-        if ((guest.isIdVerifying || guest.isMatching || guest.status === "pending") && !guest.showCodeInput && !guest.showWebcam) {
+        if (
+          (guest.isIdVerifying ||
+            guest.isMatching ||
+            guest.status === "pending") &&
+          !guest.showCodeInput &&
+          !guest.showWebcam
+        ) {
           try {
             const countryCode = "91";
             const tenDigitNumber = normalizePhoneNumber(guest.phoneNumber);
 
-            const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
+            const guestDetail = await guestDetailsService.getGuestById(
+              countryCode,
+              tenDigitNumber,
+            );
 
-            const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
+            const rawStatus = (
+              guestDetail?.verificationStatus || ""
+            ).toLowerCase();
             const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
             // Check if identity is verified
             // For Enterprise: 'registered' is also considered completion of the identity phase as requested.
-            const isIdentityVerified = (plan === "enterprise" && rawStatus === "registered") ||
+            const isIdentityVerified =
+              (plan === "enterprise" && rawStatus === "registered") ||
               rawStatus === "identity_verified" ||
               rawStatus === "face_verified" ||
               rawStatus === "verified";
 
             if (isIdentityVerified && !guest.isMatching) {
-              console.log(`✅ Identity verified for ${tenDigitNumber}: ${rawStatus}`);
+              console.log(
+                `✅ Identity verified for ${tenDigitNumber}: ${rawStatus}`,
+              );
 
               if (plan === "enterprise") {
                 // Enterprise proceeds to face match if not already face_verified
@@ -356,7 +389,10 @@ const Checkin = () => {
                   name: guestDetail?.firstName || guest.name,
                   fullName: guestDetail?.fullName || guest.fullName,
                 };
-                showToast("success", "Identity verified. Please enter the verification code.");
+                showToast(
+                  "success",
+                  "Identity verified. Please enter the verification code.",
+                );
               }
               anyChanges = true;
             } else if (guest.idVerificationTimer > 0) {
@@ -375,7 +411,14 @@ const Checkin = () => {
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [guests.some(g => (g.isIdVerifying || g.isMatching || g.status === "pending") && !g.showCodeInput && !g.showWebcam)]);
+  }, [
+    guests.some(
+      (g) =>
+        (g.isIdVerifying || g.isMatching || g.status === "pending") &&
+        !g.showCodeInput &&
+        !g.showWebcam,
+    ),
+  ]);
 
   // Handle Face Matching Simulation and Persistence
   const matchingRef = useRef(new Set());
@@ -384,31 +427,49 @@ const Checkin = () => {
       if (matchingRef.current.has(guestId)) return;
       matchingRef.current.add(guestId);
 
-      const index = guests.findIndex(g => g.id === guestId);
+      const index = guests.findIndex((g) => g.id === guestId);
       if (index === -1) return;
 
       try {
         const countryCode = "91";
         const tenDigitNumber = normalizePhoneNumber(phoneNumber);
 
-        console.log(`📸 [FACE_MATCH] Starting simulation for ${tenDigitNumber}...`);
+        console.log(
+          `📸 [FACE_MATCH] Starting simulation for ${tenDigitNumber}...`,
+        );
 
         // 1. Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
 
         // 2. 🚨 PERSIST STATUS TO BACKEND
-        console.log(`📤 [PERSIST_STATUS] Calling persist/status for ${tenDigitNumber}...`);
-        await guestDetailsService.persistGuestStatus(countryCode, tenDigitNumber, "face_verified");
+        console.log(
+          `📤 [PERSIST_STATUS] Calling persist/status for ${tenDigitNumber}...`,
+        );
+        await guestDetailsService.persistGuestStatus(
+          countryCode,
+          tenDigitNumber,
+          "face_verified",
+        );
 
         // 3. 🔍 VERIFY STATUS CHANGE FROM SERVER
-        console.log(`📡 [VERIFY_PERSISTENCE] Checking final status for ${tenDigitNumber}...`);
-        const finalStatusRes = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
-        const finalRawStatus = (finalStatusRes?.verificationStatus || "").toLowerCase();
+        console.log(
+          `📡 [VERIFY_PERSISTENCE] Checking final status for ${tenDigitNumber}...`,
+        );
+        const finalStatusRes = await guestDetailsService.getGuestById(
+          countryCode,
+          tenDigitNumber,
+        );
+        const finalRawStatus = (
+          finalStatusRes?.verificationStatus || ""
+        ).toLowerCase();
 
-        if (finalRawStatus === "face_verified" || finalRawStatus === "verified") {
-          setGuests(prev => {
+        if (
+          finalRawStatus === "face_verified" ||
+          finalRawStatus === "verified"
+        ) {
+          setGuests((prev) => {
             const newState = [...prev];
-            const gIdx = newState.findIndex(g => g.id === guestId);
+            const gIdx = newState.findIndex((g) => g.id === guestId);
             if (gIdx !== -1) {
               newState[gIdx] = {
                 ...newState[gIdx],
@@ -425,13 +486,18 @@ const Checkin = () => {
             }
             return newState;
           });
-          showToast("success", "Face matched and verified on server! Check-in enabled.");
+          showToast(
+            "success",
+            "Face matched and verified on server! Check-in enabled.",
+          );
         } else {
-          console.warn(`⚠️ [VERIFY_PERSISTENCE] Status mismatch: Expected face_verified, got ${finalRawStatus}`);
+          console.warn(
+            `⚠️ [VERIFY_PERSISTENCE] Status mismatch: Expected face_verified, got ${finalRawStatus}`,
+          );
           // Re-try persistence once or set to error? Let's just set to verified for now to avoid loop
-          setGuests(prev => {
+          setGuests((prev) => {
             const newState = [...prev];
-            const gIdx = newState.findIndex(g => g.id === guestId);
+            const gIdx = newState.findIndex((g) => g.id === guestId);
             if (gIdx !== -1) {
               newState[gIdx].isMatching = false;
               newState[gIdx].status = "verified"; // Fallback to success
@@ -444,10 +510,13 @@ const Checkin = () => {
         matchingRef.current.delete(guestId);
       } catch (error) {
         console.error("❌ Face matching/persistence error:", error);
-        showToast("error", "Verification persistence failed. Please try again.");
-        setGuests(prev => {
+        showToast(
+          "error",
+          "Verification persistence failed. Please try again.",
+        );
+        setGuests((prev) => {
           const newState = [...prev];
-          const gIdx = newState.findIndex(g => g.id === guestId);
+          const gIdx = newState.findIndex((g) => g.id === guestId);
           if (gIdx !== -1) {
             newState[gIdx].isMatching = false;
           }
@@ -457,14 +526,12 @@ const Checkin = () => {
       }
     };
 
-    guests.forEach(guest => {
+    guests.forEach((guest) => {
       if (guest.isMatching && !matchingRef.current.has(guest.id)) {
         startFaceMatch(guest.id, guest.phoneNumber);
       }
     });
-  }, [guests.map(g => g.isMatching).join(",")]);
-
-
+  }, [guests.map((g) => g.isMatching).join(",")]);
 
   // Update phone input enabled status based on Booking ID
   const isPhoneInputEnabled =
@@ -843,10 +910,16 @@ const Checkin = () => {
       const tenDigitNumber = normalizedNumber.slice(-10);
       try {
         // Fetch official details - GET_GUEST_BY_ID
-        const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
+        const guestDetail = await guestDetailsService.getGuestById(
+          countryCode,
+          tenDigitNumber,
+        );
 
         if (guest.verificationId) {
-          console.log("🚀 Posting verification data for SMB/Starter:", normalizedNumber);
+          console.log(
+            "🚀 Posting verification data for SMB/Starter:",
+            normalizedNumber,
+          );
           await guestDetailsService.getAadhaarData(
             guest.verificationId,
             guest.referenceId,
@@ -855,10 +928,18 @@ const Checkin = () => {
           );
         }
 
-        const combinedName = guestDetail?.firstName || (guestDetail?.fullName ? guestDetail.fullName.split(' ')[0] : null) || guest.name || "Verified Guest";
-        const combinedFullName = guestDetail?.fullName ||
-          (guestDetail?.firstName ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim() : null) ||
-          guest.fullName || "Verified Guest";
+        const combinedName =
+          guestDetail?.firstName ||
+          (guestDetail?.fullName ? guestDetail.fullName.split(" ")[0] : null) ||
+          guest.name ||
+          "Verified Guest";
+        const combinedFullName =
+          guestDetail?.fullName ||
+          (guestDetail?.firstName
+            ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim()
+            : null) ||
+          guest.fullName ||
+          "Verified Guest";
 
         setGuests((prev) => {
           const newState = [...prev];
@@ -874,8 +955,10 @@ const Checkin = () => {
             showCodeInput: false,
             verificationCode: "",
             // Update with official IDs if found
-            verificationId: guestDetail?.verificationId || newState[index].verificationId,
-            referenceId: guestDetail?.referenceId || newState[index].referenceId,
+            verificationId:
+              guestDetail?.verificationId || newState[index].verificationId,
+            referenceId:
+              guestDetail?.referenceId || newState[index].referenceId,
           };
           return newState;
         });
@@ -954,7 +1037,10 @@ const Checkin = () => {
       const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
 
       // Fetch official ID image for matching
-      const imageData = await guestDetailsService.fetchGuestImage(countryCode, normalizedNumber);
+      const imageData = await guestDetailsService.fetchGuestImage(
+        countryCode,
+        normalizedNumber,
+      );
 
       setGuests((prev) => {
         const newState = [...prev];
@@ -968,7 +1054,10 @@ const Checkin = () => {
       });
 
       if (imageData) {
-        showToast("info", "Official ID image retrieved. Please align face for matching.");
+        showToast(
+          "info",
+          "Official ID image retrieved. Please align face for matching.",
+        );
       } else {
         showToast("info", "Proceeding with standard photo verification.");
       }
@@ -1108,9 +1197,18 @@ const Checkin = () => {
 
     // --- API INTEGRATION ---
     setIsVerifying(true);
+
     try {
+      const now = new Date();
+      const formattedTimestamp = `${String(now.getDate()).padStart(2, "0")}:${String(
+        now.getMonth() + 1,
+      ).padStart(2, "0")}:${now.getFullYear()}:${String(
+        now.getHours(),
+      ).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(
+        now.getSeconds(),
+      ).padStart(2, "0")}`;
       const beginPayload = {
-        bookingId: bookingInfo.bookingId,
+        bookingId: `${bookingInfo.bookingId}-##-${formattedTimestamp}`,
         ota: bookingInfo.bookingSource,
         phoneCountryCode: countryCode,
         adultsCount: guests.length,
@@ -1118,20 +1216,33 @@ const Checkin = () => {
         phoneNumber: tenDigitNumber,
       };
 
-      console.log(`📡 [VERIFY_FLOW] Checking initial status for ${tenDigitNumber}...`);
+      console.log(
+        `📡 [VERIFY_FLOW] Checking initial status for ${tenDigitNumber}...`,
+      );
 
       // 1. Begin & Ensure (Standard initiation)
-      await verificationService.beginVerification(beginPayload).catch(() => null);
-      await verificationService.ensureVerification(bookingInfo.bookingId, countryCode, tenDigitNumber).catch(() => null);
+      await verificationService
+        .beginVerification(beginPayload)
+        .catch(() => null);
+
+      sessionStorage.setItem("BookingId", beginPayload.bookingId);
+      await verificationService
+        .ensureVerification(beginPayload.bookingId, countryCode, tenDigitNumber)
+        .catch(() => null);
 
       // 2. Immediate check to see if we can skip polling
-      const guestDetail = await guestDetailsService.getGuestById(countryCode, tenDigitNumber);
+      const guestDetail = await guestDetailsService.getGuestById(
+        countryCode,
+        tenDigitNumber,
+      );
       const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
       // STARTER: Show code input immediately after initial checks
       if (plan === "starter") {
-        console.log(`✅ [STARTER_FLOW] Skipping countdown, showing code input.`);
+        console.log(
+          `✅ [STARTER_FLOW] Skipping countdown, showing code input.`,
+        );
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
@@ -1151,21 +1262,34 @@ const Checkin = () => {
       }
 
       // For Enterprise: Registered or Identity Verified is enough to start face match
-      const isEntReady = plan === "enterprise" && (rawStatus === "registered" || rawStatus === "identity_verified" || rawStatus === "face_verified" || rawStatus === "verified");
+      const isEntReady =
+        plan === "enterprise" &&
+        (rawStatus === "registered" ||
+          rawStatus === "identity_verified" ||
+          rawStatus === "face_verified" ||
+          rawStatus === "verified");
 
       if (isEntReady) {
-        console.log(`✅ [ENT_FLOW] Guest is ${rawStatus}. Starting face match immediately.`);
+        console.log(
+          `✅ [ENT_FLOW] Guest is ${rawStatus}. Starting face match immediately.`,
+        );
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
-            status: (rawStatus === "face_verified" || rawStatus === "verified") ? "verified" : "pending",
+            status:
+              rawStatus === "face_verified" || rawStatus === "verified"
+                ? "verified"
+                : "pending",
             isIdVerifying: false,
             idVerificationComplete: true,
             name: guestDetail?.firstName || newState[index].name,
             fullName: guestDetail?.fullName || newState[index].fullName,
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            faceStatus: (rawStatus === "face_verified" || rawStatus === "verified") ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+            faceStatus:
+              rawStatus === "face_verified" || rawStatus === "verified"
+                ? VERIFICATION_STATUS.VERIFIED
+                : VERIFICATION_STATUS.PENDING,
           };
           return newState;
         });
@@ -1196,7 +1320,6 @@ const Checkin = () => {
       });
 
       showToast("info", "Verification started. Checking identity status...");
-
     } catch (error) {
       console.warn("Verification initiation error:", error.message);
     } finally {
@@ -1298,7 +1421,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 20,
+          idVerificationTimer: 120,
           idVerificationComplete: false,
           showCodeInput: false,
         };
@@ -1353,14 +1476,19 @@ const Checkin = () => {
     setIsConfirmingCheckin(true);
     try {
       // Call End Verification API
-      await verificationService.endVerification(bookingInfo.bookingId);
+      // await verificationService.endVerification(bookingInfo.bookingId);
+      const bookingId = sessionStorage.getItem("BookingId");
+      await verificationService.endVerification(bookingId);
 
       clearAllVerificationProcesses();
       setShowSuccessModal(true);
       setModalMessage("Check-in completed successfully!");
     } catch (error) {
       console.error("Check-in error:", error);
-      showToast("error", error.message || "Failed to complete check-in. Please try again.");
+      showToast(
+        "error",
+        error.message || "Failed to complete check-in. Please try again.",
+      );
     } finally {
       setIsConfirmingCheckin(false);
     }
@@ -1478,7 +1606,9 @@ const Checkin = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-1">
           <h1 className="text-3xl font-bold">
-            {propertyDetails?.name ? `${propertyDetails.name}` : "Guest Verification"}
+            {propertyDetails?.name
+              ? `${propertyDetails.name}`
+              : "Guest Verification"}
           </h1>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
@@ -1609,13 +1739,15 @@ const Checkin = () => {
                         ? "Enter Email ID*"
                         : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
-                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                    : !isBookingIdEnabled
-                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                      : "border-[#E2E8F0] text-gray-700"
-                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
-                    }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
+                    isWalkIn
+                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                      : !isBookingIdEnabled
+                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                        : "border-[#E2E8F0] text-gray-700"
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
+                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
               {isWalkIn ? (
@@ -1680,14 +1812,16 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
-                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                            : guest.isChangingNumber
-                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                              : "!bg-white !text-gray-700"
-                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                            } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
+                            !isPhoneInputEnabled
+                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                              : guest.isChangingNumber
+                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                                : "!bg-white !text-gray-700"
+                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
+                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                          } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
@@ -1757,7 +1891,7 @@ const Checkin = () => {
                             </span>
                           </div>
                         </div>
-                      ) : (guest.idVerificationComplete || guest.showWebcam) ? (
+                      ) : guest.idVerificationComplete || guest.showWebcam ? (
                         <div className="flex flex-col items-start gap-3">
                           <div className="flex items-center gap-4">
                             <span className="text-green-600 font-medium">
@@ -1773,21 +1907,27 @@ const Checkin = () => {
                                 <Shield size={14} />
                                 <span>Matching Face with ID...</span>
                               </div>
-                            ) : !guest.showWebcam && (
-                              <button
-                                onClick={() => handleStartPhotoVerification(index)}
-                                className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
-                              >
-                                <Camera size={16} />
-                                Capture guest photo
-                              </button>
+                            ) : (
+                              !guest.showWebcam && (
+                                <button
+                                  onClick={() =>
+                                    handleStartPhotoVerification(index)
+                                  }
+                                  className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all flex items-center gap-2"
+                                >
+                                  <Camera size={16} />
+                                  Capture guest photo
+                                </button>
+                              )
                             )}
                           </div>
                           {guest.showWebcam && (
                             <div className="flex flex-col gap-3 mt-2">
                               <div className="flex items-center gap-4">
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase">Live Camera</p>
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                    Live Camera
+                                  </p>
                                   <Webcam
                                     audio={false}
                                     ref={webcamRef}

@@ -13,10 +13,12 @@ import { formatShortDate } from "../utility/bookingUtils.js";
 import { exportToPDF, exportToExcel } from "../utility/exportUtils";
 import { guestDetailsService } from "../services/guestDetailsService";
 import { bookingReadService } from "../services/bookingService";
-import { transformGuestsArray, transformGuestData } from "../utility/guestDataTransformer";
+import {
+  transformGuestsArray,
+  transformGuestData,
+} from "../utility/guestDataTransformer";
 import { STORAGE_KEYS, API_ENDPOINTS } from "../constants/config.js";
 import { useAuth } from "../context/AuthContext.jsx";
-
 
 /* ---------------- UTILITY FUNCTIONS ---------------- */
 const maskAadhaar = (aadhaar) => {
@@ -68,7 +70,11 @@ export default function GuestDetails() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Auth Context
-  const { isAuthenticated, userData, propertyDetails: authPropertyDetails } = useAuth();
+  const {
+    isAuthenticated,
+    userData,
+    propertyDetails: authPropertyDetails,
+  } = useAuth();
   const propertyDetails = authPropertyDetails;
 
   const GUEST_COLUMNS = [
@@ -82,8 +88,14 @@ export default function GuestDetails() {
     { key: "verificationStatus", label: "Verification Status" },
   ];
 
+  const extractPurposeId = (value) => {
+    if (!value) return "N/A";
+    return value.split("-##-")[0];
+  };
+
   const exportData = filteredGuests.map((g) => ({
     ...g,
+    bookingId: extractPurposeId(g.bookingId), // ✅ here
     checkInDate: formatShortDate(g.date),
     maskedAadhaar: maskAadhaar(g.aadhaarNumber),
   }));
@@ -141,12 +153,14 @@ export default function GuestDetails() {
   /* ---------------- POLL PROCESSING GUESTS ---------------- */
   useEffect(() => {
     const processingGuests = guests.filter(
-      (g) => g.verificationStatus === "Processing"
+      (g) => g.verificationStatus === "Processing",
     );
 
     if (processingGuests.length === 0) return;
 
-    console.log(`Polling status for ${processingGuests.length} processing guests...`);
+    console.log(
+      `Polling status for ${processingGuests.length} processing guests...`,
+    );
 
     const pollInterval = setInterval(async () => {
       let hasUpdates = false;
@@ -157,28 +171,39 @@ export default function GuestDetails() {
         if (guestResource.verificationStatus === "Processing") {
           try {
             const countryCode = guestResource.phoneCountryCode || "91";
-            const phoneNumber = guestResource.phoneNumber || guestResource.phone?.slice(-10) || "";
-            
+            const phoneNumber =
+              guestResource.phoneNumber ||
+              guestResource.phone?.slice(-10) ||
+              "";
+
             if (!phoneNumber) continue;
 
-            const updatedData = await guestDetailsService.getGuestById(countryCode, phoneNumber);
-            
+            const updatedData = await guestDetailsService.getGuestById(
+              countryCode,
+              phoneNumber,
+            );
+
             if (updatedData) {
               const transformed = transformGuestData(updatedData);
               const newStatus = transformed.verificationStatus;
 
               if (newStatus !== "Processing") {
-                console.log(`Guest ${guestResource.bookingId} status changed: ${newStatus}`);
+                console.log(
+                  `Guest ${guestResource.bookingId} status changed: ${newStatus}`,
+                );
                 updatedGuests[i] = {
                   ...guestResource,
                   ...transformed,
-                  verificationStatus: newStatus
+                  verificationStatus: newStatus,
                 };
                 hasUpdates = true;
               }
             }
           } catch (err) {
-            console.error(`Error polling guest ${guestResource.bookingId}:`, err);
+            console.error(
+              `Error polling guest ${guestResource.bookingId}:`,
+              err,
+            );
           }
         }
       }
@@ -209,8 +234,11 @@ export default function GuestDetails() {
           console.log("Primary API Response (Guest Details):", response);
         } catch (guestErr) {
           const status = guestErr.response?.status || guestErr.status;
-          console.warn(`Primary guest details API failed with status ${status}, trying fallback...`, guestErr);
-          
+          console.warn(
+            `Primary guest details API failed with status ${status}, trying fallback...`,
+            guestErr,
+          );
+
           if (status === 500 || status === 503 || status === 504) {
             // Fallback to all bookings API if guest details crashes
             response = await bookingReadService.fetchAllBookings();
@@ -219,19 +247,19 @@ export default function GuestDetails() {
             throw guestErr; // Re-throw if it's a 401/403/404 we should handle specifically
           }
         }
-        
+
         const transformedData = transformGuestsArray(response);
         console.log("Transformed Data:", transformedData);
         setGuests(transformedData);
-        
+
         // If we got here but data is empty, it's not an error, just an empty state
         setError(null);
       } catch (err) {
         console.error("Error fetching guest details:", err);
-        
+
         // Distinguish between critical errors and empty/unavailable states
         const status = err.response?.status || err.status;
-        
+
         if (status === 500 || status === 404) {
           console.warn("Treating 500/404 as empty state for this property.");
           setGuests([]);
@@ -348,7 +376,8 @@ export default function GuestDetails() {
 
     const statusStyles = {
       Verified: "bg-green-100 text-green-700 border border-green-200",
-      "Face Verified": "bg-emerald-100 text-emerald-700 border border-emerald-200",
+      "Face Verified":
+        "bg-emerald-100 text-emerald-700 border border-emerald-200",
       "Identity Verified": "bg-cyan-100 text-cyan-700 border border-cyan-200",
       Registered: "bg-indigo-100 text-indigo-700 border border-indigo-200",
       Pending: "bg-yellow-100 text-yellow-700 border border-yellow-200",
@@ -700,7 +729,11 @@ export default function GuestDetails() {
 
         // Row 1: Booking ID & Booking Source
         addFieldLabel("Booking ID", col1X, yPos + 3);
-        addFieldValue(guest.bookingId || "N/A", col1X, yPos + 7);
+        addFieldValue(
+          extractPurposeId(guest.bookingId) || "N/A",
+          col1X,
+          yPos + 7,
+        );
 
         addFieldLabel("Booking Source", col2X, yPos + 3);
         addFieldValue(guest.bookingSource || "N/A", col2X, yPos + 7);
@@ -793,8 +826,12 @@ export default function GuestDetails() {
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-16">
-          <div className={`${isWarning ? "bg-amber-50" : "bg-red-50"} rounded-full p-4 mb-4`}>
-            <FiAlertCircle className={`w-8 h-8 ${isWarning ? "text-amber-500" : "text-red-500"}`} />
+          <div
+            className={`${isWarning ? "bg-amber-50" : "bg-red-50"} rounded-full p-4 mb-4`}
+          >
+            <FiAlertCircle
+              className={`w-8 h-8 ${isWarning ? "text-amber-500" : "text-red-500"}`}
+            />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {isWarning ? "Note" : "Failed to Load Guest Details"}
@@ -833,14 +870,17 @@ export default function GuestDetails() {
             {propertyDetails?.name || "Guest Details"}
           </h2>
           <p className="text-gray-600 mt-1">
-            {propertyDetails?.name ? "Guest Details" : "View and manage guest information"}
+            {propertyDetails?.name
+              ? "Guest Details"
+              : "View and manage guest information"}
           </p>
         </div>
         <button
           onClick={() => fetchGuestDetails(true)}
           disabled={isRefreshing}
-          className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-lg transition-colors ${isRefreshing ? "bg-gray-100 cursor-not-allowed" : "hover:bg-gray-50"
-            }`}
+          className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-lg transition-colors ${
+            isRefreshing ? "bg-gray-100 cursor-not-allowed" : "hover:bg-gray-50"
+          }`}
         >
           <FiRefreshCw
             className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
@@ -903,13 +943,13 @@ export default function GuestDetails() {
           filters.bookingId ||
           filters.city ||
           filters.state) && (
-            <button
-              onClick={clearFilters}
-              className="mt-2 text-sm text-[#1b3631] hover:underline"
-            >
-              Clear all filters
-            </button>
-          )}
+          <button
+            onClick={clearFilters}
+            className="mt-2 text-sm text-[#1b3631] hover:underline"
+          >
+            Clear all filters
+          </button>
+        )}
       </div>
 
       <div className="flex justify-between items-center mb-6">
@@ -968,10 +1008,11 @@ export default function GuestDetails() {
           <button
             onClick={handleDownloadSelectedPDF}
             disabled={isDownloading}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${isDownloading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#1b3631] hover:bg-[#2a4a43]"
-              }`}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+              isDownloading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#1b3631] hover:bg-[#2a4a43]"
+            }`}
           >
             {isDownloading ? (
               <>
@@ -1021,7 +1062,11 @@ export default function GuestDetails() {
           { key: "checkInDate", label: "Check-in Date" },
           { key: "firstName", label: "First Name" },
           { key: "lastName", label: "Surname" },
-          { key: "bookingId", label: "Booking ID" },
+          // { key: "bookingId", label: "Booking ID" },
+          {
+            key: "bookingId",
+            label: userData?.type === "Corporate" ? "Purpose ID" : "Booking ID",
+          },
           { key: "maskedAadhaar", label: "Aadhaar Number" },
           { key: "city", label: "City" },
           { key: "state", label: "State" },
@@ -1039,6 +1084,7 @@ export default function GuestDetails() {
               className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer"
             />
           ),
+          bookingId: (_, row) => extractPurposeId(row.bookingId),
           checkInDate: (_, row) => formatShortDate(row.date),
           maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),
           verificationStatus: (status, row) => {
