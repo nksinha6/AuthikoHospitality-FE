@@ -198,7 +198,15 @@ export const getVerificationStatusLabel = (status) => {
     }
 
     // If it's already properly capitalized and valid, return as-is
-    const validStatuses = ["Verified", "Pending", "Failed", "Processing", "Identity Verified", "Face Verified", "Registered"];
+    const validStatuses = [
+      "Verified",
+      "Pending",
+      "Failed",
+      "Processing",
+      "Identity Verified",
+      "Face Verified",
+      "Registered",
+    ];
     if (validStatuses.includes(status)) {
       return status;
     }
@@ -236,7 +244,9 @@ export const transformGuestData = (apiGuest) => {
   const createdAt = formatCreatedAt(apiGuest.createdAt);
 
   // Get verification status - handle numeric, lowercase string, and capitalized string
-  const verificationStatus = getVerificationStatusLabel(apiGuest.verificationStatus);
+  const verificationStatus = getVerificationStatusLabel(
+    apiGuest.verificationStatus,
+  );
 
   // Debug logging
   console.log("Transform Guest Status:", {
@@ -249,8 +259,8 @@ export const transformGuestData = (apiGuest) => {
   return {
     // Identity Details
     aadhaarNumber: apiGuest.uid || "",
-    firstName,
-    lastName,
+    firstName: firstName || "N/A",
+    lastName: lastName || "N/A",
     fullName: apiGuest.fullName || "-",
     dateOfBirth: formatDateOfBirth(apiGuest.dateOfBirth),
     gender: getGenderLabel(apiGuest.gender),
@@ -265,20 +275,20 @@ export const transformGuestData = (apiGuest) => {
     email: apiGuest.email || "",
 
     // Address
-    address: address.fullAddress,
-    city: address.city,
-    state: address.state,
-    pinCode: address.pinCode,
-    house: address.house,
-    street: address.street,
-    landmark: address.landmark,
+    address: address.fullAddress || "N/A",
+    city: address.city || "N/A",
+    state: address.state || "N/A",
+    pinCode: address.pinCode || "N/A",
+    house: address.house || "N/A",
+    street: address.street || "N/A",
+    landmark: address.landmark || "N/A",
 
     // Booking Details
     bookingId: apiGuest.bookingId || "",
     date: createdAt.date,
     time: createdAt.time,
     checkInDateTime: createdAt.formatted,
-    bookingSource: apiGuest.ota || "WALK-IN",
+    bookingSource: apiGuest.ota || "N/A",
 
     // Verification Details
     verificationStatus: verificationStatus,

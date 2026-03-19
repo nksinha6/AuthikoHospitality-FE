@@ -797,6 +797,8 @@ export default function GuestDetails() {
     }
   };
 
+  const isCorporate = userData?.type === "Corporate";
+
   /* ---------------- LOADING STATE ---------------- */
   if (isLoading) {
     return (
@@ -888,7 +890,6 @@ export default function GuestDetails() {
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
-
       {/* ERROR BANNER */}
       {error && guests.length > 0 && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
@@ -902,7 +903,6 @@ export default function GuestDetails() {
           </button>
         </div>
       )}
-
       {/* FILTERS */}
       <div className="mb-6">
         <div className="grid grid-cols-4 gap-4">
@@ -951,7 +951,6 @@ export default function GuestDetails() {
           </button>
         )}
       </div>
-
       <div className="flex justify-between items-center mb-6">
         <DateFilter onApply={setDateFilter} />
         <div className="flex align-center justify-end gap-3">
@@ -985,12 +984,10 @@ export default function GuestDetails() {
           </button>
         </div>
       </div>
-
       {/* Results Count */}
       <div className="mb-4 text-sm text-gray-600">
         Showing {filteredGuests.length} of {guests.length} guests
       </div>
-
       {/* SELECTED COUNT & DOWNLOAD BUTTON */}
       {selectedRows.length > 0 && (
         <div className="mb-4 p-4 bg-blue-50 rounded-lg flex items-center justify-between">
@@ -1043,68 +1040,127 @@ export default function GuestDetails() {
           </button>
         </div>
       )}
-
       {/* TABLE */}
+
       <UniversalTable
-        columns={[
-          {
-            key: "selector",
-            label: (
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                onChange={handleSelectAll}
-                disabled={filteredGuests.length === 0}
-                className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer disabled:cursor-not-allowed"
-              />
-            ),
-          },
-          { key: "checkInDate", label: "Check-in Date" },
-          { key: "firstName", label: "First Name" },
-          { key: "lastName", label: "Surname" },
-          // { key: "bookingId", label: "Booking ID" },
-          {
-            key: "bookingId",
-            label: userData?.type === "Corporate" ? "Purpose ID" : "Booking ID",
-          },
-          { key: "maskedAadhaar", label: "Aadhaar Number" },
-          { key: "city", label: "City" },
-          { key: "state", label: "State" },
-          { key: "verificationStatus", label: "Verification Status" },
-          { key: "actions", label: "More Details" },
-        ]}
+        columns={
+          isCorporate
+            ? [
+                {
+                  key: "selector",
+                  label: (
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      disabled={filteredGuests.length === 0}
+                      className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer disabled:cursor-not-allowed"
+                    />
+                  ),
+                },
+                { key: "visitDate", label: "Visit Date" },
+                { key: "firstName", label: "First Name" },
+                { key: "lastName", label: "Surname" },
+                { key: "verificationStatus", label: "Verification Status" },
+                { key: "company", label: "Company" },
+                { key: "city", label: "City" },
+                { key: "visitPurpose", label: "Visit Purpose" },
+                { key: "hostName", label: "Host Name" },
+                { key: "actions", label: "More Details" },
+              ]
+            : [
+                {
+                  key: "selector",
+                  label: (
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      disabled={filteredGuests.length === 0}
+                      className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer disabled:cursor-not-allowed"
+                    />
+                  ),
+                },
+                { key: "checkInDate", label: "Check-in Date" },
+                { key: "firstName", label: "First Name" },
+                { key: "lastName", label: "Surname" },
+                { key: "bookingId", label: "Booking ID" },
+                { key: "maskedAadhaar", label: "Aadhaar Number" },
+                { key: "city", label: "City" },
+                { key: "state", label: "State" },
+                { key: "verificationStatus", label: "Verification Status" },
+                { key: "actions", label: "More Details" },
+              ]
+        }
         data={filteredGuests}
         emptyMessage="No guests found."
-        format={{
-          selector: (_, row) => (
-            <input
-              type="checkbox"
-              checked={selectedRows.includes(row.bookingId)}
-              onChange={() => handleSelectRow(row.bookingId)}
-              className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer"
-            />
-          ),
-          bookingId: (_, row) => extractPurposeId(row.bookingId),
-          checkInDate: (_, row) => formatShortDate(row.date),
-          maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),
-          verificationStatus: (status, row) => {
-            const displayStatus = row.verificationStatus || status || "Unknown";
-            return getStatusBadge(displayStatus);
-          },
-          actions: (_, row) => (
-            <button
-              className="text-[#1b3631] text-sm font-medium hover:underline"
-              onClick={() => {
-                setSelectedGuest(row);
-                setShowModal(true);
-              }}
-            >
-              View more
-            </button>
-          ),
-        }}
-      />
+        format={
+          isCorporate
+            ? {
+                selector: (_, row) => (
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(row.bookingId)}
+                    onChange={() => handleSelectRow(row.bookingId)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer"
+                  />
+                ),
+                visitDate: (_, row) => formatShortDate(row.date),
 
+                verificationStatus: (_, row) =>
+                  getStatusBadge(row.verificationStatus),
+
+                company: (_, row) => row.company || "N/A",
+
+                visitPurpose: (_, row) => row.bookingSource || "N/A",
+
+                hostName: (_, row) => extractPurposeId(row.bookingId),
+
+                actions: (_, row) => (
+                  <button
+                    className="text-[#1b3631] text-sm font-medium hover:underline"
+                    onClick={() => {
+                      setSelectedGuest(row);
+                      setShowModal(true);
+                    }}
+                  >
+                    View more
+                  </button>
+                ),
+              }
+            : {
+                selector: (_, row) => (
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.includes(row.bookingId)}
+                    onChange={() => handleSelectRow(row.bookingId)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#1b3631] focus:ring-[#1b3631] cursor-pointer"
+                  />
+                ),
+
+                bookingId: (_, row) => extractPurposeId(row.bookingId),
+
+                checkInDate: (_, row) => formatShortDate(row.date),
+
+                maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),
+
+                verificationStatus: (_, row) =>
+                  getStatusBadge(row.verificationStatus),
+
+                actions: (_, row) => (
+                  <button
+                    className="text-[#1b3631] text-sm font-medium hover:underline"
+                    onClick={() => {
+                      setSelectedGuest(row);
+                      setShowModal(true);
+                    }}
+                  >
+                    View more
+                  </button>
+                ),
+              }
+        }
+      />
       {/* Guest Details Modal */}
       <GuestDetailsModal
         show={showModal}
