@@ -1110,7 +1110,7 @@ export default function GuestDetails() {
                 verificationStatus: (_, row) =>
                   getStatusBadge(row.verificationStatus),
 
-                company: (_, row) => row.company || "N/A",
+                company: (_, row) => row.organization || "N/A",
 
                 visitPurpose: (_, row) => row.bookingSource || "N/A",
 

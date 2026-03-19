@@ -289,6 +289,7 @@ export const transformGuestData = (apiGuest) => {
     time: createdAt.time,
     checkInDateTime: createdAt.formatted,
     bookingSource: apiGuest.ota || "N/A",
+    organization: apiGuest.organization || "N/A",
 
     // Verification Details
     verificationStatus: verificationStatus,
