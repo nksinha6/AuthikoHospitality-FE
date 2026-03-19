@@ -84,15 +84,7 @@ const Checkin = () => {
   const STATIC_VERIFICATION_CODE = "123456";
 
   // Purpose options for Corporate users
-  const PURPOSE_OPTIONS = [
-    "Meeting",
-    "Conference",
-    "Official",
-    "Interview",
-    "Company Visit",
-    "Personal",
-    "Other",
-  ];
+  const PURPOSE_OPTIONS = ["Meeting", "Interview"];
 
   // Refs
   const bookingSourceRef = useRef(null);
@@ -1975,7 +1967,7 @@ const Checkin = () => {
                             onClick={() => handleVerifyCode(index)}
                             className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all"
                           >
-                            Verify
+                            Verify F{" "}
                           </button>
                         </div>
                       ) : guest.status === "pending" ? (
