@@ -1061,11 +1061,12 @@ export default function GuestDetails() {
                 { key: "visitDate", label: "Visit Date" },
                 { key: "firstName", label: "First Name" },
                 { key: "lastName", label: "Surname" },
-                { key: "verificationStatus", label: "Verification Status" },
+
                 { key: "company", label: "Company" },
                 { key: "city", label: "City" },
                 { key: "visitPurpose", label: "Visit Purpose" },
                 { key: "hostName", label: "Host Name" },
+                { key: "verificationStatus", label: "Verification Status" },
                 { key: "actions", label: "More Details" },
               ]
             : [
