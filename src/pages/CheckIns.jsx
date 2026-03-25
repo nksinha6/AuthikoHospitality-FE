@@ -312,6 +312,27 @@ const Checkin = () => {
 
       for (let i = 0; i < updatedGuests.length; i++) {
         const guest = updatedGuests[i];
+
+        const MAX_POLLING_TIME = 5 * 60 * 1000; // 5 minutes
+
+        if (guest.pollingStartTime) {
+          const elapsedTime = Date.now() - guest.pollingStartTime;
+
+          if (elapsedTime > MAX_POLLING_TIME) {
+            console.warn(`⏱️ Polling timeout for guest ${guest.phoneNumber}`);
+
+            updatedGuests[i] = {
+              ...guest,
+              isIdVerifying: false,
+              status: "idle",
+            };
+
+            showToast("error", "Verification timeout. Please try again.");
+            anyChanges = true;
+            continue;
+          }
+        }
+
         if (
           (guest.isIdVerifying ||
             guest.isMatching ||
@@ -345,6 +366,22 @@ const Checkin = () => {
               console.log(
                 `✅ Identity verified for ${tenDigitNumber}: ${rawStatus}`,
               );
+
+              if (plan === "smb") {
+                updatedGuests[i] = {
+                  ...guest,
+                  status: "pending",
+                  isIdVerifying: false,
+                  showCodeInput: true,
+                  aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+                  name: guestDetail?.firstName || guest.name,
+                  fullName: guestDetail?.fullName || guest.fullName,
+                };
+
+                showToast("success", "Identity verified. Please enter OTP.");
+                anyChanges = true;
+                continue;
+              }
 
               if (plan === "enterprise") {
                 // Enterprise proceeds to face match if not already face_verified
@@ -885,6 +922,8 @@ const Checkin = () => {
     });
   };
 
+  // -- Updated Function --
+
   const handleVerifyCode = async (index) => {
     const guest = guests[index];
 
@@ -893,25 +932,14 @@ const Checkin = () => {
       return;
     }
 
-    // Check if code matches static code
     if (guest.verificationCode === STATIC_VERIFICATION_CODE) {
       const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
-
-      // Post Data to Backend & Fetch official details
       const countryCode = "91";
       const tenDigitNumber = normalizedNumber.slice(-10);
-      try {
-        // Fetch official details - GET_GUEST_BY_ID
-        const guestDetail = await guestDetailsService.getGuestById(
-          countryCode,
-          tenDigitNumber,
-        );
 
+      try {
+        // ✅ Only Aadhaar sync (no need to fetch guest again)
         if (guest.verificationId) {
-          console.log(
-            "🚀 Posting verification data for SMB/Starter:",
-            normalizedNumber,
-          );
           await guestDetailsService.getAadhaarData(
             guest.verificationId,
             guest.referenceId,
@@ -920,44 +948,27 @@ const Checkin = () => {
           );
         }
 
-        const combinedName =
-          guestDetail?.firstName ||
-          (guestDetail?.fullName ? guestDetail.fullName.split(" ")[0] : null) ||
-          guest.name ||
-          "Verified Guest";
-        const combinedFullName =
-          guestDetail?.fullName ||
-          (guestDetail?.firstName
-            ? `${guestDetail.firstName} ${guestDetail.lastName || ""}`.trim()
-            : null) ||
-          guest.fullName ||
-          "Verified Guest";
-
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
             isCodeVerified: true,
             status: "verified",
-            name: combinedName,
-            fullName: combinedFullName,
+            name: guest.name || "Verified Guest",
+            fullName: guest.fullName || "Verified Guest",
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
             isTimerActive: false,
             timerSeconds: 0,
             showCodeInput: false,
             verificationCode: "",
-            // Update with official IDs if found
-            verificationId:
-              guestDetail?.verificationId || newState[index].verificationId,
-            referenceId:
-              guestDetail?.referenceId || newState[index].referenceId,
+            verificationId: guest.verificationId,
+            referenceId: guest.referenceId,
           };
           return newState;
         });
       } catch (error) {
-        console.warn("Post-verification data/sync error:", error.message);
+        console.warn("Post-verification sync error:", error.message);
 
-        // Even if secondary APIs fail, we mark as verified if code was correct
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
@@ -1296,20 +1307,54 @@ const Checkin = () => {
       }
 
       // 3. Start Polling with 30s timer for SMB and others
-      setGuests((prev) => {
-        const newState = [...prev];
-        newState[index] = {
-          ...newState[index],
-          status: "pending",
-          isIdVerifying: true,
-          idVerificationTimer: 30,
-          idVerificationComplete: false,
-          showCodeInput: false,
-          isTimerActive: true,
-          timerSeconds: 120,
-        };
-        return newState;
-      });
+
+      // 🔵 SMB FLOW FIX
+      if (plan === "smb") {
+        const isAlreadyVerified =
+          rawStatus === "identity_verified" ||
+          rawStatus === "face_verified" ||
+          rawStatus === "verified";
+
+        // ✅ CASE 1: Already Verified → NO polling
+        if (isAlreadyVerified) {
+          setGuests((prev) => {
+            const newState = [...prev];
+            newState[index] = {
+              ...newState[index],
+              status: "pending",
+              isIdVerifying: false,
+              showCodeInput: true,
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+              name: guestDetail?.firstName || newState[index].name,
+              fullName: guestDetail?.fullName || newState[index].fullName,
+            };
+            return newState;
+          });
+
+          showToast("success", "Identity already verified. Enter OTP.");
+          setIsVerifying(false);
+          return;
+        }
+
+        // 🔁 CASE 2: Pending → Start polling
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index] = {
+            ...newState[index],
+            status: "pending",
+            isIdVerifying: true,
+            idVerificationTimer: 30,
+            pollingStartTime: Date.now(),
+            idVerificationComplete: false,
+            showCodeInput: false,
+            isTimerActive: true,
+            timerSeconds: 120,
+          };
+          return newState;
+        });
+
+        showToast("info", "Verification started. Checking identity status...");
+      }
 
       showToast("info", "Verification started. Checking identity status...");
     } catch (error) {
@@ -1413,7 +1458,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 120,
+          idVerificationTimer: 300,
           idVerificationComplete: false,
           showCodeInput: false,
         };
