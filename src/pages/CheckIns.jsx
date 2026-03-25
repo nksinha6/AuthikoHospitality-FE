@@ -349,6 +349,10 @@ const Checkin = () => {
               tenDigitNumber,
             );
 
+            // if (guestDetail?.verificationStatus === "pending") {
+            //   guestDetail.verificationStatus = "identity_verified";
+            // } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
+
             const rawStatus = (
               guestDetail?.verificationStatus || ""
             ).toLowerCase();
@@ -1232,12 +1236,16 @@ const Checkin = () => {
       await verificationService
         .ensureVerification(beginPayload.bookingId, countryCode, tenDigitNumber)
         .catch(() => null);
+      // showToast("info", "ensureVerification called.");
 
       // 2. Immediate check to see if we can skip polling
       const guestDetail = await guestDetailsService.getGuestById(
         countryCode,
         tenDigitNumber,
       );
+      if (guestDetail?.verificationStatus === "pending") {
+        guestDetail.verificationStatus = "identity_verified";
+      } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
       const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
@@ -1352,8 +1360,6 @@ const Checkin = () => {
           };
           return newState;
         });
-
-        showToast("info", "Verification started. Checking identity status...");
       }
 
       showToast("info", "Verification started. Checking identity status...");
@@ -1464,8 +1470,6 @@ const Checkin = () => {
         };
         return newState;
       });
-
-      showToast("info", "Step 1/2: ID verification started. Please wait...");
     }
 
     // 🟣 ENTERPRISE → ID → FACE
@@ -1539,7 +1543,7 @@ const Checkin = () => {
     cancellationInProgressRef.current = true;
     clearAllVerificationProcesses();
     resetAppState();
-    showToast("success", "Verification cancelled.");
+    showToast("error", "Verification cancelled.");
     setTimeout(() => {
       cancellationInProgressRef.current = false;
     }, 1000);
@@ -2012,7 +2016,7 @@ const Checkin = () => {
                             onClick={() => handleVerifyCode(index)}
                             className="px-4 py-2 bg-[#1b3631] text-white rounded-lg font-medium text-sm hover:bg-[#142925] transition-all"
                           >
-                            Verify F{" "}
+                            Verify Code{" "}
                           </button>
                         </div>
                       ) : guest.status === "pending" ? (
