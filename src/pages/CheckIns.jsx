@@ -349,10 +349,6 @@ const Checkin = () => {
               tenDigitNumber,
             );
 
-            // if (guestDetail?.verificationStatus === "pending") {
-            //   guestDetail.verificationStatus = "identity_verified";
-            // } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
-
             const rawStatus = (
               guestDetail?.verificationStatus || ""
             ).toLowerCase();
@@ -1246,6 +1242,7 @@ const Checkin = () => {
       if (guestDetail?.verificationStatus === "pending") {
         guestDetail.verificationStatus = "identity_verified";
       } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
+
       const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
