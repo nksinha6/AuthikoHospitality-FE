@@ -2106,6 +2106,20 @@ const Checkin = () => {
                             Phone number already in use
                           </span>
                         </div>
+                      ) : // (
+                      //   <span className="text-gray-400 italic">
+                      //     Verify phone to see name
+                      //   </span>
+                      // )
+                      guest.status === "manual_required" ? (
+                        <span className="text-sm">
+                          <span
+                            onClick={() => handleManualVerification(index)}
+                            className="text-blue-600 underline cursor-pointer font-medium hover:text-blue-800"
+                          >
+                            Complete manual verification
+                          </span>
+                        </span>
                       ) : (
                         <span className="text-gray-400 italic">
                           Verify phone to see name
@@ -2113,14 +2127,7 @@ const Checkin = () => {
                       )}
                     </td>
                     <td className="py-6 px-6 text-right">
-                      {guest.status === "manual_required" ? (
-                        <button
-                          onClick={() => handleManualVerification(index)}
-                          className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all flex items-center gap-2 ml-auto"
-                        >
-                          🔗 Manual Verify
-                        </button>
-                      ) : guest.status === "verified" ? (
+                      {guest.status === "verified" ? (
                         <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-[#10B981] rounded-xl text-[#10B981] font-bold text-xs uppercase bg-white">
                           <CheckCircle size={16} />
                           VERIFIED
@@ -2128,7 +2135,8 @@ const Checkin = () => {
                       ) : !guest.showCodeInput &&
                         !guest.showWebcam &&
                         !guest.isIdVerifying &&
-                        !guest.idVerificationComplete ? (
+                        !guest.idVerificationComplete &&
+                        guest.status !== "manual_required" ? ( // 👈 IMPORTANT CONDITION
                         <button
                           onClick={() => handleVerifyGuest(index)}
                           disabled={isVerifyButtonDisabled(guest, index)}
