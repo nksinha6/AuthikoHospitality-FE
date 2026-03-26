@@ -1061,7 +1061,6 @@ export default function GuestDetails() {
                 { key: "visitDate", label: "Visit Date" },
                 { key: "firstName", label: "First Name" },
                 { key: "lastName", label: "Surname" },
-
                 { key: "company", label: "Company" },
                 { key: "city", label: "City" },
                 { key: "visitPurpose", label: "Visit Purpose" },
