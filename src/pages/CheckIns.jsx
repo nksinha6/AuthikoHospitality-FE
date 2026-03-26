@@ -281,11 +281,11 @@ const Checkin = () => {
             anyChanges = true;
             const newTime = guest.idVerificationTimer - 1;
             if (newTime === 0) {
-              showToast(
-                "error",
-                "Identity verification timed out. Please try again.",
-              );
-              return { ...guest, idVerificationTimer: 0, isIdVerifying: false };
+              return {
+                ...guest,
+                idVerificationTimer: 0,
+                isIdVerifying: false,
+              };
             }
             return { ...guest, idVerificationTimer: newTime };
           }
@@ -303,6 +303,7 @@ const Checkin = () => {
     const processingGuests = guests.filter(
       (g) =>
         (g.isIdVerifying || g.isMatching || g.status === "pending") &&
+        g.status !== "manual_required" &&
         !g.showCodeInput &&
         !g.showWebcam,
     );
@@ -323,11 +324,12 @@ const Checkin = () => {
           // if (elapsedTime > MAX_POLLING_TIME) {
           //   console.warn(`⏱️ Polling timeout for guest ${guest.phoneNumber}`);
 
-          if (elapsedTime > MAX_POLLING_TIME) {
+          if (elapsedTime > MAX_POLLING_TIME && !guest.timeoutHandled) {
             updatedGuests[i] = {
               ...guest,
               isIdVerifying: false,
               status: "manual_required", // 👈 CHANGE HERE
+              timeoutHandled: true,
             };
 
             showToast(
@@ -1288,9 +1290,9 @@ const Checkin = () => {
         .catch(() => null);
       // showToast("info", "ensureVerification called.");
 
-      if (ensureRes?.verificationStatus === "pending") {
-        ensureRes.verificationStatus = "identity_verified";
-      } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
+      // if (ensureRes?.verificationStatus === "pending") {
+      //   ensureRes.verificationStatus = "identity_verified";
+      // } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
 
       const rawStatus = (ensureRes?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
