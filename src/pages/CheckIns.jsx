@@ -1,3 +1,5 @@
+// -- New Updates as getGuestById API Call is not required in Start Verification FUnction Call --
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
@@ -318,16 +320,21 @@ const Checkin = () => {
         if (guest.pollingStartTime) {
           const elapsedTime = Date.now() - guest.pollingStartTime;
 
-          if (elapsedTime > MAX_POLLING_TIME) {
-            console.warn(`⏱️ Polling timeout for guest ${guest.phoneNumber}`);
+          // if (elapsedTime > MAX_POLLING_TIME) {
+          //   console.warn(`⏱️ Polling timeout for guest ${guest.phoneNumber}`);
 
+          if (elapsedTime > MAX_POLLING_TIME) {
             updatedGuests[i] = {
               ...guest,
               isIdVerifying: false,
-              status: "idle",
+              status: "manual_required", // 👈 CHANGE HERE
             };
 
-            showToast("error", "Verification timeout. Please try again.");
+            showToast(
+              "error",
+              "Verification taking too long. Please complete manual verification.",
+            );
+
             anyChanges = true;
             continue;
           }
@@ -994,6 +1001,53 @@ const Checkin = () => {
     }
   };
 
+  const handleManualVerification = async (index) => {
+    const guest = guests[index];
+
+    const countryCode = "91";
+    const tenDigitNumber = normalizePhoneNumber(guest.phoneNumber);
+
+    try {
+      const res = await guestDetailsService.getGuestById(
+        countryCode,
+        tenDigitNumber,
+      );
+
+      const rawStatus = (res?.verificationStatus || "").toLowerCase();
+
+      const isVerified =
+        rawStatus === "identity_verified" ||
+        rawStatus === "face_verified" ||
+        rawStatus === "verified";
+
+      if (isVerified) {
+        setGuests((prev) => {
+          const newState = [...prev];
+          newState[index] = {
+            ...newState[index],
+            status: "pending",
+            showCodeInput: true,
+            isIdVerifying: false,
+            aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+            name: res?.firstName || guest.name,
+            fullName: res?.fullName || guest.fullName,
+          };
+          return newState;
+        });
+
+        showToast("success", "Identity verified. Please enter OTP.");
+      } else {
+        showToast(
+          "error",
+          "Verification not completed yet. Please complete manual verification.",
+        );
+      }
+    } catch (error) {
+      console.error("Manual verification failed:", error);
+      showToast("error", "Failed to check verification status.");
+    }
+  };
+
   const handleCapturePhoto = (index) => {
     if (!webcamRef.current) {
       showToast("error", "Webcam not initialized.");
@@ -1229,21 +1283,16 @@ const Checkin = () => {
         .catch(() => null);
 
       sessionStorage.setItem("BookingId", beginPayload.bookingId);
-      await verificationService
+      const ensureRes = await verificationService
         .ensureVerification(beginPayload.bookingId, countryCode, tenDigitNumber)
         .catch(() => null);
       // showToast("info", "ensureVerification called.");
 
-      // 2. Immediate check to see if we can skip polling
-      const guestDetail = await guestDetailsService.getGuestById(
-        countryCode,
-        tenDigitNumber,
-      );
-      if (guestDetail?.verificationStatus === "pending") {
-        guestDetail.verificationStatus = "identity_verified";
+      if (ensureRes?.verificationStatus === "pending") {
+        ensureRes.verificationStatus = "identity_verified";
       } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
 
-      const rawStatus = (guestDetail?.verificationStatus || "").toLowerCase();
+      const rawStatus = (ensureRes?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
       // STARTER: Show code input immediately after initial checks
@@ -1258,8 +1307,8 @@ const Checkin = () => {
             status: "pending",
             isIdVerifying: false,
             showCodeInput: true,
-            name: guestDetail?.firstName || newState[index].name,
-            fullName: guestDetail?.fullName || newState[index].fullName,
+            name: ensureRes?.firstName || newState[index].name,
+            fullName: ensureRes?.fullName || newState[index].fullName,
             isTimerActive: true,
             timerSeconds: 120, // Final verification timer
           };
@@ -1291,8 +1340,8 @@ const Checkin = () => {
                 : "pending",
             isIdVerifying: false,
             idVerificationComplete: true,
-            name: guestDetail?.firstName || newState[index].name,
-            fullName: guestDetail?.fullName || newState[index].fullName,
+            name: ensureRes?.firstName || newState[index].name,
+            fullName: ensureRes?.fullName || newState[index].fullName,
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
             faceStatus:
               rawStatus === "face_verified" || rawStatus === "verified"
@@ -1330,8 +1379,8 @@ const Checkin = () => {
               isIdVerifying: false,
               showCodeInput: true,
               aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-              name: guestDetail?.firstName || newState[index].name,
-              fullName: guestDetail?.fullName || newState[index].fullName,
+              name: ensureRes?.firstName || newState[index].name,
+              fullName: ensureRes?.fullName || newState[index].fullName,
             };
             return newState;
           });
@@ -2064,7 +2113,14 @@ const Checkin = () => {
                       )}
                     </td>
                     <td className="py-6 px-6 text-right">
-                      {guest.status === "verified" ? (
+                      {guest.status === "manual_required" ? (
+                        <button
+                          onClick={() => handleManualVerification(index)}
+                          className="px-6 py-3 bg-[#1b3631] text-white rounded-xl font-bold text-sm hover:bg-[#142925] transition-all flex items-center gap-2 ml-auto"
+                        >
+                          🔗 Manual Verify
+                        </button>
+                      ) : guest.status === "verified" ? (
                         <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-[#10B981] rounded-xl text-[#10B981] font-bold text-xs uppercase bg-white">
                           <CheckCircle size={16} />
                           VERIFIED
