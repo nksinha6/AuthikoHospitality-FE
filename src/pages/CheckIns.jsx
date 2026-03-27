@@ -1,5 +1,3 @@
-// -- New Updates as getGuestById API Call is not required in Start Verification FUnction Call --
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
@@ -298,165 +296,88 @@ const Checkin = () => {
     return () => clearInterval(timer);
   }, [guests.some((g) => g.isIdVerifying && g.idVerificationTimer > 0)]);
 
-  // Identity Status Polling (5s interval)
-  useEffect(() => {
-    const processingGuests = guests.filter(
-      (g) =>
-        (g.isIdVerifying || g.isMatching || g.status === "pending") &&
-        g.status !== "manual_required" &&
-        !g.showCodeInput &&
-        !g.showWebcam,
-    );
-    if (processingGuests.length === 0) return;
+  const startPolling = (index, startTime, maxDuration) => {
+    const poll = async () => {
+      const guest = guests[index];
+      if (!guest) return;
 
-    const pollInterval = setInterval(async () => {
-      let anyChanges = false;
-      const updatedGuests = [...guests];
+      const elapsed = Date.now() - startTime;
 
-      for (let i = 0; i < updatedGuests.length; i++) {
-        const guest = updatedGuests[i];
+      // ⛔ Stop after 5 minutes
+      if (elapsed >= maxDuration) {
+        console.log("⏱️ 5 min timeout reached");
 
-        const MAX_POLLING_TIME = 5 * 60 * 1000; // 5 minutes
+        setGuests((prev) => {
+          const newState = [...prev];
+          const guest = newState[index];
 
-        if (guest.pollingStartTime) {
-          const elapsedTime = Date.now() - guest.pollingStartTime;
-
-          // if (elapsedTime > MAX_POLLING_TIME) {
-          //   console.warn(`⏱️ Polling timeout for guest ${guest.phoneNumber}`);
-
-          if (elapsedTime > MAX_POLLING_TIME && !guest.timeoutHandled) {
-            updatedGuests[i] = {
+          // prevent multiple updates
+          if (!guest?.timeoutHandled) {
+            newState[index] = {
               ...guest,
               isIdVerifying: false,
-              status: "manual_required", // 👈 CHANGE HERE
+              status: "manual_required",
               timeoutHandled: true,
+              idVerificationTimer: 0,
+              isTimerActive: false,
             };
-
-            showToast(
-              "error",
-              "Verification taking too long. Please complete manual verification.",
-            );
-
-            anyChanges = true;
-            continue;
           }
-        }
 
-        if (
-          (guest.isIdVerifying ||
-            guest.isMatching ||
-            guest.status === "pending") &&
-          !guest.showCodeInput &&
-          !guest.showWebcam
-        ) {
-          try {
-            const countryCode = "91";
-            const tenDigitNumber = normalizePhoneNumber(guest.phoneNumber);
+          return newState;
+        });
 
-            const guestDetail = await guestDetailsService.getGuestById(
-              countryCode,
-              tenDigitNumber,
-            );
-
-            const rawStatus = (
-              guestDetail?.verificationStatus || ""
-            ).toLowerCase();
-            const plan = (guest.planType || selectedPlan || "").toLowerCase();
-
-            // Check if identity is verified
-            // For Enterprise: 'registered' is also considered completion of the identity phase as requested.
-            const isIdentityVerified =
-              (plan === "enterprise" && rawStatus === "registered") ||
-              rawStatus === "identity_verified" ||
-              rawStatus === "face_verified" ||
-              rawStatus === "verified";
-
-            if (isIdentityVerified && !guest.isMatching) {
-              console.log(
-                `✅ Identity verified for ${tenDigitNumber}: ${rawStatus}`,
-              );
-
-              if (plan === "smb") {
-                updatedGuests[i] = {
-                  ...guest,
-                  status: "pending",
-                  isIdVerifying: false,
-                  showCodeInput: true,
-                  aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                  name: guestDetail?.firstName || guest.name,
-                  fullName: guestDetail?.fullName || guest.fullName,
-                };
-
-                showToast("success", "Identity verified. Please enter OTP.");
-                anyChanges = true;
-                continue;
-              }
-
-              if (plan === "enterprise") {
-                // Enterprise proceeds to face match if not already face_verified
-                if (rawStatus === "face_verified" || rawStatus === "verified") {
-                  updatedGuests[i] = {
-                    ...guest,
-                    status: "verified",
-                    isIdVerifying: false,
-                    isMatching: false,
-                    isTimerActive: false,
-                    faceStatus: VERIFICATION_STATUS.VERIFIED,
-                    aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                    name: guestDetail?.firstName || guest.name,
-                    fullName: guestDetail?.fullName || guest.fullName,
-                  };
-                } else {
-                  updatedGuests[i] = {
-                    ...guest,
-                    isIdVerifying: false,
-                    idVerificationComplete: true,
-                    name: guestDetail?.firstName || guest.name,
-                    fullName: guestDetail?.fullName || guest.fullName,
-                  };
-                  handleStartPhotoVerification(i);
-                }
-              } else {
-                // Starter/SMB proceeds to CODE INPUT as requested
-                updatedGuests[i] = {
-                  ...guest,
-                  status: "pending",
-                  isIdVerifying: false,
-                  showCodeInput: true,
-                  aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                  name: guestDetail?.firstName || guest.name,
-                  fullName: guestDetail?.fullName || guest.fullName,
-                };
-                showToast(
-                  "success",
-                  "Identity verified. Please enter the verification code.",
-                );
-              }
-              anyChanges = true;
-            } else if (guest.idVerificationTimer > 0) {
-              // Timer is now handled by the 1s interval useEffect
-              anyChanges = false;
-            }
-          } catch (error) {
-            console.error("Error in 5s polling:", error);
-          }
-        }
+        return;
       }
 
-      if (anyChanges) {
-        setGuests(updatedGuests);
-      }
-    }, 5000);
+      try {
+        const countryCode = "91";
+        const number = normalizePhoneNumber(guest.phoneNumber);
 
-    return () => clearInterval(pollInterval);
-  }, [
-    guests.some(
-      (g) =>
-        (g.isIdVerifying || g.isMatching || g.status === "pending") &&
-        !g.showCodeInput &&
-        !g.showWebcam,
-    ),
-  ]);
+        // ✅ API OUTSIDE setState
+        const res = await guestDetailsService.getGuestById(countryCode, number);
+
+        const status = (res?.verificationStatus || "").toLowerCase();
+
+        const isVerified =
+          status === "identity_verified" ||
+          status === "face_verified" ||
+          status === "verified";
+
+        if (isVerified) {
+          setGuests((prev) => {
+            const newState = [...prev];
+            newState[index] = {
+              ...newState[index],
+              isIdVerifying: false,
+              showCodeInput: true,
+              status: "pending",
+
+              // ✅ ADD THESE
+              name: res?.firstName || newState[index].name,
+              fullName: res?.fullName || newState[index].fullName,
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+            };
+            return newState;
+          });
+          return;
+        }
+
+        // 🔁 Next poll after 20 sec
+        const nextTimeout = setTimeout(() => {
+          poll();
+        }, 20000);
+
+        setPollingIntervals((prev) => ({
+          ...prev,
+          [index]: nextTimeout,
+        }));
+      } catch (error) {
+        console.error("Polling error:", error);
+      }
+    };
+
+    poll(); // first call
+  };
 
   // Handle Face Matching Simulation and Persistence
   const matchingRef = useRef(new Set());
@@ -1038,11 +959,6 @@ const Checkin = () => {
         });
 
         showToast("success", "Identity verified. Please enter OTP.");
-      } else {
-        showToast(
-          "error",
-          "Verification not completed yet. Please complete manual verification.",
-        );
       }
     } catch (error) {
       console.error("Manual verification failed:", error);
@@ -1391,23 +1307,69 @@ const Checkin = () => {
           setIsVerifying(false);
           return;
         }
+        const pollingStartTime = Date.now();
+        const MAX_DURATION = 5 * 60 * 1000;
 
-        // 🔁 CASE 2: Pending → Start polling
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
             status: "pending",
             isIdVerifying: true,
-            idVerificationTimer: 30,
-            pollingStartTime: Date.now(),
-            idVerificationComplete: false,
+            pollingStartTime,
             showCodeInput: false,
-            isTimerActive: true,
-            timerSeconds: 120,
           };
           return newState;
         });
+
+        // ⏱️ First API call after 1.5 minutes
+        const firstCallTimeout = setTimeout(() => {
+          startPolling(index, pollingStartTime, MAX_DURATION);
+        }, 90 * 1000);
+
+        // ✅ ADD THIS BLOCK (VERY IMPORTANT)
+        const forceTimeout = setTimeout(
+          () => {
+            console.log("⏱️ FORCE TIMEOUT TRIGGER");
+
+            setGuests((prev) => {
+              const newState = [...prev];
+              const guest = newState[index];
+
+              if (!guest?.timeoutHandled) {
+                newState[index] = {
+                  ...guest,
+                  isIdVerifying: false,
+                  status: "manual_required",
+                  timeoutHandled: true,
+                  idVerificationTimer: 0,
+                  isTimerActive: false,
+                };
+              }
+
+              return newState;
+            });
+
+            // ⛔ stop polling also
+            if (pollingIntervals[index]) {
+              clearTimeout(pollingIntervals[index]);
+            }
+
+            // ✅ DIRECT TOAST HERE
+            showToast(
+              "error",
+              "Verification taking too long. Please complete manual verification.",
+            );
+          },
+          5 * 60 * 1000,
+        ); // EXACT 5 minutes
+
+        // store timeout
+        setCheckStatusTimers((prev) => ({
+          ...prev,
+          [`first-${index}`]: firstCallTimeout,
+          [`timeout-${index}`]: forceTimeout, // ✅ store this also
+        }));
       }
 
       showToast("info", "Verification started. Checking identity status...");
@@ -1527,7 +1489,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 20,
+          idVerificationTimer: 300,
           idVerificationComplete: false,
           showWebcam: false,
         };
@@ -2108,12 +2070,7 @@ const Checkin = () => {
                             Phone number already in use
                           </span>
                         </div>
-                      ) : // (
-                      //   <span className="text-gray-400 italic">
-                      //     Verify phone to see name
-                      //   </span>
-                      // )
-                      guest.status === "manual_required" ? (
+                      ) : guest.status === "manual_required" ? (
                         <span className="text-sm">
                           <span
                             onClick={() => handleManualVerification(index)}
