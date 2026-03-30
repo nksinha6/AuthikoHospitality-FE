@@ -344,21 +344,43 @@ const Checkin = () => {
           status === "verified";
 
         if (isVerified) {
-          setGuests((prev) => {
-            const newState = [...prev];
-            newState[index] = {
-              ...newState[index],
-              isIdVerifying: false,
-              showCodeInput: true,
-              status: "pending",
+          if (guest.planType === "enterprise") {
+            setGuests((prev) => {
+              const newState = [...prev];
+              newState[index] = {
+                ...newState[index],
+                isIdVerifying: false,
+                idVerificationComplete: true,
+                status: status === "face_verified" || status === "verified" ? "verified" : "pending",
+                name: res?.firstName || newState[index].name,
+                fullName: res?.fullName || newState[index].fullName,
+                aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+                faceStatus: status === "face_verified" || status === "verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+              };
+              return newState;
+            });
+            if (status !== "face_verified" && status !== "verified") {
+              handleStartPhotoVerification(index);
+            } else {
+              showToast("success", "Guest is already fully verified.");
+            }
+          } else {
+            setGuests((prev) => {
+              const newState = [...prev];
+              newState[index] = {
+                ...newState[index],
+                isIdVerifying: false,
+                showCodeInput: true,
+                status: "pending",
 
-              // ✅ ADD THESE
-              name: res?.firstName || newState[index].name,
-              fullName: res?.fullName || newState[index].fullName,
-              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            };
-            return newState;
-          });
+                // ✅ ADD THESE
+                name: res?.firstName || newState[index].name,
+                fullName: res?.fullName || newState[index].fullName,
+                aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+              };
+              return newState;
+            });
+          }
           return;
         }
 
@@ -944,21 +966,44 @@ const Checkin = () => {
         rawStatus === "verified";
 
       if (isVerified) {
-        setGuests((prev) => {
-          const newState = [...prev];
-          newState[index] = {
-            ...newState[index],
-            status: "pending",
-            showCodeInput: true,
-            isIdVerifying: false,
-            aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            name: res?.firstName || guest.name,
-            fullName: res?.fullName || guest.fullName,
-          };
-          return newState;
-        });
+        if (guest.planType === "enterprise") {
+          setGuests((prev) => {
+            const newState = [...prev];
+            newState[index] = {
+              ...newState[index],
+              isIdVerifying: false,
+              idVerificationComplete: true,
+              status: rawStatus === "face_verified" || rawStatus === "verified" ? "verified" : "pending",
+              name: res?.firstName || guest.name,
+              fullName: res?.fullName || guest.fullName,
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+              faceStatus: rawStatus === "face_verified" || rawStatus === "verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+            };
+            return newState;
+          });
 
-        showToast("success", "Identity verified. Please enter OTP.");
+          if (rawStatus !== "face_verified" && rawStatus !== "verified") {
+            handleStartPhotoVerification(index);
+          } else {
+            showToast("success", "Guest is already fully verified.");
+          }
+        } else {
+          setGuests((prev) => {
+            const newState = [...prev];
+            newState[index] = {
+              ...newState[index],
+              status: "pending",
+              showCodeInput: true,
+              isIdVerifying: false,
+              aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
+              name: res?.firstName || guest.name,
+              fullName: res?.fullName || guest.fullName,
+            };
+            return newState;
+          });
+
+          showToast("success", "Identity verified. Please enter OTP.");
+        }
       }
     } catch (error) {
       console.error("Manual verification failed:", error);
@@ -1236,11 +1281,10 @@ const Checkin = () => {
         return;
       }
 
-      // For Enterprise: Registered or Identity Verified is enough to start face match
+      // For Enterprise: Identity Verified is enough to start face match
       const isEntReady =
         plan === "enterprise" &&
-        (rawStatus === "registered" ||
-          rawStatus === "identity_verified" ||
+        (rawStatus === "identity_verified" ||
           rawStatus === "face_verified" ||
           rawStatus === "verified");
 
@@ -1280,8 +1324,8 @@ const Checkin = () => {
 
       // 3. Start Polling with 30s timer for SMB and others
 
-      // 🔵 SMB FLOW FIX
-      if (plan === "smb") {
+      // 🔴 SMB and Enterprise Polling FLOW FIX
+      if (plan === "smb" || plan === "enterprise") {
         const isAlreadyVerified =
           rawStatus === "identity_verified" ||
           rawStatus === "face_verified" ||
@@ -1790,15 +1834,13 @@ const Checkin = () => {
                         ? "Enter Email ID*"
                         : "Enter Booking ID*"
                   }
-                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${
-                    isWalkIn
-                      ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
-                      : !isBookingIdEnabled
-                        ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
-                        : "border-[#E2E8F0] text-gray-700"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${
-                    !isBookingIdEnabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full ${isWalkIn ? "pl-10" : "pl-4"} pr-4 py-4 bg-white border ${isWalkIn
+                    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] font-medium"
+                    : !isBookingIdEnabled
+                      ? "border-[#E2E8F0] bg-[#F8FAFC] text-gray-400"
+                      : "border-[#E2E8F0] text-gray-700"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1b3631]/10 focus:border-[#1b3631] transition-colors ${!isBookingIdEnabled ? "cursor-not-allowed" : ""
+                    }`}
                 />
               </div>
               {isWalkIn ? (
@@ -1863,16 +1905,14 @@ const Checkin = () => {
                             guest.isIdVerifying
                           }
                           containerClass="!w-full"
-                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${
-                            !isPhoneInputEnabled
-                              ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
-                              : guest.isChangingNumber
-                                ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
-                                : "!bg-white !text-gray-700"
-                          } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
-                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${
-                            !isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
-                          } hover:!bg-gray-50`}
+                          inputClass={`!w-full !h-12 !border-[#E2E8F0] !rounded-xl ${!isPhoneInputEnabled
+                            ? "!bg-gray-50 !text-gray-400 !cursor-not-allowed"
+                            : guest.isChangingNumber
+                              ? "!bg-[#FFF7ED] !border-[#F59E0B] !text-[#92400E]"
+                              : "!bg-white !text-gray-700"
+                            } focus:!border-[#1b3631] focus:!ring-2 focus:!ring-[#1b3631]/10`}
+                          buttonClass={`!border-[#E2E8F0] !rounded-l-xl ${!isPhoneInputEnabled ? "!bg-gray-50" : "!bg-white"
+                            } hover:!bg-gray-50`}
                           dropdownClass="!rounded-xl !shadow-xl"
                         />
 
