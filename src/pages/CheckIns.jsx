@@ -1986,7 +1986,7 @@ const Checkin = () => {
                         <div className="flex flex-col items-start gap-3">
                           <div className="flex items-center gap-4">
                             <span className="text-green-600 font-medium">
-                              ID Verification Complete
+                              {guest.fullName || guest.name || "Guest"}
                             </span>
                             {guest.isFetchingImage ? (
                               <div className="flex items-center gap-2 text-sm text-[#1b3631]">
