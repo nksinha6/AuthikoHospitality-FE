@@ -345,6 +345,15 @@ const Checkin = () => {
 
         if (isVerified) {
           if (guest.planType === "enterprise") {
+            // Enterprise specific: post Digilocker IDs if just verified identity
+            if (status === "identity_verified") {
+              try {
+                await guestDetailsService.postDigilockerVerificationIds(countryCode, number);
+              } catch (error) {
+                console.error("Error posting Digilocker IDs:", error);
+              }
+            }
+
             setGuests((prev) => {
               const newState = [...prev];
               newState[index] = {
@@ -1540,7 +1549,6 @@ const Checkin = () => {
         return newState;
       });
 
-      showToast("info", "ID verification started. Please wait 20 seconds...");
     }
   };
 
