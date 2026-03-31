@@ -192,23 +192,25 @@ export const guestDetailsService = {
   },
 
   /**
-   * Post Digilocker verification IDs
+   * Get Digilocker verification IDs
    * @param {string} phoneCountryCode 
    * @param {string} phoneNumber 
    */
-  async postDigilockerVerificationIds(phoneCountryCode, phoneNumber) {
+  async getDigilockerVerificationIds(phoneCountryCode, phoneNumber) {
     try {
       let cleanPhoneNumber = phoneNumber;
       if (phoneNumber && phoneNumber.length > 10) {
         cleanPhoneNumber = phoneNumber.slice(-10);
       }
-      const response = await apiClient.post(API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS, {
-        phoneCountryCode: phoneCountryCode || "91",
-        phoneNumber: cleanPhoneNumber,
+      const response = await apiClient.get(API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS, {
+        params: {
+          phoneCountryCode: phoneCountryCode || "91",
+          phoneNumber: cleanPhoneNumber,
+        }
       });
       return response.data;
     } catch (error) {
-      console.error("Error posting Digilocker verification IDs:", error);
+      console.error("Error fetching Digilocker verification IDs:", error);
       throw error;
     }
   },

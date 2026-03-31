@@ -348,9 +348,9 @@ const Checkin = () => {
             // Enterprise specific: post Digilocker IDs if just verified identity
             if (status === "identity_verified") {
               try {
-                await guestDetailsService.postDigilockerVerificationIds(countryCode, number);
+                await guestDetailsService.getDigilockerVerificationIds(countryCode, number);
               } catch (error) {
-                console.error("Error posting Digilocker IDs:", error);
+                console.error("Error fetching Digilocker IDs:", error);
               }
             }
 
@@ -1301,6 +1301,16 @@ const Checkin = () => {
         console.log(
           `✅ [ENT_FLOW] Guest is ${rawStatus}. Starting face match immediately.`,
         );
+
+        // Enterprise specific: post Digilocker IDs if just verified identity
+        if (rawStatus === "identity_verified") {
+          try {
+            await guestDetailsService.getDigilockerVerificationIds(countryCode, tenDigitNumber);
+          } catch (error) {
+            console.error("Error fetching Digilocker IDs:", error);
+          }
+        }
+
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
