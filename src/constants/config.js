@@ -19,8 +19,10 @@ export const API_ENDPOINTS = {
   PROPERTY_BY_ID: "/HotelPropertyRead/property_by_id",
   TENANT_BY_ID: "/HotelPropertyRead/tenant_by_id",
   DIGILOCKER_VERIFICATION_IDS: "HotelGuestRead/digilocker_verification_ids",
-  GET_AADHAAR_DATA: "HotelGuestRead/digilocker/aadhaar",
+  GET_AADHAAR_DATA: "/digilocker/aadhaar",
   PERSIST_GUEST_STATUS: "guest/persist/status",
+  PERSIST_AADHAAR_UPDATE: "guest/persist/aadhaar/update",
+  PERSIST_IMAGE: "guest/persist/aadhar/image",
 };
 
 // Storage Keys

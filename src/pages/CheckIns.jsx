@@ -34,7 +34,7 @@ import SuccessModal from "../components/SuccessModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 import { guestDetailsService } from "../services/guestDetailsService";
 import { verificationService } from "../services/verificationService";
-import { API_ENDPOINTS } from "../constants/config";
+import * as aadhaarService from "../services/aadhaarService";
 
 const Checkin = () => {
   const navigate = useNavigate();
@@ -53,6 +53,28 @@ const Checkin = () => {
   }, [userData]);
   const storedUserData = JSON.parse(sessionStorage.getItem("userData"));
   console.log("📦 Retrieved userData:", storedUserData);
+
+  const base64ToFile = (base64String, fileName) => {
+    try {
+      if (!base64String) return null;
+
+      const arr = base64String.split(",");
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+
+      const bstr = atob(arr[arr.length - 1]);
+      const u8arr = new Uint8Array(bstr.length);
+
+      for (let i = 0; i < bstr.length; i++) {
+        u8arr[i] = bstr.charCodeAt(i);
+      }
+
+      return new File([u8arr], fileName, { type: mime });
+    } catch (err) {
+      console.error("Base64 conversion failed:", err);
+      return null;
+    }
+  };
 
   const isCorporate =
     userData?.type === "Corporate" ||
@@ -332,6 +354,7 @@ const Checkin = () => {
       try {
         const countryCode = "91";
         const number = normalizePhoneNumber(guest.phoneNumber);
+        const tenDigitNumber = number.slice(-10);
 
         // ✅ API OUTSIDE setState
         const res = await guestDetailsService.getGuestById(countryCode, number);
@@ -340,17 +363,125 @@ const Checkin = () => {
 
         const isVerified =
           status === "identity_verified" ||
-          status === "face_verified" ||
-          status === "verified";
+          status === "face_verified";
 
         if (isVerified) {
           if (guest.planType === "enterprise") {
             // Enterprise specific: post Digilocker IDs if just verified identity
+            let fetchedAadhaarName = "";
             if (status === "identity_verified") {
               try {
-                await guestDetailsService.getDigilockerVerificationIds(countryCode, number);
+                const digiRes = await guestDetailsService.getDigilockerVerificationIds(
+                  countryCode,
+                  tenDigitNumber
+                );
+
+                console.log("STEP 1: digiRes", digiRes);
+
+                if (!digiRes || !digiRes.verificationId) {
+                  console.warn("❌ Missing DigiLocker verificationId");
+                  return;
+                }
+
+                const aadhaarData = await aadhaarService.getAadhaarData(
+                  digiRes.verificationId,
+                  digiRes.referenceId,
+                  countryCode,
+                  tenDigitNumber
+                );
+
+                console.log("STEP 2: aadhaarData", aadhaarData);
+
+                if (!aadhaarData) {
+                  console.warn("❌ No Aadhaar data received");
+                  return;
+                }
+
+                if (aadhaarData?.name) {
+                  fetchedAadhaarName = aadhaarData.name;
+                }
+
+                const country =
+                  aadhaarData?.split_address?.country ||
+                  aadhaarData?.splitAddress?.country;
+
+                const aadhaarUpdatePayload = {
+                  Uid: aadhaarData?.uid || "",
+                  PhoneCountryCode: countryCode,
+                  PhoneNumber: tenDigitNumber,
+                  Name: aadhaarData?.name || "",
+                  Gender: aadhaarData?.gender || "",
+                  DateOfBirth: aadhaarData?.dob || "",
+                  Nationality: country === "India" ? "Indian" : country || "",
+                  VerificationId: String(digiRes.verificationId),
+                  ReferenceId: String(digiRes.referenceId),
+
+                  SplitAddress: {
+                    Country: aadhaarData?.split_address?.country || null,
+                    State: aadhaarData?.split_address?.state || null,
+                    Dist: aadhaarData?.split_address?.dist || null,
+                    Subdist: aadhaarData?.split_address?.subdist || null,
+                    Vtc: aadhaarData?.split_address?.vtc || null,
+                    Po: aadhaarData?.split_address?.po || null,
+                    Street: aadhaarData?.split_address?.street || null,
+                    House: aadhaarData?.split_address?.house || null,
+                    Landmark: aadhaarData?.split_address?.landmark || null,
+                    Pincode: aadhaarData?.split_address?.pincode || null,
+                  },
+                  verificationStatus: "identity_verified"
+                };
+
+
+
+                // ✅ Call Update API (always try if data exists)
+                try {
+                  console.log("➡️ Calling persistAadhaarUpdate");
+                  await aadhaarService.persistAadhaarUpdate(aadhaarUpdatePayload);
+                  console.log("✅ persistAadhaarUpdate success");
+                } catch (err) {
+                  console.error("❌ persistAadhaarUpdate failed", err);
+                }
+
+                // ✅ Image Handling (no hard return)
+                const aadhaarBase64 =
+                  aadhaarData?.photo_link ||
+                  aadhaarData?.image ||
+                  aadhaarData?.profile_image;
+
+                console.log("STEP 3: aadhaarBase64", aadhaarBase64);
+
+                if (!aadhaarBase64) {
+                  console.warn("⚠️ No Aadhaar image found, skipping image upload");
+                } else {
+                  const formattedBase64 = aadhaarBase64.startsWith("data:image")
+                    ? aadhaarBase64
+                    : `data:image/jpeg;base64,${aadhaarBase64}`;
+
+                  const imageFile = base64ToFile(formattedBase64, "aadhaar.jpg");
+
+                  console.log("STEP 4: imageFile", imageFile);
+
+                  if (!imageFile) {
+                    console.warn("⚠️ Image conversion failed, skipping upload");
+                  } else {
+                    try {
+                      console.log("➡️ Calling persistAadhaarImage");
+                      await aadhaarService.persistAadhaarImage(
+                        countryCode,
+                        tenDigitNumber,
+                        imageFile
+                      );
+                      console.log("✅ Aadhaar Image Persisted");
+                    } catch (err) {
+                      console.error("❌ persistAadhaarImage failed", err);
+                    }
+                  }
+                }
               } catch (error) {
-                console.error("Error fetching Digilocker IDs:", error);
+                console.error(
+                  "❌ Error fetching Digilocker IDs or Aadhaar data:",
+                  error
+                );
               }
             }
 
@@ -360,15 +491,15 @@ const Checkin = () => {
                 ...newState[index],
                 isIdVerifying: false,
                 idVerificationComplete: true,
-                status: status === "face_verified" || status === "verified" ? "verified" : "pending",
-                name: res?.firstName || newState[index].name,
-                fullName: res?.fullName || newState[index].fullName,
+                status: status === "face_verified" ? "verified" : "pending",
+                name: fetchedAadhaarName || res?.firstName || newState[index].name,
+                fullName: fetchedAadhaarName || res?.fullName || newState[index].fullName,
                 aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-                faceStatus: status === "face_verified" || status === "verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+                faceStatus: status === "face_verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
               };
               return newState;
             });
-            if (status !== "face_verified" && status !== "verified") {
+            if (status !== "face_verified") {
               handleStartPhotoVerification(index);
             } else {
               showToast("success", "Guest is already fully verified.");
@@ -435,11 +566,11 @@ const Checkin = () => {
         console.log(
           `📤 [PERSIST_STATUS] Calling persist/status for ${tenDigitNumber}...`,
         );
-        await guestDetailsService.persistGuestStatus(
-          countryCode,
-          tenDigitNumber,
-          "face_verified",
-        );
+        // await guestDetailsService.persistGuestStatus(
+        //   countryCode,
+        //   tenDigitNumber,
+        //   "face_verified",
+        // );
 
         // 3. 🔍 VERIFY STATUS CHANGE FROM SERVER
         console.log(
@@ -454,8 +585,7 @@ const Checkin = () => {
         ).toLowerCase();
 
         if (
-          finalRawStatus === "face_verified" ||
-          finalRawStatus === "verified"
+          finalRawStatus === "face_verified"
         ) {
           setGuests((prev) => {
             const newState = [...prev];
@@ -971,8 +1101,7 @@ const Checkin = () => {
 
       const isVerified =
         rawStatus === "identity_verified" ||
-        rawStatus === "face_verified" ||
-        rawStatus === "verified";
+        rawStatus === "face_verified";
 
       if (isVerified) {
         if (guest.planType === "enterprise") {
@@ -982,16 +1111,16 @@ const Checkin = () => {
               ...newState[index],
               isIdVerifying: false,
               idVerificationComplete: true,
-              status: rawStatus === "face_verified" || rawStatus === "verified" ? "verified" : "pending",
+              status: rawStatus === "face_verified" ? "verified" : "pending",
               name: res?.firstName || guest.name,
               fullName: res?.fullName || guest.fullName,
               aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-              faceStatus: rawStatus === "face_verified" || rawStatus === "verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
+              faceStatus: rawStatus === "face_verified" ? VERIFICATION_STATUS.VERIFIED : VERIFICATION_STATUS.PENDING,
             };
             return newState;
           });
 
-          if (rawStatus !== "face_verified" && rawStatus !== "verified") {
+          if (rawStatus !== "face_verified") {
             handleStartPhotoVerification(index);
           } else {
             showToast("success", "Guest is already fully verified.");
@@ -1260,10 +1389,6 @@ const Checkin = () => {
         .catch(() => null);
       // showToast("info", "ensureVerification called.");
 
-      // if (ensureRes?.verificationStatus === "pending") {
-      //   ensureRes.verificationStatus = "identity_verified";
-      // } // Temprary solution to move forward in flow due to pending status from server. Should be removed once server sends correct status.
-
       const rawStatus = (ensureRes?.verificationStatus || "").toLowerCase();
       const plan = (guest.planType || selectedPlan || "").toLowerCase();
 
@@ -1294,20 +1419,130 @@ const Checkin = () => {
       const isEntReady =
         plan === "enterprise" &&
         (rawStatus === "identity_verified" ||
-          rawStatus === "face_verified" ||
-          rawStatus === "verified");
+          rawStatus === "face_verified");
 
       if (isEntReady) {
         console.log(
           `✅ [ENT_FLOW] Guest is ${rawStatus}. Starting face match immediately.`,
         );
 
-        // Enterprise specific: post Digilocker IDs if just verified identity
+        let fetchedAadhaarName = "";
+
         if (rawStatus === "identity_verified") {
           try {
-            await guestDetailsService.getDigilockerVerificationIds(countryCode, tenDigitNumber);
+            const digiRes = await guestDetailsService.getDigilockerVerificationIds(
+              countryCode,
+              tenDigitNumber
+            );
+
+            console.log("STEP 1: digiRes", digiRes);
+
+            if (!digiRes || !digiRes.verificationId) {
+              console.warn("❌ Missing DigiLocker verificationId");
+              return;
+            }
+
+
+            const aadhaarData = await aadhaarService.getAadhaarData(
+              digiRes.verificationId,
+              digiRes.referenceId,
+              countryCode,
+              tenDigitNumber
+            );
+
+            console.log("STEP 2: aadhaarData", aadhaarData);
+
+            if (!aadhaarData) {
+              console.warn("❌ No Aadhaar data received");
+              return;
+            }
+
+            if (aadhaarData?.name) {
+              fetchedAadhaarName = aadhaarData.name;
+            }
+
+            const country =
+              aadhaarData?.split_address?.country ||
+              aadhaarData?.splitAddress?.country;
+
+            const aadhaarUpdatePayload = {
+              Uid: aadhaarData?.uid || "",
+              PhoneCountryCode: countryCode,
+              PhoneNumber: tenDigitNumber,
+              Name: aadhaarData?.name || "",
+              Gender: aadhaarData?.gender || "",
+              DateOfBirth: aadhaarData?.dob || "",
+              Nationality: country === "India" ? "Indian" : country || "",
+              VerificationId: String(digiRes.verificationId),
+              ReferenceId: String(digiRes.referenceId),
+
+              SplitAddress: {
+                Country: aadhaarData?.split_address?.country || null,
+                State: aadhaarData?.split_address?.state || null,
+                Dist: aadhaarData?.split_address?.dist || null,
+                Subdist: aadhaarData?.split_address?.subdist || null,
+                Vtc: aadhaarData?.split_address?.vtc || null,
+                Po: aadhaarData?.split_address?.po || null,
+                Street: aadhaarData?.split_address?.street || null,
+                House: aadhaarData?.split_address?.house || null,
+                Landmark: aadhaarData?.split_address?.landmark || null,
+                Pincode: aadhaarData?.split_address?.pincode || null,
+              },
+              verificationStatus: "identity_verified"
+
+            };
+
+
+
+            // ✅ Call Update API (always try if data exists)
+            try {
+              console.log("➡️ Calling persistAadhaarUpdate");
+              await aadhaarService.persistAadhaarUpdate(aadhaarUpdatePayload);
+              console.log("✅ persistAadhaarUpdate success");
+            } catch (err) {
+              console.error("❌ persistAadhaarUpdate failed", err);
+            }
+
+            // ✅ Image Handling (no hard return)
+            const aadhaarBase64 =
+              aadhaarData?.photo_link ||
+              aadhaarData?.image ||
+              aadhaarData?.profile_image;
+
+            console.log("STEP 3: aadhaarBase64", aadhaarBase64);
+
+            if (!aadhaarBase64) {
+              console.warn("⚠️ No Aadhaar image found, skipping image upload");
+            } else {
+              const formattedBase64 = aadhaarBase64.startsWith("data:image")
+                ? aadhaarBase64
+                : `data:image/jpeg;base64,${aadhaarBase64}`;
+
+              const imageFile = base64ToFile(formattedBase64, "aadhaar.jpg");
+
+              console.log("STEP 4: imageFile", imageFile);
+
+              if (!imageFile) {
+                console.warn("⚠️ Image conversion failed, skipping upload");
+              } else {
+                try {
+                  console.log("➡️ Calling persistAadhaarImage");
+                  await aadhaarService.persistAadhaarImage(
+                    countryCode,
+                    tenDigitNumber,
+                    imageFile
+                  );
+                  console.log("✅ Aadhaar Image Persisted");
+                } catch (err) {
+                  console.error("❌ persistAadhaarImage failed", err);
+                }
+              }
+            }
           } catch (error) {
-            console.error("Error fetching Digilocker IDs:", error);
+            console.error(
+              "❌ Error fetching Digilocker IDs or Aadhaar data:",
+              error
+            );
           }
         }
 
@@ -1316,23 +1551,23 @@ const Checkin = () => {
           newState[index] = {
             ...newState[index],
             status:
-              rawStatus === "face_verified" || rawStatus === "verified"
+              rawStatus === "face_verified"
                 ? "verified"
                 : "pending",
             isIdVerifying: false,
             idVerificationComplete: true,
-            name: ensureRes?.firstName || newState[index].name,
-            fullName: ensureRes?.fullName || newState[index].fullName,
+            name: fetchedAadhaarName || ensureRes?.firstName || newState[index].name,
+            fullName: fetchedAadhaarName || ensureRes?.fullName || newState[index].fullName,
             aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
             faceStatus:
-              rawStatus === "face_verified" || rawStatus === "verified"
+              rawStatus === "face_verified"
                 ? VERIFICATION_STATUS.VERIFIED
                 : VERIFICATION_STATUS.PENDING,
           };
           return newState;
         });
 
-        if (rawStatus !== "face_verified" && rawStatus !== "verified") {
+        if (rawStatus !== "face_verified") {
           handleStartPhotoVerification(index);
         } else {
           showToast("success", "Guest is already fully verified.");
@@ -1347,8 +1582,7 @@ const Checkin = () => {
       if (plan === "smb" || plan === "enterprise") {
         const isAlreadyVerified =
           rawStatus === "identity_verified" ||
-          rawStatus === "face_verified" ||
-          rawStatus === "verified";
+          rawStatus === "face_verified";
 
         // ✅ CASE 1: Already Verified → NO polling
         if (isAlreadyVerified) {
