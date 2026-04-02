@@ -615,15 +615,15 @@ const Checkin = () => {
             `⚠️ [VERIFY_PERSISTENCE] Status mismatch: Expected face_verified, got ${finalRawStatus}`,
           );
           // Re-try persistence once or set to error? Let's just set to verified for now to avoid loop
-          setGuests((prev) => {
-            const newState = [...prev];
-            const gIdx = newState.findIndex((g) => g.id === guestId);
-            if (gIdx !== -1) {
-              newState[gIdx].isMatching = false;
-              newState[gIdx].status = "verified"; // Fallback to success
-            }
-            return newState;
-          });
+          // setGuests((prev) => {
+          //   const newState = [...prev];
+          //   const gIdx = newState.findIndex((g) => g.id === guestId);
+          //   if (gIdx !== -1) {
+          //     newState[gIdx].isMatching = false;
+          //     newState[gIdx].status = "verified"; // Fallback to success
+          //   }
+          //   return newState;
+          // });
           showToast("success", "Face match completed.");
         }
 
