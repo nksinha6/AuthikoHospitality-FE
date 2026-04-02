@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   PERSIST_GUEST_STATUS: "guest/persist/status",
   PERSIST_AADHAAR_UPDATE: "guest/persist/aadhaar/update",
   PERSIST_IMAGE: "guest/persist/aadhar/image",
+  FACE_MATCH: "/faceverification/match",
 };
 
 // Storage Keys

@@ -13,9 +13,12 @@ export const guestDetailsService = {
    */
   async fetchBookingGuestDetails() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.BOOKING_GUEST_DETAILS, {
-        timeout: 15000,
-      });
+      const response = await apiClient.get(
+        API_ENDPOINTS.BOOKING_GUEST_DETAILS,
+        {
+          timeout: 15000,
+        },
+      );
 
       return response.data;
     } catch (error) {
@@ -111,7 +114,11 @@ export const guestDetailsService = {
    * @param {number} maxRetries - Maximum retry attempts
    * @returns {Promise<string|null>} Base64 data URL or null
    */
-  async fetchGuestImageWithRetry(phoneCountryCode, phoneNumber, maxRetries = 2) {
+  async fetchGuestImageWithRetry(
+    phoneCountryCode,
+    phoneNumber,
+    maxRetries = 2,
+  ) {
     let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -123,7 +130,7 @@ export const guestDetailsService = {
         if (attempt < maxRetries) {
           // Wait before retry (exponential backoff)
           await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, attempt) * 1000)
+            setTimeout(resolve, Math.pow(2, attempt) * 1000),
           );
         }
       }
@@ -135,8 +142,8 @@ export const guestDetailsService = {
 
   /**
    * Ensure guest verification status
-   * @param {string} phoneCountryCode 
-   * @param {string} phoneNumber 
+   * @param {string} phoneCountryCode
+   * @param {string} phoneNumber
    */
   async ensureVerification(phoneCountryCode, phoneNumber) {
     try {
@@ -161,8 +168,8 @@ export const guestDetailsService = {
 
   /**
    * Get guest details by ID
-   * @param {string} phoneCountryCode 
-   * @param {string} phoneNumber 
+   * @param {string} phoneCountryCode
+   * @param {string} phoneNumber
    */
   async getGuestById(phoneCountryCode, phoneNumber) {
     if (!phoneNumber) return null;
@@ -177,7 +184,7 @@ export const guestDetailsService = {
       const response = await apiClient.get(API_ENDPOINTS.GET_GUEST_BY_ID, {
         params: {
           phoneCountryCode: countryCode,
-          phoneno: cleanPhoneNumber
+          phoneno: cleanPhoneNumber,
         },
       });
       return response.data;
@@ -193,8 +200,8 @@ export const guestDetailsService = {
 
   /**
    * Get Digilocker verification IDs
-   * @param {string} phoneCountryCode 
-   * @param {string} phoneNumber 
+   * @param {string} phoneCountryCode
+   * @param {string} phoneNumber
    */
   async getDigilockerVerificationIds(phoneCountryCode, phoneNumber) {
     try {
@@ -202,12 +209,15 @@ export const guestDetailsService = {
       if (phoneNumber && phoneNumber.length > 10) {
         cleanPhoneNumber = phoneNumber.slice(-10);
       }
-      const response = await apiClient.get(API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS, {
-        params: {
-          phoneCountryCode: phoneCountryCode || "91",
-          phoneNumber: cleanPhoneNumber,
-        }
-      });
+      const response = await apiClient.get(
+        API_ENDPOINTS.DIGILOCKER_VERIFICATION_IDS,
+        {
+          params: {
+            phoneCountryCode: phoneCountryCode || "91",
+            phoneNumber: cleanPhoneNumber,
+          },
+        },
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching Digilocker verification IDs:", error);
@@ -217,7 +227,7 @@ export const guestDetailsService = {
 
   /**
    * End verification session
-   * @param {string} bookingId 
+   * @param {string} bookingId
    * @param {string} tenantId
    * @param {string} propertyId
    */
@@ -236,10 +246,10 @@ export const guestDetailsService = {
   },
   /**
    * Fetch Aadhaar data
-   * @param {string} verificationId 
-   * @param {string} referenceId 
-   * @param {string} phoneCode 
-   * @param {string} phoneNumber 
+   * @param {string} verificationId
+   * @param {string} referenceId
+   * @param {string} phoneCode
+   * @param {string} phoneNumber
    */
   async getAadhaarData(verificationId, referenceId, phoneCode, phoneNumber) {
     try {
@@ -269,7 +279,10 @@ export const guestDetailsService = {
       console.log("📦 Payload:", payload);
       console.log("📤 Endpoint:", API_ENDPOINTS.GET_AADHAAR_DATA);
 
-      const response = await apiClient.post(API_ENDPOINTS.GET_AADHAAR_DATA, payload);
+      const response = await apiClient.post(
+        API_ENDPOINTS.GET_AADHAAR_DATA,
+        payload,
+      );
       console.log("✅ Aadhaar data received:", response.data);
 
       return response.data;
@@ -306,8 +319,8 @@ export const guestDetailsService = {
 
   /**
    * Persist guest verification status
-   * @param {string} phoneCountryCode 
-   * @param {string} phoneNumber 
+   * @param {string} phoneCountryCode
+   * @param {string} phoneNumber
    * @param {string} verificationStatus - e.g., "face_verified"
    */
   async persistGuestStatus(phoneCountryCode, phoneNumber, verificationStatus) {
