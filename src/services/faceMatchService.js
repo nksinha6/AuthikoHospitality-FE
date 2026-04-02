@@ -46,6 +46,54 @@ const matchFace = async (
   }
 };
 
+/**
+ * Persist guest selfie using phone details
+ * @param {string} phoneCountryCode
+ * @param {string} phoneNumber
+ * @param {File} selfieFile
+ * @returns {Promise}
+ */
+const persistGuestSelfie = async (
+  phoneCountryCode,
+  phoneNumber,
+  selfieFile,
+) => {
+  try {
+    const formData = new FormData();
+
+    formData.append("phoneCountryCode", phoneCountryCode);
+    formData.append("phoneNumber", phoneNumber);
+    // formData.append("selfie", selfieFile);
+    formData.append("Image", selfieFile);
+
+    const response = await apiClient.post(
+      API_ENDPOINTS.PERSIST_SELFIE,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 400) {
+      throw new Error("Invalid selfie or phone data");
+    }
+    if (error.response?.status === 401) {
+      throw new Error("Unauthorized request");
+    }
+    if (error.response?.status === 413) {
+      throw new Error("Selfie image too large");
+    }
+
+    console.error("❌ Error persisting selfie:", error);
+    throw error;
+  }
+};
+
 export const faceMatchService = {
   matchFace,
+  persistGuestSelfie,
 };

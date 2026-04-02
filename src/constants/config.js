@@ -22,8 +22,10 @@ export const API_ENDPOINTS = {
   GET_AADHAAR_DATA: "/digilocker/aadhaar",
   PERSIST_GUEST_STATUS: "guest/persist/status",
   PERSIST_AADHAAR_UPDATE: "guest/persist/aadhaar/update",
-  PERSIST_IMAGE: "guest/persist/aadhar/image",
+  // PERSIST_IMAGE: "guest/persist/aadhar/image",
+  PERSIST_IMAGE: "/guest/persist/selfie",
   FACE_MATCH: "/faceverification/match",
+  PERSIST_SELFIE: "/guest/persist/selfie",
 };
 
 // Storage Keys
