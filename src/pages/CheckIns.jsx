@@ -621,45 +621,31 @@ const Checkin = () => {
         }
 
         // ✅ Generate verificationId (random per call as requested)
-        // const verificationId = `VER-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const verificationId = `VER-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
         // ✅ Call Face Match API
-        // const faceMatchRes = await faceMatchService.matchFace(
-        //   verificationId,
-        //   selfieFile,
-        //   idImageFile,
-        // );
+        const faceMatchRes = await faceMatchService.matchFace(
+          verificationId,
+          selfieFile,
+          idImageFile,
+        );
 
-        const faceMatchRes = {
-          status: "SUCCESS",
-          ref_id: 8374968,
-          verification_id: "VER-1775128924291-5649",
-          face_match_result: "YES",
-          face_match_score: 1,
-        };
+        // const faceMatchRes = {
+        //   status: "SUCCESS",
+        //   ref_id: 8374968,
+        //   verification_id: "VER-1775128924291-5649",
+        //   face_match_result: "YES",
+        //   face_match_score: 1,
+        // };
 
         console.log("✅ Face match response:", faceMatchRes);
 
         // ✅ Handle response
-        if (
-          faceMatchRes?.status === "SUCCESS" &&
-          faceMatchRes?.face_match_score === 1
-        ) {
-          console.log("✅ Face match success");
+        const score = Number(faceMatchRes?.face_match_score || 0);
 
-          // ✅ 1. Persist selfie
-          // await faceMatchService.persistGuestSelfie(
-          //   countryCode,
-          //   tenDigitNumber,
-          //   selfieFile,
-          // );
-
-          // // 🔁 Persist status to backend
-          // await guestDetailsService.persistGuestStatus(
-          //   countryCode,
-          //   tenDigitNumber,
-          //   "face_verified",
-          // );
+        // ================== ✅ SUCCESS ==================
+        if (faceMatchRes?.face_match_result === "YES" && score >= 0.75) {
+          console.log("✅ Face match success:", score);
 
           if (matchType === "identity_verified") {
             console.log("📡 Persisting selfie + updating status");
@@ -679,7 +665,7 @@ const Checkin = () => {
             console.log("⏭️ Skipping persist (face_verified flow)");
           }
 
-          // 🔁 Update UI
+          // ✅ UI success
           setGuests((prev) => {
             const newState = [...prev];
             const gIdx = newState.findIndex((g) => g.id === guestId);
@@ -700,12 +686,12 @@ const Checkin = () => {
             return newState;
           });
 
-          showToast(
-            "success",
-            "Face matched and verified on server! Check-in enabled.",
-          );
-        } else {
-          console.warn("❌ Face match failed:", faceMatchRes);
+          showToast("success", `Face matched successfully`);
+        }
+
+        // ================== ❌ FAILURE ==================
+        else {
+          console.warn("❌ Face match failed:", score);
 
           setGuests((prev) => {
             const newState = [...prev];
@@ -714,17 +700,26 @@ const Checkin = () => {
             if (gIdx !== -1) {
               newState[gIdx] = {
                 ...newState[gIdx],
+
                 isMatching: false,
-                showWebcam: true, // ✅ reopen camera
-                capturedImage: null, // ✅ reset previous image
-                status: "pending", // ✅ keep flow active
+
+                // 🔁 reopen webcam for retry
+                showWebcam: true,
+
+                // 🔁 clear old selfie
+                capturedImage: null,
+
+                status: "pending",
               };
             }
 
             return newState;
           });
 
-          showToast("error", "Face match failed. Please try again.");
+          showToast(
+            "error",
+            `Face match failed (Score: ${score}). Please try again.`,
+          );
         }
 
         matchingRef.current.delete(guestId);
