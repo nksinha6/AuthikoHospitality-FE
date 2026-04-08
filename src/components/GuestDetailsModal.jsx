@@ -4,12 +4,18 @@ import React, { useState, useEffect } from "react";
 import { X, User, Download, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 import { guestDetailsService } from "../services/guestDetailsService";
+import { useAuth } from "../context/AuthContext";
 
 const GuestDetailsModal = ({ show, handleClose, guest }) => {
   const [guestImage, setGuestImage] = useState(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const { userData } = useAuth();
+
+  console.log("userData:", userData);
+  console.log("loginType:", userData?.loginType);
+  console.log("plan:", userData?.plan);
 
   // Fetch guest image when modal opens
   useEffect(() => {
@@ -796,13 +802,19 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Booking ID</p>
+                  <p className="text-sm text-gray-500">
+                    {userData?.type === "Corporate" ? "Host" : "Booking ID"}
+                  </p>
                   <p className="font-medium text-gray-800 font-mono">
                     {guestData.bookingId}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Booking Source</p>
+                  <p className="text-sm text-gray-500">
+                    {userData?.type === "Corporate"
+                      ? "Visit Purpose"
+                      : "Booking Source"}
+                  </p>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                     {guestData.bookingSource}
                   </span>
