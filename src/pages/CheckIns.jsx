@@ -1185,7 +1185,7 @@ const Checkin = () => {
 
       showToast("success", "Guest verified successfully!");
     } else {
-      showToast("error", "Invalid verification code. Please use 123456");
+      showToast("error", "Invalid verification code");
     }
   };
 
