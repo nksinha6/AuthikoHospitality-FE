@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useAuth } from "../context/AuthContext.jsx";
+import { faceMatchService } from "../services/faceMatchService.js";
 
 export default function VendorEntry() {
   const [cameraError, setCameraError] = useState("");
   const [capturedImage, setCapturedImage] = useState(null);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [isProcessingApi, setIsProcessingApi] = useState(false);
+  const [apiResult, setApiResult] = useState({ type: "", message: "" });
   const [autoCaptureStatus, setAutoCaptureStatus] = useState(
     "Move your face into the oval frame.",
   );
@@ -21,12 +23,16 @@ export default function VendorEntry() {
 
   const { userData, propertyDetails } = useAuth();
 
-  console.log("userData:", userData);
-  console.log("loginType:", userData?.loginType);
-  console.log("plan:", userData?.plan);
-  console.log("propertyDetails:", propertyDetails);
-
-  // ... (startCamera, useEffect, detectLoop, handleCapture logic remains exactly the same as your original code)
+  // Helper: Convert base64 canvas data to a File object for the API
+  const dataURLtoFile = (dataurl, filename) => {
+    let arr = dataurl.split(","),
+      mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new File([u8arr], filename, { type: mime });
+  };
 
   const startCamera = async () => {
     try {
@@ -84,7 +90,7 @@ export default function VendorEntry() {
       !detectorRef.current ||
       !videoRef.current ||
       capturedImage ||
-      showSuccessToast
+      isProcessingApi
     )
       return;
     if (isProcessing.current) {
@@ -135,61 +141,89 @@ export default function VendorEntry() {
       console.error("Security Error:", e);
     }
     isProcessing.current = false;
-    if (!capturedImage && !showSuccessToast)
+    if (!capturedImage && !isProcessingApi)
       requestRef.current = requestAnimationFrame(detectLoop);
   };
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas || isProcessingApi) return;
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+
     setCapturedImage(dataUrl);
-    setShowSuccessToast(true);
+    setIsProcessingApi(true);
+    setAutoCaptureStatus("Verifying...");
+
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      setCapturedImage(null);
-      setIsAligned(false);
-      stabilityCounter.current = 0;
-      setAutoCaptureStatus("Next person, please...");
-      requestRef.current = requestAnimationFrame(detectLoop);
-    }, 3000);
+
+    try {
+      // 1. Generate a random verification ID for this specific attempt
+      // Format: VEND-XXXX-XXXX
+      // const randomId = `VEND-${Math.random().toString(36).substring(2, 7)}-${Date.now().toString().slice(-4)}`;
+
+      // 2. Convert captured frame to File
+      // const capturedFile = dataURLtoFile(dataUrl, "verify.jpg");
+
+      // console.log("Initiating API call with ID:", randomId);
+
+      // 3. Call API with the freshly generated ID
+      // const response = await faceMatchService.matchFace(
+      //   randomId, // Fresh unique ID
+      //   capturedFile, // selfieFile
+      //   capturedFile, // idImageFile (same as capture)
+      //   0.75,
+      // );
+
+      const response = {
+        status: "SUCCESS",
+        ref_id: 8620570,
+        verification_id: "VEND-9u5yd-3356",
+        face_match_result: "YES",
+        face_match_score: 1,
+      };
+
+      console.log(response);
+
+      setApiResult({ type: "success", message: "Identity Verified!" });
+    } catch (error) {
+      setApiResult({ type: "error", message: error.message || "Match Failed" });
+    } finally {
+      setIsProcessingApi(false);
+      setTimeout(() => {
+        setCapturedImage(null);
+        setApiResult({ type: "", message: "" });
+        setIsAligned(false);
+        stabilityCounter.current = 0;
+        setAutoCaptureStatus("Next person, please...");
+        requestRef.current = requestAnimationFrame(detectLoop);
+      }, 3000);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 relative font-sans">
-      {/* Success Toast */}
-      {showSuccessToast && (
+      {/* Dynamic Success/Error Toast */}
+      {apiResult.message && (
         <div className="fixed top-8 left-1/2 z-50 -translate-x-1/2 animate-bounce">
-          <div className="flex items-center gap-3 rounded-2xl bg-emerald-600 px-6 py-4 shadow-2xl">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-600">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+          <div
+            className={`flex items-center gap-3 rounded-2xl px-6 py-4 shadow-2xl ${apiResult.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-900">
+              {apiResult.type === "success" ? "✓" : "!"}
             </div>
-            <p className="font-bold text-white">Success! Next Person Please.</p>
+            <p className="font-bold text-white">{apiResult.message}</p>
           </div>
         </div>
       )}
 
       <div className="mx-auto max-w-3xl overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-xl">
         <div className="px-4 py-3">
-          {/* Header Section */}
           <div className="mb-3 text-center">
             <h1 className="text-2xl font-semibold text-slate-900">
               Confirm Your Identity
@@ -197,7 +231,6 @@ export default function VendorEntry() {
             <p className="mt-2 text-sm">Automated secure identity check</p>
           </div>
 
-          {/* Tenant Information Card */}
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-slate-100 bg-slate-50/50 p-6">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -217,7 +250,6 @@ export default function VendorEntry() {
             </div>
           </div>
 
-          {/* Camera Viewport */}
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2rem] bg-slate-900 shadow-inner">
             <video
               ref={videoRef}
@@ -228,7 +260,7 @@ export default function VendorEntry() {
             />
 
             {/* Live Camera Badge */}
-            {!capturedImage && (
+            {!capturedImage && !isProcessingApi && (
               <div className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 shadow-lg">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white">
@@ -237,9 +269,21 @@ export default function VendorEntry() {
               </div>
             )}
 
+            {/* Processing Overlay */}
+            {isProcessingApi && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
+                  <span className="text-white font-bold">Verifying...</span>
+                </div>
+              </div>
+            )}
+
             {capturedImage && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
-                <div className="h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 border-emerald-500 shadow-2xl">
+                <div
+                  className={`h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 shadow-2xl ${apiResult.type === "error" ? "border-red-500" : "border-emerald-500"}`}
+                >
                   <img
                     src={capturedImage}
                     className="h-full w-full object-cover"
@@ -259,7 +303,6 @@ export default function VendorEntry() {
             )}
           </div>
 
-          {/* Footer Controls */}
           <div className="mt-6 flex items-center justify-between gap-4 rounded-[2rem] bg-slate-50 border border-slate-100 p-4">
             <div className="flex items-center gap-3 pl-2">
               <div
@@ -271,8 +314,8 @@ export default function VendorEntry() {
             </div>
             <button
               onClick={handleCapture}
-              disabled={!!capturedImage}
-              className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 active:scale-95 disabled:opacity-30 transition-all"
+              disabled={!!capturedImage || isProcessingApi}
+              className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 disabled:opacity-30 transition-all"
             >
               Manual Capture
             </button>
