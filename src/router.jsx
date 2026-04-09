@@ -1,12 +1,13 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import CheckIns from "./pages/CheckIns.jsx";
-import AllBookings from "./pages/AllBookings.jsx";
+// import AllBookings from "./pages/AllBookings.jsx";
 // import GuestDetails from "./pages/GuestDetails.jsx";
 import Login from "./pages/Login.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
 import GuestDetails from "./pages/GuestDetails.jsx";
+import VendorEntry from "./pages/VendorEntry.jsx";
 // import GuestVerification from "./pages/GuestVerification.jsx";
 
 // ✅ Compute basename as a string first
@@ -24,6 +25,7 @@ const routes = [
       // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
       // { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
       { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
+      { path: ROUTES.VENDOR_ENTRY, element: <VendorEntry /> },
     ],
   },
   { path: ROUTES.LOGIN, element: <Login /> },
