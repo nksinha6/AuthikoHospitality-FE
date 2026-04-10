@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useAuth } from "../context/AuthContext.jsx";
 import { faceMatchService } from "../services/faceMatchService.js";
@@ -151,6 +152,8 @@ export default function VendorEntry() {
       requestRef.current = requestAnimationFrame(detectLoop);
   };
 
+  const [mockFaceMatch, setMockFaceMatch] = useState("YES");
+
   const handleCapture = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -168,72 +171,89 @@ export default function VendorEntry() {
 
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     try {
-      const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
-      const response = await faceMatchService.matchContractorFace(capturedFile);
+      // const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
+      // const response = await faceMatchService.matchContractorFace(capturedFile);
+      const response = {
+        result: {
+          faceMatchResult: mockFaceMatch,
+          phoneCountryCode: "91",
+          phoneNumber: "9586023883",
+        },
+      };
 
       if (response?.result?.faceMatchResult === "YES") {
-        // --- NEW: Fetch Guest Details ---
-        // Assuming response.result contains a guest ID or similar
         const guestData = await guestDetailsService.getGuestById(
           response.result.phoneCountryCode,
           response.result.phoneNumber,
         );
         setGuestName(guestData?.fullName || "");
-
-        // setGuestName("Arjun Sharma"); // Mocking for now as per your image
         setAutoCaptureStatus("Verification Successful");
         setApiResult({ type: "success", message: "Identity Verified!" });
+        toast.success("Identity Verified!", {
+          duration: 3000,
+          position: "top-right",
+        });
       } else {
-        setApiResult({ type: "error", message: "Face match failed." });
+        const failureMessage = "Face match failed.";
+        setApiResult({ type: "error", message: failureMessage });
+        toast.error(failureMessage, {
+          duration: 3000,
+          position: "top-right",
+        });
       }
     } catch (error) {
-      setApiResult({ type: "error", message: error.message || "Match Failed" });
+      const errorMessage = error?.message || "Match Failed";
+      setApiResult({
+        type: "error",
+        message: errorMessage,
+      });
+      toast.error(errorMessage, {
+        duration: 3000,
+        position: "top-right",
+      });
     } finally {
       setIsProcessingApi(false);
-      // Increased timeout to 5 seconds so the user can actually read the card
       setTimeout(() => {
-        // 1. Reset all UI states
         stabilityCounter.current = 0;
         isProcessing.current = false;
         setCapturedImage(null);
         setApiResult({ type: "", message: "" });
         setGuestName("");
         setIsAligned(false);
-
         setAutoCaptureStatus("Move your face into the oval frame.");
 
-        // 2. IMPORTANT: Wait for the next tick so the <video> element is rendered back to the DOM
         setTimeout(async () => {
           if (videoRef.current && streamRef.current) {
             videoRef.current.srcObject = streamRef.current;
             await videoRef.current.play().catch(() => {});
-
-            // 3. Force a fresh start of the loop
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
             requestRef.current = requestAnimationFrame(detectLoop);
-            console.log("🚀 Camera behavior restored for next person");
           }
-        }, 200); // Small buffer to ensure DOM mount
+        }, 200);
       }, 10000);
     }
   };
 
+  const complianceItems =
+    apiResult.type === "success"
+      ? [
+          "Medical Certificate Valid",
+          "Safety Training Valid",
+          "ESI/PF Compliance Active",
+          "Not Blacklisted",
+        ]
+      : [
+          { label: "Medical Certificate Valid", valid: true },
+          { label: "Safety Training Expired", valid: false },
+          { label: "ESI/PF Compliance Active", valid: true },
+          { label: "Not Blacklisted", valid: true },
+        ];
+
+  const resultTextClass =
+    apiResult.type === "success" ? "text-emerald-700" : "text-red-700";
+
   return (
     <div className="min-h-screen bg-slate-50 relative font-sans">
-      {/* Dynamic Success/Error Toast */}
-      {apiResult.message && (
-        <div className="fixed top-8 left-1/2 z-50 -translate-x-1/2 animate-bounce">
-          <div
-            className={`flex items-center gap-3 rounded-2xl px-6 py-4 shadow-2xl ${apiResult.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-900">
-              {apiResult.type === "success" ? "✓" : "!"}
-            </div>
-            <p className="font-bold text-white">{apiResult.message}</p>
-          </div>
-        </div>
-      )}
-
       <div className="mx-auto max-w-3xl overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-xl">
         <div className="px-4 py-3">
           <div className="mb-3 text-center">
@@ -263,95 +283,119 @@ export default function VendorEntry() {
           </div>
 
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2rem] bg-slate-900 shadow-inner">
-            {apiResult.type === "success" ? (
-              /* --- SUCCESS CARD OVERLAY --- */
-              <div className="absolute inset-0 z-50 flex flex-col items-center bg-slate-50 p-6 animate-in fade-in zoom-in duration-300">
-                {/* Header Badge */}
-                <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1 text-emerald-700">
-                  <span className="text-xs font-bold uppercase">
-                    ✓ Identity Verified
-                  </span>
+            {apiResult.type === "success" || apiResult.type === "error" ? (
+              <div className="absolute inset-0 z-5 flex flex-col items-center justify-between bg-slate-50 p-6 animate-in fade-in zoom-in duration-300">
+                <div className="w-full">
+                  <div
+                    className={`mb-2 inline-flex items-center gap-2 rounded-full px-4 py-1 text-sm font-bold ${apiResult.type === "success" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                  >
+                    <span className="text-xs uppercase">
+                      {apiResult.type === "success"
+                        ? "✓ Identity Verified"
+                        : "Entry Denied - Compliance Alert"}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Profile Section */}
-                <div className="relative mb-2">
+                <div className="relative mb-2 flex flex-col items-center gap-4">
                   <img
                     src={capturedImage}
-                    alt="Verified"
-                    className="h-24 w-24 rounded-2xl border-4 border-white object-cover shadow-lg"
+                    alt={apiResult.type === "success" ? "Verified" : "Denied"}
+                    className="h-35 w-35 rounded-2xl border-4 border-white object-cover shadow-lg"
                   />
-                  <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 p-1 text-white shadow-md">
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                </div>
 
-                <h3 className="text-xl font-bold text-slate-800">
-                  {guestName}
-                </h3>
-                <p className="text-xs font-medium text-slate-500">
-                  Guest Visitor • Platinum Tier
-                </p>
-
-                {/* Compliance Grid */}
-                <div className="mt-4 grid w-full grid-cols-2 gap-2 px-4">
-                  {[
-                    "Medical Certificate Valid",
-                    "Safety Training Valid",
-                    "ESI/PF Compliance Active",
-                    "Not Blacklisted",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2 rounded-lg bg-white p-2 border border-slate-100 shadow-sm"
-                    >
-                      <div className="rounded-full bg-emerald-100 p-0.5 text-emerald-600">
-                        <svg
-                          className="h-3 w-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-700">
-                        {item}
-                      </span>
+                  {apiResult.type === "success" ? (
+                    <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 p-1 text-white shadow-md">
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
                     </div>
-                  ))}
+                  ) : null}
                 </div>
 
-                {/* Footer Message */}
-                <div className="mt-auto w-full rounded-2xl bg-emerald-50/50 p-4 text-center">
-                  <p className="text-sm font-bold text-emerald-900">
-                    Move ahead, please.
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-slate-800">
+                    {apiResult.type === "success"
+                      ? guestName || "Verified Guest"
+                      : "Compliance Check Failed"}
+                  </h3>
+                  <p className="text-xs font-medium text-slate-500">
+                    {apiResult.type === "success"
+                      ? "Guest Visitor • Platinum Tier"
+                      : "Please contact safety or site administration."}
                   </p>
-                  <p className="text-[10px] text-emerald-700">
-                    Your check-in is being finalized.
-                  </p>
+                </div>
 
-                  <div className="mt-3 flex justify-center gap-1">
-                    <div className="h-1 w-6 rounded-full bg-emerald-600" />
-                    <div className="h-1 w-6 rounded-full bg-emerald-600" />
-                    <div className="h-1 w-6 rounded-full bg-slate-200" />
-                  </div>
-                  <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">
-                    Finalizing Records
+                <div className="mt-4 grid w-full grid-cols-2 gap-2 px-4">
+                  {complianceItems.map((item) => {
+                    const isObject = typeof item !== "string";
+                    const label = isObject ? item.label : item;
+                    const valid = isObject ? item.valid : true;
+                    const badgeClass =
+                      apiResult.type === "success"
+                        ? "bg-emerald-100 text-emerald-600"
+                        : valid
+                          ? "bg-emerald-100 text-emerald-600"
+                          : "bg-red-100 text-red-600";
+                    const cardClass =
+                      apiResult.type === "success"
+                        ? "bg-white border border-slate-100"
+                        : valid
+                          ? "bg-emerald-50 border border-emerald-100"
+                          : "bg-red-50 border border-red-100";
+
+                    return (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-2 rounded-lg p-2 shadow-sm ${cardClass}`}
+                      >
+                        <div className={`rounded-full p-0.5 ${badgeClass}`}>
+                          <svg
+                            className="h-3 w-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d={
+                                valid
+                                  ? "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  : "M10 18a8 8 0 100-16 8 8 0 000 16zm-2-9.414l1.414-1.414L10 8.586l1.414-1.414L13 8.586l-1.414 1.414L13 11.414 11.586 12.828 10 11.414 8.586 12.828 7.172 11.414 8.586 10z"
+                              }
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700">
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div
+                  className={`mt-auto w-full rounded-2xl p-4 text-center ${apiResult.type === "success" ? "bg-emerald-50/100 text-emerald-900" : "bg-red-50/70 text-red-900"}`}
+                >
+                  <p className="text-sm font-bold">
+                    {apiResult.type === "success"
+                      ? "Move ahead, please."
+                      : "Entry Restricted."}
+                  </p>
+                  <p className={`text-[10px] ${resultTextClass}`}>
+                    {apiResult.type === "success"
+                      ? "Your check-in is being finalized."
+                      : "Please contact the safety department or the site administrator."}
                   </p>
                 </div>
               </div>
@@ -367,7 +411,7 @@ export default function VendorEntry() {
                 />
 
                 {!capturedImage && !isProcessingApi && (
-                  <div className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 shadow-lg">
+                  <div className="absolute left-6 top-6 z-1 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 shadow-lg">
                     <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-white">
                       Live Camera
@@ -384,48 +428,12 @@ export default function VendorEntry() {
                   </div>
                 )}
 
-                {capturedImage && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
-                    <div
-                      className={`h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 shadow-2xl ${apiResult.type === "error" ? "border-red-500" : "border-emerald-500"}`}
-                    >
-                      <img
-                        src={capturedImage}
-                        className="h-full w-full object-cover"
-                        alt="Captured"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {!capturedImage && (
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <div
                       className={`h-[85%] w-[32%] border-2 transition-all duration-300 ${isAligned ? "border-emerald-500 scale-105 shadow-[0_0_30px_rgba(16,185,129,0.5)]" : "border-white/40 border-dashed"}`}
                       style={{ borderRadius: "100%" }}
                     ></div>
-                  </div>
-                )}
-
-                {/* Error / Processing Overlays */}
-                {isProcessingApi && (
-                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
-                      <span className="text-white font-bold">Verifying...</span>
-                    </div>
-                  </div>
-                )}
-
-                {capturedImage && apiResult.type === "error" && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
-                    <div className="h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 border-red-500 shadow-2xl">
-                      <img
-                        src={capturedImage}
-                        className="h-full w-full object-cover"
-                        alt="Captured"
-                      />
-                    </div>
                   </div>
                 )}
               </>
