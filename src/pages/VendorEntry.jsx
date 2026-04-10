@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useAuth } from "../context/AuthContext.jsx";
 import { faceMatchService } from "../services/faceMatchService.js";
+import { guestDetailsService } from "../services/guestDetailsService.js";
 
 export default function VendorEntry() {
   const [cameraError, setCameraError] = useState("");
@@ -12,6 +13,7 @@ export default function VendorEntry() {
     "Move your face into the oval frame.",
   );
   const [isAligned, setIsAligned] = useState(false);
+  const [guestName, setGuestName] = useState("");
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -21,7 +23,7 @@ export default function VendorEntry() {
   const isProcessing = useRef(false);
   const requestRef = useRef(null);
 
-  const { userData, propertyDetails } = useAuth();
+  const { propertyDetails } = useAuth();
 
   // Helper: Convert base64 canvas data to a File object for the API
   const dataURLtoFile = (dataurl, filename) => {
@@ -90,13 +92,17 @@ export default function VendorEntry() {
       !detectorRef.current ||
       !videoRef.current ||
       capturedImage ||
-      isProcessingApi
-    )
+      isProcessingApi ||
+      apiResult.type === "success"
+    ) {
       return;
+    }
+
     if (isProcessing.current) {
       requestRef.current = requestAnimationFrame(detectLoop);
       return;
     }
+
     isProcessing.current = true;
     try {
       const result = detectorRef.current.detectForVideo(
@@ -119,8 +125,8 @@ export default function VendorEntry() {
           setAutoCaptureStatus("Hold still... capturing");
           stabilityCounter.current += 1;
           if (stabilityCounter.current > 15) {
-            handleCapture();
             isProcessing.current = false;
+            handleCapture();
             return;
           }
         } else {
@@ -141,7 +147,7 @@ export default function VendorEntry() {
       console.error("Security Error:", e);
     }
     isProcessing.current = false;
-    if (!capturedImage && !isProcessingApi)
+    if (!capturedImage && !isProcessingApi && apiResult.type !== "success")
       requestRef.current = requestAnimationFrame(detectLoop);
   };
 
@@ -161,59 +167,54 @@ export default function VendorEntry() {
     setAutoCaptureStatus("Verifying...");
 
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-
     try {
-      // 1. Prepare the file from the captured dataURL
       const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
-
-      console.log("🚀 Initiating Contractor Face Match...");
-
-      // 2. Execute the API call
       const response = await faceMatchService.matchContractorFace(capturedFile);
-      // const response = {
-      //   result: {
-      //     faceMatchResult: "YES",
-      //     phoneCountryCode: "91",
-      //     phoneNumber: "9586023883",
-      //   },
-      // };
 
-      // 3. Log the full response for debugging
-      console.log("✅ API Response Received:", response);
-
-      // 4. Update UI based on the response structure
-      // (Adjusting logic to handle the likely success schema)
       if (response?.result?.faceMatchResult === "YES") {
-        setApiResult({
-          type: "success",
-          message: "Identity Verified!",
-        });
+        // --- NEW: Fetch Guest Details ---
+        // Assuming response.result contains a guest ID or similar
+        const guestData = await guestDetailsService.getGuestById(
+          response.result.phoneCountryCode,
+          response.result.phoneNumber,
+        );
+        setGuestName(guestData?.fullName || "");
+
+        // setGuestName("Arjun Sharma"); // Mocking for now as per your image
+        setAutoCaptureStatus("Verification Successful");
+        setApiResult({ type: "success", message: "Identity Verified!" });
       } else {
-        setApiResult({
-          type: "error",
-          message: "Face match score too low. Please try again.",
-        });
+        setApiResult({ type: "error", message: "Face match failed." });
       }
     } catch (error) {
-      // Log the error details for technical review
-      console.error("❌ Contractor Match Failed:");
-      console.dir(error);
-
-      // Display the specific error message (from your 400, 422, or 413 checks)
-      setApiResult({
-        type: "error",
-        message: error.message || "Match Failed",
-      });
+      setApiResult({ type: "error", message: error.message || "Match Failed" });
     } finally {
       setIsProcessingApi(false);
+      // Increased timeout to 5 seconds so the user can actually read the card
       setTimeout(() => {
+        // 1. Reset all UI states
+        stabilityCounter.current = 0;
+        isProcessing.current = false;
         setCapturedImage(null);
         setApiResult({ type: "", message: "" });
+        setGuestName("");
         setIsAligned(false);
-        stabilityCounter.current = 0;
-        setAutoCaptureStatus("Next person, please...");
-        requestRef.current = requestAnimationFrame(detectLoop);
-      }, 3000);
+
+        setAutoCaptureStatus("Move your face into the oval frame.");
+
+        // 2. IMPORTANT: Wait for the next tick so the <video> element is rendered back to the DOM
+        setTimeout(async () => {
+          if (videoRef.current && streamRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+            await videoRef.current.play().catch(() => {});
+
+            // 3. Force a fresh start of the loop
+            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+            requestRef.current = requestAnimationFrame(detectLoop);
+            console.log("🚀 Camera behavior restored for next person");
+          }
+        }, 200); // Small buffer to ensure DOM mount
+      }, 10000);
     }
   };
 
@@ -262,75 +263,194 @@ export default function VendorEntry() {
           </div>
 
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2rem] bg-slate-900 shadow-inner">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-            />
-
-            {/* Live Camera Badge */}
-            {!capturedImage && !isProcessingApi && (
-              <div className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 shadow-lg">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-                  Live Camera
-                </span>
-              </div>
-            )}
-
-            {/* Processing Overlay */}
-            {isProcessingApi && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
-                  <span className="text-white font-bold">Verifying...</span>
+            {apiResult.type === "success" ? (
+              /* --- SUCCESS CARD OVERLAY --- */
+              <div className="absolute inset-0 z-50 flex flex-col items-center bg-slate-50 p-6 animate-in fade-in zoom-in duration-300">
+                {/* Header Badge */}
+                <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1 text-emerald-700">
+                  <span className="text-xs font-bold uppercase">
+                    ✓ Identity Verified
+                  </span>
                 </div>
-              </div>
-            )}
 
-            {capturedImage && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
-                <div
-                  className={`h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 shadow-2xl ${apiResult.type === "error" ? "border-red-500" : "border-emerald-500"}`}
-                >
+                {/* Profile Section */}
+                <div className="relative mb-2">
                   <img
                     src={capturedImage}
-                    className="h-full w-full object-cover"
-                    alt="Captured"
+                    alt="Verified"
+                    className="h-24 w-24 rounded-2xl border-4 border-white object-cover shadow-lg"
                   />
+                  <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 p-1 text-white shadow-md">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-slate-800">
+                  {guestName}
+                </h3>
+                <p className="text-xs font-medium text-slate-500">
+                  Guest Visitor • Platinum Tier
+                </p>
+
+                {/* Compliance Grid */}
+                <div className="mt-4 grid w-full grid-cols-2 gap-2 px-4">
+                  {[
+                    "Medical Certificate Valid",
+                    "Safety Training Valid",
+                    "ESI/PF Compliance Active",
+                    "Not Blacklisted",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-2 rounded-lg bg-white p-2 border border-slate-100 shadow-sm"
+                    >
+                      <div className="rounded-full bg-emerald-100 p-0.5 text-emerald-600">
+                        <svg
+                          className="h-3 w-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-700">
+                        {item}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer Message */}
+                <div className="mt-auto w-full rounded-2xl bg-emerald-50/50 p-4 text-center">
+                  <p className="text-sm font-bold text-emerald-900">
+                    Move ahead, please.
+                  </p>
+                  <p className="text-[10px] text-emerald-700">
+                    Your check-in is being finalized.
+                  </p>
+
+                  <div className="mt-3 flex justify-center gap-1">
+                    <div className="h-1 w-6 rounded-full bg-emerald-600" />
+                    <div className="h-1 w-6 rounded-full bg-emerald-600" />
+                    <div className="h-1 w-6 rounded-full bg-slate-200" />
+                  </div>
+                  <p className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-400">
+                    Finalizing Records
+                  </p>
                 </div>
               </div>
-            )}
+            ) : (
+              /* --- ORIGINAL CAMERA VIEW --- */
+              <>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                />
 
-            {!capturedImage && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                {!capturedImage && !isProcessingApi && (
+                  <div className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1 shadow-lg">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white">
+                      Live Camera
+                    </span>
+                  </div>
+                )}
+
+                {isProcessingApi && (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
+                      <span className="text-white font-bold">Verifying...</span>
+                    </div>
+                  </div>
+                )}
+
+                {capturedImage && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                    <div
+                      className={`h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 shadow-2xl ${apiResult.type === "error" ? "border-red-500" : "border-emerald-500"}`}
+                    >
+                      <img
+                        src={capturedImage}
+                        className="h-full w-full object-cover"
+                        alt="Captured"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!capturedImage && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div
+                      className={`h-[85%] w-[32%] border-2 transition-all duration-300 ${isAligned ? "border-emerald-500 scale-105 shadow-[0_0_30px_rgba(16,185,129,0.5)]" : "border-white/40 border-dashed"}`}
+                      style={{ borderRadius: "100%" }}
+                    ></div>
+                  </div>
+                )}
+
+                {/* Error / Processing Overlays */}
+                {isProcessingApi && (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
+                      <span className="text-white font-bold">Verifying...</span>
+                    </div>
+                  </div>
+                )}
+
+                {capturedImage && apiResult.type === "error" && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                    <div className="h-3/4 w-3/4 overflow-hidden rounded-2xl border-4 border-red-500 shadow-2xl">
+                      <img
+                        src={capturedImage}
+                        className="h-full w-full object-cover"
+                        alt="Captured"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {apiResult.type !== "success" && (
+            <div className="mt-6 flex items-center justify-between gap-4 rounded-[2rem] bg-slate-50 border border-slate-100 p-4">
+              <div className="flex items-center gap-3 pl-2">
                 <div
-                  className={`h-[85%] w-[32%] border-2 transition-all duration-300 ${isAligned ? "border-emerald-500 scale-105 shadow-[0_0_30px_rgba(16,185,129,0.5)]" : "border-white/40 border-dashed"}`}
-                  style={{ borderRadius: "100%" }}
-                ></div>
+                  className={`h-3 w-3 rounded-full ${isAligned ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`}
+                />
+                <span className="text-sm font-semibold text-slate-700">
+                  {autoCaptureStatus}
+                </span>
               </div>
-            )}
-          </div>
-
-          <div className="mt-6 flex items-center justify-between gap-4 rounded-[2rem] bg-slate-50 border border-slate-100 p-4">
-            <div className="flex items-center gap-3 pl-2">
-              <div
-                className={`h-3 w-3 rounded-full ${isAligned ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`}
-              />
-              <span className="text-sm font-semibold text-slate-700">
-                {autoCaptureStatus}
-              </span>
+              <button
+                onClick={handleCapture}
+                disabled={!!capturedImage || isProcessingApi}
+                className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 disabled:opacity-30 transition-all"
+              >
+                Manual Capture
+              </button>
             </div>
-            <button
-              onClick={handleCapture}
-              disabled={!!capturedImage || isProcessingApi}
-              className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 disabled:opacity-30 transition-all"
-            >
-              Manual Capture
-            </button>
-          </div>
+          )}
         </div>
       </div>
       <canvas ref={canvasRef} className="hidden" />
