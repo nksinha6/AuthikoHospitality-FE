@@ -93,7 +93,46 @@ const persistGuestSelfie = async (
   }
 };
 
+/**
+ * Contractor face match verification
+ * @param {File} selfieFile - Selfie image file
+ * @returns {Promise} Face match result
+ */
+const matchContractorFace = async (selfieFile) => {
+  try {
+    const formData = new FormData();
+    formData.append("selfie", selfieFile);
+
+    const response = await apiClient.post(
+      API_ENDPOINTS.CONTRACTOR_MATCH,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    // Handling common errors for contractor matching
+    if (error.response?.status === 400) {
+      throw new Error("Invalid image file provided");
+    }
+    if (error.response?.status === 422) {
+      throw new Error("Face not detected in the contractor selfie");
+    }
+    if (error.response?.status === 413) {
+      throw new Error("Image file size exceeds limit");
+    }
+
+    console.error("❌ Contractor face match API error:", error);
+    throw error;
+  }
+};
+
 export const faceMatchService = {
   matchFace,
   persistGuestSelfie,
+  matchContractorFace,
 };

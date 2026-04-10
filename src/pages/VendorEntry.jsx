@@ -163,36 +163,47 @@ export default function VendorEntry() {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
 
     try {
-      // 1. Generate a random verification ID for this specific attempt
-      // Format: VEND-XXXX-XXXX
-      // const randomId = `VEND-${Math.random().toString(36).substring(2, 7)}-${Date.now().toString().slice(-4)}`;
+      // 1. Prepare the file from the captured dataURL
+      const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
 
-      // 2. Convert captured frame to File
-      // const capturedFile = dataURLtoFile(dataUrl, "verify.jpg");
+      console.log("🚀 Initiating Contractor Face Match...");
 
-      // console.log("Initiating API call with ID:", randomId);
+      // 2. Execute the API call
+      const response = await faceMatchService.matchContractorFace(capturedFile);
+      // const response = {
+      //   result: {
+      //     faceMatchResult: "YES",
+      //     phoneCountryCode: "91",
+      //     phoneNumber: "9586023883",
+      //   },
+      // };
 
-      // 3. Call API with the freshly generated ID
-      // const response = await faceMatchService.matchFace(
-      //   randomId, // Fresh unique ID
-      //   capturedFile, // selfieFile
-      //   capturedFile, // idImageFile (same as capture)
-      //   0.75,
-      // );
+      // 3. Log the full response for debugging
+      console.log("✅ API Response Received:", response);
 
-      const response = {
-        status: "SUCCESS",
-        ref_id: 8620570,
-        verification_id: "VEND-9u5yd-3356",
-        face_match_result: "YES",
-        face_match_score: 1,
-      };
-
-      console.log(response);
-
-      setApiResult({ type: "success", message: "Identity Verified!" });
+      // 4. Update UI based on the response structure
+      // (Adjusting logic to handle the likely success schema)
+      if (response?.result?.faceMatchResult === "YES") {
+        setApiResult({
+          type: "success",
+          message: "Identity Verified!",
+        });
+      } else {
+        setApiResult({
+          type: "error",
+          message: "Face match score too low. Please try again.",
+        });
+      }
     } catch (error) {
-      setApiResult({ type: "error", message: error.message || "Match Failed" });
+      // Log the error details for technical review
+      console.error("❌ Contractor Match Failed:");
+      console.dir(error);
+
+      // Display the specific error message (from your 400, 422, or 413 checks)
+      setApiResult({
+        type: "error",
+        message: error.message || "Match Failed",
+      });
     } finally {
       setIsProcessingApi(false);
       setTimeout(() => {
