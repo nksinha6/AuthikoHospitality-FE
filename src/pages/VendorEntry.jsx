@@ -33,6 +33,22 @@ export default function VendorEntry() {
   const requestRef = useRef(null);
   const hideFormTimeout = useRef(null);
 
+  const stopCamera = () => {
+    if (requestRef.current) {
+      cancelAnimationFrame(requestRef.current);
+      requestRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
   const { propertyDetails } = useAuth();
 
   // Helper: Convert base64 canvas data to a File object for the API
@@ -94,6 +110,7 @@ export default function VendorEntry() {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (streamRef.current)
         streamRef.current.getTracks().forEach((t) => t.stop());
+      stopCamera();
     };
   }, []);
 
@@ -365,6 +382,12 @@ export default function VendorEntry() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (showVendorEntryForm) {
+      stopCamera(); // ✅ stop when camera hidden
+    }
+  }, [showVendorEntryForm]);
 
   useEffect(() => {
     if (!showVendorEntryForm) {
