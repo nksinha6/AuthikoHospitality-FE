@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { useAuth } from "../context/AuthContext.jsx";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import { faceMatchService } from "../services/faceMatchService.js";
 import { guestDetailsService } from "../services/guestDetailsService.js";
 
@@ -15,6 +17,12 @@ export default function VendorEntry() {
   );
   const [isAligned, setIsAligned] = useState(false);
   const [guestName, setGuestName] = useState("");
+  const [showVendorEntryForm, setShowVendorEntryForm] = useState(false);
+  const [vendorPhoneNumber, setVendorPhoneNumber] = useState("");
+  const [vendorGuest, setVendorGuest] = useState(null);
+  const [isCheckingNumber, setIsCheckingNumber] = useState(false);
+  const [canConfirmVendorEntry, setCanConfirmVendorEntry] = useState(false);
+  const [entryMessage, setEntryMessage] = useState("");
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -23,6 +31,7 @@ export default function VendorEntry() {
   const stabilityCounter = useRef(0);
   const isProcessing = useRef(false);
   const requestRef = useRef(null);
+  const hideFormTimeout = useRef(null);
 
   const { propertyDetails } = useAuth();
 
@@ -234,6 +243,87 @@ export default function VendorEntry() {
     }
   };
 
+  const normalizePhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return "";
+    const cleaned = String(phoneNumber).replace(/\D/g, "");
+    return cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
+  };
+
+  const handleAddVendor = () => {
+    if (hideFormTimeout.current) {
+      clearTimeout(hideFormTimeout.current);
+      hideFormTimeout.current = null;
+    }
+    setShowVendorEntryForm(true);
+    setVendorGuest(null);
+    setCanConfirmVendorEntry(false);
+    setEntryMessage("");
+  };
+
+  const checkVendorNumber = async () => {
+    if (hideFormTimeout.current) {
+      clearTimeout(hideFormTimeout.current);
+      hideFormTimeout.current = null;
+    }
+
+    const normalized = normalizePhoneNumber(vendorPhoneNumber);
+    if (normalized.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setIsCheckingNumber(true);
+    setVendorGuest(null);
+    setCanConfirmVendorEntry(false);
+    setEntryMessage("");
+
+    try {
+      const guest = await guestDetailsService.getGuestById("91", normalized);
+      if (!guest) {
+        setEntryMessage("No vendor found with this number.");
+        toast.error("No vendor found with this number.");
+        return;
+      }
+
+      setVendorGuest(guest);
+      const status = (guest.verificationStatus || "").toLowerCase();
+      if (status === "face_verified") {
+        setCanConfirmVendorEntry(true);
+        setEntryMessage(
+          "Face verification complete. You may confirm vendor entry.",
+        );
+      } else {
+        setCanConfirmVendorEntry(false);
+        setEntryMessage("Complete face verification first.");
+        toast.error("Complete face verification first.");
+        hideFormTimeout.current = setTimeout(() => {
+          setShowVendorEntryForm(false);
+          setVendorPhoneNumber("");
+          setVendorGuest(null);
+          setEntryMessage("");
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Vendor lookup failed:", error);
+      setEntryMessage("Unable to verify number. Try again.");
+      toast.error("Unable to verify number. Please try again.");
+    } finally {
+      setIsCheckingNumber(false);
+    }
+  };
+
+  const handleConfirmVendorEntry = () => {
+    toast.success("Vendor entry confirmed.", {
+      duration: 3000,
+      position: "top-right",
+    });
+    setShowVendorEntryForm(false);
+    setVendorPhoneNumber("");
+    setVendorGuest(null);
+    setCanConfirmVendorEntry(false);
+    setEntryMessage("");
+  };
+
   const complianceItems =
     apiResult.type === "success"
       ? [
@@ -251,6 +341,14 @@ export default function VendorEntry() {
 
   const resultTextClass =
     apiResult.type === "success" ? "text-emerald-700" : "text-red-700";
+
+  useEffect(() => {
+    return () => {
+      if (hideFormTimeout.current) {
+        clearTimeout(hideFormTimeout.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 relative font-sans">
@@ -281,6 +379,51 @@ export default function VendorEntry() {
               </p>
             </div>
           </div>
+
+          {showVendorEntryForm && (
+            <div className="mt-3 mb-3 rounded-[2rem] border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex-1">
+                  <PhoneInput
+                    country="in"
+                    value={vendorPhoneNumber}
+                    onChange={(value) => setVendorPhoneNumber(value)}
+                    placeholder="Enter mobile number"
+                    enableSearch={true}
+                    countryCodeEditable={false}
+                    inputClass="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm text-slate-900 outline-none"
+                    containerClass="w-full"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={checkVendorNumber}
+                  disabled={isCheckingNumber}
+                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 disabled:opacity-40"
+                >
+                  {isCheckingNumber ? "Checking..." : "Check Number"}
+                </button>
+              </div>
+
+              {vendorGuest && (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                  <p className="font-semibold text-slate-900">
+                    {vendorGuest.fullName || "Vendor found"}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Status:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {vendorGuest.verificationStatus || "Unknown"}
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {entryMessage && (
+                <p className="mt-3 text-sm text-slate-600">{entryMessage}</p>
+              )}
+            </div>
+          )}
 
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2rem] bg-slate-900 shadow-inner">
             {apiResult.type === "success" || apiResult.type === "error" ? (
@@ -441,7 +584,7 @@ export default function VendorEntry() {
           </div>
 
           {apiResult.type !== "success" && (
-            <div className="mt-6 flex items-center justify-between gap-4 rounded-[2rem] bg-slate-50 border border-slate-100 p-4">
+            <div className="mt-6 flex flex-col gap-4 rounded-[2rem] bg-slate-50 border border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 pl-2">
                 <div
                   className={`h-3 w-3 rounded-full ${isAligned ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`}
@@ -450,13 +593,28 @@ export default function VendorEntry() {
                   {autoCaptureStatus}
                 </span>
               </div>
-              <button
-                onClick={handleCapture}
-                disabled={!!capturedImage || isProcessingApi}
-                className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 disabled:opacity-30 transition-all"
-              >
-                Manual Capture
-              </button>
+
+              <div className="flex flex-wrap gap-3">
+                {!showVendorEntryForm && (
+                  <button
+                    type="button"
+                    onClick={handleAddVendor}
+                    className="rounded-2xl bg-slate-900 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800 transition-all"
+                  >
+                    Add Vendor
+                  </button>
+                )}
+
+                {showVendorEntryForm && canConfirmVendorEntry && (
+                  <button
+                    type="button"
+                    onClick={handleConfirmVendorEntry}
+                    className="rounded-2xl bg-emerald-600 px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-emerald-500 transition-all"
+                  >
+                    Confirm Vendor Entry
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
