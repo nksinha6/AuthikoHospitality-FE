@@ -239,7 +239,7 @@ export default function VendorEntry() {
             requestRef.current = requestAnimationFrame(detectLoop);
           }
         }, 200);
-      }, 10000);
+      }, 5000);
     }
   };
 
