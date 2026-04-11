@@ -341,6 +341,35 @@ export const guestDetailsService = {
       throw error;
     }
   },
+
+  /**
+   * Add new contractor (vendor)
+   * @param {string} phoneCountryCode
+   * @param {string} phoneNumber
+   */
+  async addContractor(phoneCountryCode, phoneNumber) {
+    if (!phoneNumber) return null;
+
+    try {
+      const countryCode = phoneCountryCode || "91";
+
+      // Ensure phoneNumber is 10 digits
+      let cleanPhoneNumber = phoneNumber;
+      if (phoneNumber && phoneNumber.length > 10) {
+        cleanPhoneNumber = phoneNumber.slice(-10);
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.ADD_CONTRACTOR, {
+        phoneCountryCode: countryCode,
+        phoneNumber: cleanPhoneNumber,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error("Error adding contractor:", error);
+      throw error;
+    }
+  },
 };
 
 export default guestDetailsService;

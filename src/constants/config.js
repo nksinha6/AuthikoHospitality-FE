@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   FACE_MATCH: "/faceverification/match",
   PERSIST_SELFIE: "/guest/persist/selfie",
   CONTRACTOR_MATCH: "/contractor/match",
+  ADD_CONTRACTOR: "/contractor/add",
 };
 
 // Storage Keys
