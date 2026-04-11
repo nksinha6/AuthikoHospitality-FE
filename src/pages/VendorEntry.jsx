@@ -161,7 +161,7 @@ export default function VendorEntry() {
       requestRef.current = requestAnimationFrame(detectLoop);
   };
 
-  const [mockFaceMatch, setMockFaceMatch] = useState("YES");
+  // const [mockFaceMatch, setMockFaceMatch] = useState("YES");
 
   const handleCapture = async () => {
     const video = videoRef.current;
@@ -180,15 +180,15 @@ export default function VendorEntry() {
 
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     try {
-      // const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
-      // const response = await faceMatchService.matchContractorFace(capturedFile);
-      const response = {
-        result: {
-          faceMatchResult: mockFaceMatch,
-          phoneCountryCode: "91",
-          phoneNumber: "9586023883",
-        },
-      };
+      const capturedFile = dataURLtoFile(dataUrl, "contractor_selfie.jpg");
+      const response = await faceMatchService.matchContractorFace(capturedFile);
+      // const response = {
+      //   result: {
+      //     faceMatchResult: mockFaceMatch,
+      //     phoneCountryCode: "91",
+      //     phoneNumber: "9586023883",
+      //   },
+      // };
 
       if (response?.result?.faceMatchResult === "YES") {
         const guestData = await guestDetailsService.getGuestById(
