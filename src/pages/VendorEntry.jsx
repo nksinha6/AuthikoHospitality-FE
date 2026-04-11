@@ -487,7 +487,7 @@ export default function VendorEntry() {
                       <p className="font-sm text-slate-900">
                         Vendor Name:{" "}
                         <span className="font-semibold text-slate-900">
-                          {vendorGuest.fullName || "Vendor found"}
+                          {vendorGuest.fullName || "Vendor not found"}
                         </span>
                       </p>
                       <p className="mt-2 text-sm text text-slate-600">
