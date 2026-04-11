@@ -574,7 +574,7 @@ const Checkin = () => {
         // =========================
         const nextTimeout = setTimeout(() => {
           poll();
-        }, 20000);
+        }, 10000);
 
         setPollingIntervals((prev) => ({
           ...prev,
