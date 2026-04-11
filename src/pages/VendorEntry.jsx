@@ -513,7 +513,9 @@ export default function VendorEntry() {
               )}
 
               {entryMessage && (
-                <p className="mt-3 text-sm text-slate-600">{entryMessage}</p>
+                <p className="mt-3 text-sm font-bold text-slate-600">
+                  {entryMessage}
+                </p>
               )}
             </div>
           )}
