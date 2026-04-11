@@ -13,19 +13,37 @@ import VendorEntry from "./pages/VendorEntry.jsx";
 // ✅ Compute basename as a string first
 const basename = import.meta.env.DEV ? "/" : "/biz";
 
+// const routes = [
+//   {
+//     element: (
+//       <ProtectedRoute>
+//         <App />
+//       </ProtectedRoute>
+//     ),
+//     children: [
+//       { path: ROUTES.CHECK_INS, element: <CheckIns /> },
+//       // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
+//       // { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
+//       { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
+//       { path: ROUTES.VENDOR_ENTRY, element: <VendorEntry /> },
+//     ],
+//   },
+//   { path: ROUTES.LOGIN, element: <Login /> },
+//   { path: "*", element: <Navigate to={ROUTES.LOGIN} replace /> },
+// ];
+
 const routes = [
   {
-    element: (
-      <ProtectedRoute>
-        <App />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute />, // ✅ no children here
     children: [
-      { path: ROUTES.CHECK_INS, element: <CheckIns /> },
-      // { path: ROUTES.GUEST_VERIFICATION, element: <GuestVerification /> },
-      // { path: ROUTES.ALL_BOOKINGS, element: <AllBookings /> },
-      { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
-      { path: ROUTES.VENDOR_ENTRY, element: <VendorEntry /> },
+      {
+        element: <App />, // ✅ App moved inside children
+        children: [
+          { path: ROUTES.CHECK_INS, element: <CheckIns /> },
+          { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
+          { path: ROUTES.VENDOR_ENTRY, element: <VendorEntry /> },
+        ],
+      },
     ],
   },
   { path: ROUTES.LOGIN, element: <Login /> },
