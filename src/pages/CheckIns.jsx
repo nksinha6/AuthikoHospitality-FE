@@ -320,7 +320,7 @@ const Checkin = () => {
   }, [guests.some((g) => g.isIdVerifying && g.idVerificationTimer > 0)]);
 
   const startPolling = (index, startTime, maxDuration) => {
-    const poll = async () => {
+    const poll = async (nextRunTime = Date.now()) => {
       const guest = guests[index];
       if (!guest) return;
 
@@ -572,13 +572,16 @@ const Checkin = () => {
         // =========================
         // 🔁 COMMON POLLING LOOP
         // =========================
-        const nextTimeout = setTimeout(() => {
-          poll();
-        }, 10000);
+
+        const nextTime = nextRunTime + 10000;
+        const delay = Math.max(0, nextTime - Date.now());
+        const timeout = setTimeout(() => {
+          poll(nextTime);
+        }, delay);
 
         setPollingIntervals((prev) => ({
           ...prev,
-          [index]: nextTimeout,
+          [index]: timeout,
         }));
       } catch (error) {
         console.error("Polling error:", error);
@@ -1832,7 +1835,7 @@ const Checkin = () => {
           return;
         }
         const pollingStartTime = Date.now();
-        const MAX_DURATION = 5 * 60 * 1000;
+        const MAX_DURATION = 15 * 60 * 1000;
 
         setGuests((prev) => {
           const newState = [...prev];
@@ -1895,7 +1898,7 @@ const Checkin = () => {
               );
             }
           },
-          5 * 60 * 1000,
+          15 * 60 * 1000,
         );
 
         // store timeout
@@ -2008,7 +2011,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 300,
+          idVerificationTimer: 900,
           idVerificationComplete: false,
           showCodeInput: false,
         };
@@ -2023,7 +2026,7 @@ const Checkin = () => {
         newState[index] = {
           ...newState[index],
           isIdVerifying: true,
-          idVerificationTimer: 300,
+          idVerificationTimer: 900,
           idVerificationComplete: false,
           showWebcam: false,
         };
