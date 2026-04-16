@@ -1130,21 +1130,29 @@ const Checkin = () => {
       return;
     }
 
-    if (guest.verificationCode === STATIC_VERIFICATION_CODE) {
-      const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
-      const countryCode = "91";
-      const tenDigitNumber = normalizedNumber.slice(-10);
+    const normalizedNumber = normalizePhoneNumber(guest.phoneNumber);
+    const countryCode = "91";
+    const tenDigitNumber = normalizedNumber.slice(-10);
 
-      try {
-        // ✅ Only Aadhaar sync (no need to fetch guest again)
-        if (guest.verificationId) {
-          await guestDetailsService.getAadhaarData(
-            guest.verificationId,
-            guest.referenceId,
-            countryCode,
-            tenDigitNumber,
-          );
-        }
+    try {
+      // ✅ CALL OTP VERIFY API
+      const res = await verificationService.verifyOtp(
+        countryCode,
+        tenDigitNumber,
+        guest.verificationCode,
+      );
+
+      // 👉 Adjust this condition based on your API response
+      if (res?.verificationStatus === true) {
+        // ✅ Optional Aadhaar sync
+        // if (guest.verificationId) {
+        //   await guestDetailsService.getAadhaarData(
+        //     guest.verificationId,
+        //     guest.referenceId,
+        //     countryCode,
+        //     tenDigitNumber,
+        //   );
+        // }
 
         setGuests((prev) => {
           const newState = [...prev];
@@ -1164,31 +1172,29 @@ const Checkin = () => {
           };
           return newState;
         });
-      } catch (error) {
-        console.warn("Post-verification sync error:", error.message);
 
+        const newVerifiedSet = new Set(verifiedPhoneNumbers);
+        newVerifiedSet.add(normalizedNumber);
+        setVerifiedPhoneNumbers(newVerifiedSet);
+
+        showToast("success", "Guest verified successfully!");
+      } else {
+        showToast(
+          "error",
+          res?.message || "Wrong OTP Entered, please try again",
+        );
         setGuests((prev) => {
           const newState = [...prev];
           newState[index] = {
             ...newState[index],
-            isCodeVerified: true,
-            status: "verified",
-            aadhaarStatus: VERIFICATION_STATUS.VERIFIED,
-            isTimerActive: false,
-            timerSeconds: 0,
-            showCodeInput: false,
+            verificationCode: "",
           };
           return newState;
         });
       }
-
-      const newVerifiedSet = new Set(verifiedPhoneNumbers);
-      newVerifiedSet.add(normalizedNumber);
-      setVerifiedPhoneNumbers(newVerifiedSet);
-
-      showToast("success", "Guest verified successfully!");
-    } else {
-      showToast("error", "Invalid verification code");
+    } catch (error) {
+      console.error("OTP verification failed:", error);
+      showToast("error", error.message || "OTP verification failed");
     }
   };
 

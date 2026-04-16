@@ -224,4 +224,40 @@ export const verificationService = {
       };
     }
   },
+
+  /**
+   * Verify OTP for a guest
+   * @param {string} phoneCountryCode - The country code of the phone number
+   * @param {string} phoneNumber - The phone number
+   * @param {string} otp - The OTP entered by user
+   * @returns {Promise<Object>} Response indicating verification status
+   */
+  async verifyOtp(phoneCountryCode, phoneNumber, otp) {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.VERIFY_OTP,
+        {
+          phoneCountryCode,
+          phoneNumber,
+          otp,
+        },
+        {
+          timeout: 10000,
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.code === "ECONNABORTED") {
+        throw { code: "TIMEOUT", message: "OTP verification timed out" };
+      }
+
+      throw {
+        code: "UNKNOWN",
+        message:
+          error.response?.data?.message ||
+          "Failed to verify OTP. Please try again.",
+      };
+    }
+  },
 };

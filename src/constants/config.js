@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   PERSIST_SELFIE: "/guest/persist/selfie",
   CONTRACTOR_MATCH: "/contractor/match",
   ADD_CONTRACTOR: "/contractor/add",
+  VERIFY_OTP: "HotelGuestRead/verify_otp",
 };
 
 // Storage Keys
