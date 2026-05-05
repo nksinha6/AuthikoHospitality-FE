@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { authService } from "../services/authService.js";
+import { showToast } from "../utility/toast.js";
 import { UI_TEXT } from "../constants/ui.js";
 
 export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { userData } = useAuth();
   const navigate = useNavigate();
 
   const validatePassword = (password) => {
@@ -45,15 +52,37 @@ export default function ChangePassword() {
     navigate(-1);
   };
 
-  const handleSave = (event) => {
+  const handleSave = async (event) => {
     event.preventDefault();
     setShowErrors(true);
 
-    if (!isFormValid) {
+    if (confirmPassword && newPassword !== confirmPassword) {
+      showToast("error", "Password and confirm password do not match.");
       return;
     }
 
-    // TODO: implement save password logic
+    if (!isFormValid) {
+      showToast("error", "Please fix password errors before saving.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await authService.persistPassword({
+        userId: userData.userEmail || "",
+        tenantId: userData.tenantId || "",
+        password: newPassword,
+      });
+      setShowErrors(false);
+      setNewPassword("");
+      setConfirmPassword("");
+      showToast("success", "Password changed successfully.");
+    } catch (error) {
+      showToast("error", error.message || "Could not change password.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -76,14 +105,30 @@ export default function ChangePassword() {
             >
               New password
             </label>
-            <input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition duration-150 ease-in-out focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              placeholder="Enter new password"
-            />
+            <div className="relative">
+              <input
+                id="new-password"
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-24 text-sm text-gray-900 outline-none transition duration-150 ease-in-out focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                placeholder="Enter new password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-brand hover:text-brand/80"
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
+              >
+                <i
+                  className={
+                    showNewPassword
+                      ? "ri-eye-off-line text-lg"
+                      : "ri-eye-line text-lg"
+                  }
+                />
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -93,14 +138,32 @@ export default function ChangePassword() {
             >
               Confirm new password
             </label>
-            <input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition duration-150 ease-in-out focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-              placeholder="Re-enter new password"
-            />
+            <div className="relative">
+              <input
+                id="confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-24 text-sm text-gray-900 outline-none transition duration-150 ease-in-out focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                placeholder="Re-enter new password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-brand hover:text-brand/80"
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
+              >
+                <i
+                  className={
+                    showConfirmPassword
+                      ? "ri-eye-off-line text-lg"
+                      : "ri-eye-line text-lg"
+                  }
+                />
+              </button>
+            </div>
             {showErrors && confirmPasswordError && (
               <p className="mt-2 text-sm text-red-600">
                 {confirmPasswordError}
@@ -122,12 +185,12 @@ export default function ChangePassword() {
             </button>
             <button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
               className={`inline-flex items-center justify-center bg-brand px-3 py-2 rounded-lg text-sm font-bold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50 ${
-                !isFormValid ? "hover:bg-brand" : ""
+                !isFormValid || isSubmitting ? "hover:bg-brand" : ""
               }`}
             >
-              Save new password
+              {isSubmitting ? "Saving..." : "Save new password"}
             </button>
           </div>
         </form>

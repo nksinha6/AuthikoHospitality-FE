@@ -33,4 +33,28 @@ export const authService = {
       throw new Error(errorMessage);
     }
   },
+
+  /**
+   * Persist user password on the backend
+   * @param {Object} payload
+   * @param {string} payload.userId
+   * @param {string|number} payload.tenantId
+   * @param {string} payload.password
+   */
+  async persistPassword(payload) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.PERSIST_PASSWORD, {
+        userId: payload.userId,
+        tenantId: payload.tenantId,
+        password: payload.password,
+      });
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to save password. Please try again.";
+      throw new Error(errorMessage);
+    }
+  },
 };

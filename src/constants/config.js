@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   CONTRACTOR_MATCH: "/contractor/match",
   ADD_CONTRACTOR: "/contractor/add",
   VERIFY_OTP: "HotelGuestRead/verify_otp",
+  PERSIST_PASSWORD: "HotelUser/PersistPassword",
 };
 
 // Storage Keys
