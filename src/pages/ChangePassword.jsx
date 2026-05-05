@@ -58,7 +58,7 @@ export default function ChangePassword() {
 
   return (
     <div className="flex min-h-full items-center justify-center py-8">
-      <div className="w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-3xl rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">
             {UI_TEXT.BUTTON_CHANGE_PASSWORD}
