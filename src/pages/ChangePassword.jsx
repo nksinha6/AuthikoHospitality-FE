@@ -178,9 +178,9 @@ export default function ChangePassword() {
             )}
           </div>
 
-          <p className="text-xs text-gray-500">
+          {/* <p className="text-xs text-gray-500">
             Note: 8+ chars with upper/lowercase, number, and symbol.
-          </p>
+          </p> */}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <button
