@@ -11,7 +11,12 @@ export default function Topbar() {
   return (
     <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        {location.pathname !== ROUTES.CHECK_INS && location.pathname !== ROUTES.GUEST_VERIFICATION ? <SearchInput /> : <div></div>}
+        {location.pathname !== ROUTES.CHECK_INS &&
+        location.pathname !== ROUTES.GUEST_VERIFICATION ? (
+          <SearchInput />
+        ) : (
+          <div></div>
+        )}
 
         <div className="flex items-center gap-6">
           <HelpButton />
@@ -69,6 +74,11 @@ function UserDropdown({ showDropdown, setShowDropdown }) {
     setShowDropdown(false);
   }, [logout, navigate, setShowDropdown]);
 
+  const handleChangePassword = useCallback(() => {
+    navigate(ROUTES.CHANGE_PASSWORD);
+    setShowDropdown(false);
+  }, [navigate, setShowDropdown]);
+
   return (
     <div className="relative">
       <button
@@ -85,6 +95,12 @@ function UserDropdown({ showDropdown, setShowDropdown }) {
             className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
           >
             {UI_TEXT.BUTTON_LOGOUT}
+          </button>
+          <button
+            onClick={handleChangePassword}
+            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
+          >
+            {UI_TEXT.BUTTON_CHANGE_PASSWORD}
           </button>
         </div>
       )}

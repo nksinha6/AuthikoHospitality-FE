@@ -13,6 +13,7 @@ export const UI_TEXT = {
   NAV_GUEST_DETAILS: "View all Guest",
   NAV_VENDOR_ENTRY: "Vendor Entry",
   BUTTON_LOGOUT: "Logout",
+  BUTTON_CHANGE_PASSWORD: "Change Password",
 
   // Login
 
@@ -170,6 +171,7 @@ export const ROUTES = {
   ALL_BOOKINGS: "/all-bookings",
   GUEST_DETAILS: "/guest-details",
   VENDOR_ENTRY: "/vendor-entry",
+  CHANGE_PASSWORD: "/change-password",
 };
 
 // Filter Conditions

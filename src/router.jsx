@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { ROUTES } from "./constants/ui.js";
 import GuestDetails from "./pages/GuestDetails.jsx";
 import VendorEntry from "./pages/VendorEntry.jsx";
+import ChangePassword from "./pages/ChangePassword.jsx";
 // import GuestVerification from "./pages/GuestVerification.jsx";
 
 // ✅ Compute basename as a string first
@@ -42,6 +43,7 @@ const routes = [
           { path: ROUTES.CHECK_INS, element: <CheckIns /> },
           { path: ROUTES.GUEST_DETAILS, element: <GuestDetails /> },
           { path: ROUTES.VENDOR_ENTRY, element: <VendorEntry /> },
+          { path: ROUTES.CHANGE_PASSWORD, element: <ChangePassword /> },
         ],
       },
     ],
