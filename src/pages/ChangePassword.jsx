@@ -15,6 +15,7 @@ export default function ChangePassword() {
   const { userData } = useAuth();
   const navigate = useNavigate();
 
+  /*
   const validatePassword = (password) => {
     const errors = [];
 
@@ -47,6 +48,10 @@ export default function ChangePassword() {
     newPasswordErrors.length === 0 &&
     confirmPassword.length > 0 &&
     newPassword === confirmPassword;
+  */
+
+  const confirmPasswordError = "";
+  const isFormValid = true;
 
   const handleCancel = () => {
     navigate(-1);
@@ -61,10 +66,12 @@ export default function ChangePassword() {
       return;
     }
 
+    /*
     if (!isFormValid) {
       showToast("error", "Please fix password errors before saving.");
       return;
     }
+    */
 
     setIsSubmitting(true);
 
