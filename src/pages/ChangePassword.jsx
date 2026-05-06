@@ -15,7 +15,6 @@ export default function ChangePassword() {
   const { userData } = useAuth();
   const navigate = useNavigate();
 
-  /*
   const validatePassword = (password) => {
     const errors = [];
 
@@ -48,10 +47,9 @@ export default function ChangePassword() {
     newPasswordErrors.length === 0 &&
     confirmPassword.length > 0 &&
     newPassword === confirmPassword;
-  */
 
-  const confirmPasswordError = "";
-  const isFormValid = true;
+  // const confirmPasswordError = "";
+  // const isFormValid = true;
 
   const handleCancel = () => {
     navigate(-1);
@@ -66,12 +64,10 @@ export default function ChangePassword() {
       return;
     }
 
-    /*
     if (!isFormValid) {
       showToast("error", "Please fix password errors before saving.");
       return;
-    }
-    */
+    } // Original Code Temprarty Commented Out for Testing
 
     setIsSubmitting(true);
 
@@ -178,9 +174,9 @@ export default function ChangePassword() {
             )}
           </div>
 
-          {/* <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500">
             Note: 8+ chars with upper/lowercase, number, and symbol.
-          </p> */}
+          </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <button
