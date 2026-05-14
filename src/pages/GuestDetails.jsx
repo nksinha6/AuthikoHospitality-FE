@@ -183,6 +183,8 @@ export default function GuestDetails() {
               phoneNumber,
             );
 
+            console.log("Guest Data updatedData", updatedData);
+
             if (updatedData) {
               const transformed = transformGuestData(updatedData);
               const newStatus = transformed.verificationStatus;
