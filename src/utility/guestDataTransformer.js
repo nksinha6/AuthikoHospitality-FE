@@ -277,7 +277,13 @@ export const transformGuestData = (apiGuest) => {
     // Address
     address: address.fullAddress || "N/A",
     city: address.city || "N/A",
-    state: address.state || "N/A",
+    // state: address.state || "N/A",
+    state:
+      String(apiGuest.verificationId) === "1"
+        ? (address.state?.split(",")[0] || "N/A")
+            .toLowerCase()
+            .replace(/\b\w/g, (char) => char.toUpperCase())
+        : address.state || "N/A",
     pinCode: address.pinCode || "N/A",
     house: address.house || "N/A",
     street: address.street || "N/A",

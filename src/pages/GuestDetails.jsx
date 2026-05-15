@@ -515,13 +515,42 @@ export default function GuestDetails() {
       };
 
       const drawTrafficLightStatus = (status, referenceId, x, y) => {
-        const normalized = status?.toLowerCase() || "unknown";
+        // const normalized = status?.toLowerCase() || "unknown";
+        const normalized = status?.toString().trim().toLowerCase() || "unknown";
 
+        // const statusMap = {
+        //   verified: { label: "Verified", color: [34, 197, 94] },
+        //   pending: { label: "Pending", color: [234, 179, 8] },
+        //   failed: { label: "Failed", color: [239, 68, 68] },
+        //   processing: { label: "Processing", color: [59, 130, 246] },
+        // };
         const statusMap = {
           verified: { label: "Verified", color: [34, 197, 94] },
-          pending: { label: "Pending", color: [234, 179, 8] },
-          failed: { label: "Failed", color: [239, 68, 68] },
-          processing: { label: "Processing", color: [59, 130, 246] },
+
+          "face verified": {
+            label: "Face Verified",
+            color: [16, 185, 129],
+          },
+
+          "identity verified": {
+            label: "Identity Verified",
+            color: [6, 182, 212],
+          },
+
+          pending: {
+            label: "Pending",
+            color: [234, 179, 8],
+          },
+
+          failed: {
+            label: "Failed",
+            color: [239, 68, 68],
+          },
+
+          processing: {
+            label: "Processing",
+            color: [59, 130, 246],
+          },
         };
 
         const cfg = statusMap[normalized] || {
@@ -664,6 +693,7 @@ export default function GuestDetails() {
 
         // Row 3: Verification Status & DigiLocker Reference ID
         addFieldLabel("Verification Status", identityCol1X, yPos + 27);
+        console.log("PDF Verification Status:", guest.verificationStatus);
         drawTrafficLightStatus(
           guest.verificationStatus,
           null, // ❌ remove inline ref from traffic light
@@ -678,8 +708,31 @@ export default function GuestDetails() {
         yPos += hasImage ? 50 : 40;
 
         // Row 4: Aadhaar & Verification Timestamp (full width)
-        addFieldLabel("Masked Aadhaar Number", col1X, yPos);
-        addFieldValue(maskAadhaar(guest.aadhaarNumber), col1X, yPos + 4);
+        // addFieldLabel("Masked Aadhaar Number", col1X, yPos);
+        // addFieldValue(maskAadhaar(guest.aadhaarNumber), col1X, yPos + 4);
+
+        const isPassport = String(guest.verificationId) === "1";
+
+        let idLabel = "Masked Aadhaar Number";
+        let idValue = maskAadhaar(guest.aadhaarNumber);
+
+        if (isPassport && guest.aadhaarNumber) {
+          try {
+            const decodedString = atob(guest.aadhaarNumber);
+            const decodedData = JSON.parse(decodedString);
+
+            idLabel = "Passport Number";
+            idValue = decodedData?.passport_number || "N/A";
+          } catch (error) {
+            console.error("Error decoding passport data:", error);
+
+            idLabel = "Passport Number";
+            idValue = "N/A";
+          }
+        }
+
+        addFieldLabel(idLabel, col1X, yPos);
+        addFieldValue(idValue, col1X, yPos + 4);
 
         addFieldLabel("Verification Timestamp", col2X, yPos);
         addFieldValue(
@@ -1087,7 +1140,9 @@ export default function GuestDetails() {
                 { key: "firstName", label: "First Name" },
                 { key: "lastName", label: "Surname" },
                 { key: "bookingId", label: "Booking ID" },
-                { key: "maskedAadhaar", label: "Aadhaar Number" },
+                // { key: "maskedAadhaar", label: "Aadhaar Number" },
+                { key: "idDocument", label: "ID Document" },
+                { key: "maskedAadhaar", label: "ID Number" },
                 { key: "city", label: "City" },
                 { key: "state", label: "State" },
                 { key: "verificationStatus", label: "Verification Status" },
@@ -1118,6 +1173,12 @@ export default function GuestDetails() {
 
                 hostName: (_, row) => extractPurposeId(row.bookingId),
 
+                idDocument: (_, row) => {
+                  return String(row.verificationId) === "1"
+                    ? "Passport"
+                    : "Aadhaar";
+                },
+
                 actions: (_, row) => (
                   <button
                     className="text-[#1b3631] text-sm font-medium hover:underline"
@@ -1143,8 +1204,44 @@ export default function GuestDetails() {
                 bookingId: (_, row) => extractPurposeId(row.bookingId),
 
                 checkInDate: (_, row) => formatShortDate(row.date),
+                idDocument: (_, row) => {
+                  return String(row.verificationId) === "1"
+                    ? "Passport"
+                    : "Aadhaar Card";
+                },
 
-                maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),
+                // maskedAadhaar: (_, row) => maskAadhaar(row.aadhaarNumber),// temporary Commenting out
+                maskedAadhaar: (_, row) => {
+                  console.log("ROW DATA:", row);
+
+                  // Passport flow
+                  if (String(row.verificationId) === "1" && row.aadhaarNumber) {
+                    try {
+                      // Decode base64
+                      const decodedString = atob(row.aadhaarNumber);
+
+                      console.log("Decoded String:", decodedString);
+
+                      // Parse JSON
+                      const decodedData = JSON.parse(decodedString);
+
+                      console.log(
+                        "Decoded passport number:",
+                        decodedData?.passport_number,
+                      );
+
+                      // Return passport number
+                      return decodedData?.passport_number || "N/A";
+                    } catch (error) {
+                      console.error("Error decoding passport data:", error);
+
+                      return "N/A";
+                    }
+                  }
+
+                  // Aadhaar flow
+                  return maskAadhaar(row.aadhaarNumber);
+                },
 
                 verificationStatus: (_, row) =>
                   getStatusBadge(row.verificationStatus),
