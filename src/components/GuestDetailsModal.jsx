@@ -381,12 +381,40 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
 
       // Aadhaar and Verification details
       // Masked Aadhaar Number
+      // doc.setFont("helvetica", "bold");
+      // doc.setTextColor(100, 100, 100);
+      // doc.text("Masked Aadhaar Number", margin, yPos);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(0, 0, 0);
+      // doc.text(maskAadhaar(guestData.aadhaarNumber), margin, yPos + 5);
+
+      const isPassport = String(guestData.verificationId) === "1";
+
+      let idLabel = "Masked Aadhaar Number";
+      let idValue = maskAadhaar(guestData.aadhaarNumber);
+
+      if (isPassport && guestData.aadhaarNumber) {
+        try {
+          const decodedString = atob(guestData.aadhaarNumber);
+          const decodedData = JSON.parse(decodedString);
+
+          idLabel = "Passport Number";
+          idValue = decodedData?.passport_number || "N/A";
+        } catch (error) {
+          console.error("Error decoding passport data:", error);
+
+          idLabel = "Passport Number";
+          idValue = "N/A";
+        }
+      }
+
       doc.setFont("helvetica", "bold");
       doc.setTextColor(100, 100, 100);
-      doc.text("Masked Aadhaar Number", margin, yPos);
+      doc.text(idLabel, margin, yPos);
+
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      doc.text(maskAadhaar(guestData.aadhaarNumber), margin, yPos + 5);
+      doc.text(idValue, margin, yPos + 5);
 
       // Verification Timestamp
       doc.setFont("helvetica", "bold");
@@ -731,10 +759,37 @@ const GuestDetailsModal = ({ show, handleClose, guest }) => {
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-4">
-                <div>
+                {/* <div>
                   <p className="text-sm text-gray-500">Masked Aadhaar Number</p>
                   <p className="font-medium text-gray-800 font-mono">
                     {maskAadhaar(guestData.aadhaarNumber)}
+                  </p>
+                </div> */}
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {String(guestData.verificationId) === "1"
+                      ? "Passport Number"
+                      : "Masked Aadhaar Number"}
+                  </p>
+
+                  <p className="font-medium text-gray-800 font-mono">
+                    {String(guestData.verificationId) === "1"
+                      ? (() => {
+                          try {
+                            const decodedString = atob(guestData.aadhaarNumber);
+                            const decodedData = JSON.parse(decodedString);
+
+                            return decodedData?.passport_number || "N/A";
+                          } catch (error) {
+                            console.error(
+                              "Error decoding passport data:",
+                              error,
+                            );
+
+                            return "N/A";
+                          }
+                        })()
+                      : maskAadhaar(guestData.aadhaarNumber)}
                   </p>
                 </div>
                 <div>
