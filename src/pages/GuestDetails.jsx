@@ -525,48 +525,31 @@ export default function GuestDetails() {
         //   processing: { label: "Processing", color: [59, 130, 246] },
         // };
         const statusMap = {
-          verified: { label: "Verified", color: [34, 197, 94] },
+          verified: "Verified",
 
-          "face verified": {
-            label: "Face Verified",
-            color: [16, 185, 129],
-          },
+          "face verified": "Face Verified",
 
-          "identity verified": {
-            label: "Identity Verified",
-            color: [6, 182, 212],
-          },
+          "identity verified": "Identity Verified",
 
-          pending: {
-            label: "Pending",
-            color: [234, 179, 8],
-          },
+          pending: "Pending",
 
-          failed: {
-            label: "Failed",
-            color: [239, 68, 68],
-          },
+          failed: "Failed",
 
-          processing: {
-            label: "Processing",
-            color: [59, 130, 246],
-          },
+          processing: "Processing",
         };
 
-        const cfg = statusMap[normalized] || {
-          label: "Unknown",
-          color: [156, 163, 175],
-        };
+        const displayStatus = statusMap[normalized] || status || "Unknown";
 
-        /* ---- Traffic light dot ---- */
-        doc.setFillColor(...cfg.color);
+        /* ---- Gray dot ---- */
+        doc.setFillColor(156, 163, 175);
         doc.circle(x + 1.5, y - 1.2, 1.1, "F");
 
-        /* ---- Status text ---- */
+        /* ---- Black text ---- */
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(...cfg.color);
-        doc.text(cfg.label, x + 5, y);
+        doc.setTextColor(0, 0, 0);
+
+        doc.text(displayStatus, x + 5, y);
       };
 
       const addFieldLabel = (label, x, y) => {
